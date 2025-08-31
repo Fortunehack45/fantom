@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { GhostIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 
 export function Header() {
@@ -19,7 +25,9 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center px-4">
         <Link href="/" className="flex items-center gap-2 mr-6">
           <GhostIcon className="w-8 h-8 text-primary" />
-          <span className="text-2xl font-bold font-headline uppercase">Fantom eSport</span>
+          <span className="text-2xl font-bold font-headline uppercase">
+            Fantom eSport
+          </span>
         </Link>
         <nav className="hidden lg:flex items-center gap-6 text-sm font-medium uppercase">
           {navLinks.map((link) => (
@@ -43,9 +51,14 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
+              <SheetHeader>
+                <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
+              </SheetHeader>
               <Link href="/" className="flex items-center gap-2 mb-8">
-                 <GhostIcon className="w-8 h-8 text-primary" />
-                 <span className="text-2xl font-bold font-headline uppercase">Fantom eSport</span>
+                <GhostIcon className="w-8 h-8 text-primary" />
+                <span className="text-2xl font-bold font-headline uppercase">
+                  Fantom eSport
+                </span>
               </Link>
               <nav className="flex flex-col gap-4">
                 {navLinks.map((link) => (
