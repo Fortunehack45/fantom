@@ -1,7 +1,9 @@
 
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -12,67 +14,135 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface BlogPost {
+    id: string;
+    title: string;
+    content: string;
+    imageUrl?: string;
+}
+
+interface RosterMember {
+    id: string;
+    name: string;
+    role: string;
+    server: string;
+}
+
+interface Announcement {
+    id: string;
+    author: string;
+    content: string;
+}
 
 export default function AdminPage() {
-    const initialBlogPosts = [
-        { title: "The Ultimate Guide to Winning", content: "Discover the strategies and tips from our pro players to dominate the competition and climb the ranks...", imageUrl: "https://picsum.photos/400/250" },
-        { title: "New Season, New Goals", content: "The new season is upon us! Here's what we're aiming for as a clan and how you can get involved.", imageUrl: "https://picsum.photos/400/250" },
-        { title: "Community Spotlight: ErnestoDKS412", content: "An interview with one of our most legendary members. Learn about their journey in Fantom eSport.", imageUrl: "https://picsum.photos/400/250" },
-    ];
-
-    const initialRoster = [
-        { name: "ErnestoDKS412", role: "Legendary", server: "01Ernesto-5332" },
-        { name: "PlayerTwo", role: "Pro", server: "01Ernesto-5332" },
-        { name: "PlayerThree", role: "New Member", server: "practice-server.fantom.gg" },
-    ];
-
-    const initialAnnouncements = [
-        { author: "@DukeGR4813", content: "New event announced! Check the events channel for more details and sign up now." },
-        { author: "@Admin", content: "Weekly clan meeting this Friday at 8 PM CET. Be there!" },
-    ];
-
-    const [blogPosts, setBlogPosts] = useState(initialBlogPosts);
-    const [roster, setRoster] = useState(initialRoster);
-    const [announcements, setAnnouncements] = useState(initialAnnouncements);
+    const { toast } = useToast();
+    const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+    const [roster, setRoster] = useState<RosterMember[]>([]);
+    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
     const [newPost, setNewPost] = useState({ title: '', imageUrl: '', content: '' });
     const [newMember, setNewMember] = useState({ name: '', role: '', server: '' });
     const [newAnnouncement, setNewAnnouncement] = useState({ author: '', content: '' });
 
+    const fetchBlogPosts = async () => {
+        const querySnapshot = await getDocs(collection(db, "blogPosts"));
+        const posts: BlogPost[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
+        setBlogPosts(posts);
+    };
+
+    const fetchRoster = async () => {
+        const querySnapshot = await getDocs(collection(db, "roster"));
+        const rosterData: RosterMember[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RosterMember));
+        setRoster(rosterData);
+    };
+
+    const fetchAnnouncements = async () => {
+        const querySnapshot = await getDocs(collection(db, "announcements"));
+        const announcementsData: Announcement[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
+        setAnnouncements(announcementsData);
+    };
+
+    useEffect(() => {
+        fetchBlogPosts();
+        fetchRoster();
+        fetchAnnouncements();
+    }, []);
+
     // Blog Post Handlers
-    const handleAddPost = (e: React.FormEvent) => {
+    const handleAddPost = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newPost.title && newPost.content) {
-            setBlogPosts([...blogPosts, { ...newPost, imageUrl: newPost.imageUrl || 'https://picsum.photos/400/250' }]);
-            setNewPost({ title: '', imageUrl: '', content: '' });
+            try {
+                await addDoc(collection(db, "blogPosts"), { 
+                    ...newPost, 
+                    imageUrl: newPost.imageUrl || 'https://picsum.photos/400/250' 
+                });
+                setNewPost({ title: '', imageUrl: '', content: '' });
+                fetchBlogPosts();
+                 toast({ title: "Success", description: "Blog post added." });
+            } catch (error) {
+                toast({ variant: "destructive", title: "Error", description: "Could not add blog post." });
+            }
         }
     };
-    const handleDeletePost = (index: number) => {
-        setBlogPosts(blogPosts.filter((_, i) => i !== index));
+    const handleDeletePost = async (id: string) => {
+        try {
+            await deleteDoc(doc(db, "blogPosts", id));
+            fetchBlogPosts();
+            toast({ title: "Success", description: "Blog post deleted." });
+        } catch (error) {
+            toast({ variant: "destructive", title: "Error", description: "Could not delete blog post." });
+        }
     };
 
     // Roster Handlers
-    const handleAddMember = (e: React.FormEvent) => {
+    const handleAddMember = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newMember.name && newMember.role && newMember.server) {
-            setRoster([...roster, newMember]);
-            setNewMember({ name: '', role: '', server: '' });
+            try {
+                await addDoc(collection(db, "roster"), newMember);
+                setNewMember({ name: '', role: '', server: '' });
+                fetchRoster();
+                toast({ title: "Success", description: "Roster member added." });
+            } catch (error) {
+                 toast({ variant: "destructive", title: "Error", description: "Could not add roster member." });
+            }
         }
     };
-    const handleDeleteMember = (index: number) => {
-        setRoster(roster.filter((_, i) => i !== index));
+    const handleDeleteMember = async (id: string) => {
+        try {
+            await deleteDoc(doc(db, "roster", id));
+            fetchRoster();
+            toast({ title: "Success", description: "Roster member deleted." });
+        } catch (error) {
+            toast({ variant: "destructive", title: "Error", description: "Could not delete roster member." });
+        }
     };
 
     // Announcement Handlers
-    const handleAddAnnouncement = (e: React.FormEvent) => {
+    const handleAddAnnouncement = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newAnnouncement.author && newAnnouncement.content) {
-            setAnnouncements([...announcements, newAnnouncement]);
-            setNewAnnouncement({ author: '', content: '' });
+            try {
+                await addDoc(collection(db, "announcements"), newAnnouncement);
+                setNewAnnouncement({ author: '', content: '' });
+                fetchAnnouncements();
+                toast({ title: "Success", description: "Announcement added." });
+            } catch (error) {
+                toast({ variant: "destructive", title: "Error", description: "Could not add announcement." });
+            }
         }
     };
-    const handleDeleteAnnouncement = (index: number) => {
-        setAnnouncements(announcements.filter((_, i) => i !== index));
+    const handleDeleteAnnouncement = async (id: string) => {
+       try {
+            await deleteDoc(doc(db, "announcements", id));
+            fetchAnnouncements();
+            toast({ title: "Success", description: "Announcement deleted." });
+        } catch (error) {
+            toast({ variant: "destructive", title: "Error", description: "Could not delete announcement." });
+        }
     };
 
 
@@ -117,12 +187,12 @@ export default function AdminPage() {
                         <div>
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Existing Posts</h3>
                              <div className="space-y-4">
-                                {blogPosts.map((post, index) => (
-                                <div key={index} className="flex justify-between items-center bg-background/50 p-3 rounded-lg">
+                                {blogPosts.map((post) => (
+                                <div key={post.id} className="flex justify-between items-center bg-background/50 p-3 rounded-lg">
                                     <p className="font-medium">{post.title}</p>
                                     <div className="flex gap-2">
                                         <Button variant="ghost" size="icon"><Edit className="h-4 w-4"/></Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeletePost(index)}><Trash2 className="h-4 w-4"/></Button>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeletePost(post.id)}><Trash2 className="h-4 w-4"/></Button>
                                     </div>
                                 </div>
                                 ))}
@@ -170,13 +240,13 @@ export default function AdminPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {roster.map((member, index) => (
-                                        <TableRow key={index}>
+                                    {roster.map((member) => (
+                                        <TableRow key={member.id}>
                                             <TableCell>{member.name}</TableCell>
                                             <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
                                             <TableCell>{member.server}</TableCell>
                                             <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteMember(index)}><Trash2 className="h-4 w-4"/></Button>
+                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteMember(member.id)}><Trash2 className="h-4 w-4"/></Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -212,13 +282,13 @@ export default function AdminPage() {
                         <div>
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Recent Announcements</h3>
                              <div className="space-y-4">
-                                {announcements.map((ann, index) => (
-                                <div key={index} className="flex justify-between items-start bg-background/50 p-3 rounded-lg">
+                                {announcements.map((ann) => (
+                                <div key={ann.id} className="flex justify-between items-start bg-background/50 p-3 rounded-lg">
                                     <div>
                                         <p className="font-bold text-sm">{ann.author}</p>
                                         <p className="text-sm text-muted-foreground">{ann.content}</p>
                                     </div>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 flex-shrink-0" onClick={() => handleDeleteAnnouncement(index)}><Trash2 className="h-4 w-4"/></Button>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 flex-shrink-0" onClick={() => handleDeleteAnnouncement(ann.id)}><Trash2 className="h-4 w-4"/></Button>
                                 </div>
                                 ))}
                              </div>

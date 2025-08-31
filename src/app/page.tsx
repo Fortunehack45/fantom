@@ -1,5 +1,8 @@
+'use client';
 
-
+import { useEffect, useState } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import Image from "next/image";
@@ -7,24 +10,100 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { GhostIcon } from "@/components/icons";
 import { Dices, Swords, Users } from "lucide-react";
 import Link from "next/link";
 
-export default function Home() {
-  const roster = [
-    { name: "ErnestoDKS412", role: "Legendary", server: "01Ernesto-5332", moderator: "Moderator", date: "06/06/2022 @ 11:25 AM CET", rankColor: "bg-purple-500" },
-    { name: "PlayerTwo", role: "Pro", server: "01Ernesto-5332", moderator: "Moderator", date: "07/06/2022 @ 10:15 AM CET", rankColor: "bg-green-500" },
-    { name: "PlayerThree", role: "New Member", server: "practice-server.fantom.gg", moderator: "Member", date: "08/06/2022 @ 09:00 AM CET", rankColor: "bg-blue-500" },
-    { name: "PlayerFour", role: "Legendary", server: "01Ernesto-5332", moderator: "Moderator", date: "09/06/2022 @ 12:00 PM CET", rankColor: "bg-purple-500" },
-    { name: "PlayerFive", role: "New Member", server: "01Ernesto-5332", moderator: "Member", date: "10/06/2022 @ 01:30 PM CET", rankColor: "bg-blue-500" },
-  ];
+interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  hint: string;
+  category: string;
+}
 
-  const blogPosts = [
-    { slug: "the-ultimate-guide-to-winning", title: "The Ultimate Guide to Winning", hint: "fantasy character art", category: "Tutorial" },
-    { slug: "new-season-new-goals", title: "New Season, New Goals", hint: "esports team strategy", category: "News" },
-    { slug: "community-spotlight-ernestodks412", title: "Community Spotlight: ErnestoDKS412", hint: "gamer portrait", category: "Interview" },
-  ];
+interface RosterMember {
+    id: string;
+    name: string;
+    role: string;
+    server: string;
+    date: string;
+    rankColor: string;
+}
+
+interface Announcement {
+    id: string;
+    author: string;
+    content: string;
+    date: string;
+}
+
+export default function Home() {
+  const [roster, setRoster] = useState<RosterMember[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+
+  useEffect(() => {
+    const fetchRoster = async () => {
+        const querySnapshot = await getDocs(collection(db, "roster"));
+        const rosterData: RosterMember[] = querySnapshot.docs.map(doc => ({ 
+            id: doc.id,
+            name: doc.data().name,
+            role: doc.data().role,
+            server: doc.data().server,
+            date: new Date().toLocaleString(), // Placeholder date
+            rankColor: 'bg-gray-500' // Placeholder color
+        }));
+        
+        // Static data for demonstration
+        const staticRoster = [
+            { id: '1', name: "ErnestoDKS412", role: "Legendary", server: "01Ernesto-5332", date: "06/06/2022 @ 11:25 AM CET", rankColor: "bg-purple-500" },
+            { id: '2', name: "PlayerTwo", role: "Pro", server: "01Ernesto-5332", date: "07/06/2022 @ 10:15 AM CET", rankColor: "bg-green-500" },
+            { id: '3', name: "PlayerThree", role: "New Member", server: "practice-server.fantom.gg", date: "08/06/2022 @ 09:00 AM CET", rankColor: "bg-blue-500" },
+        ];
+        
+        setRoster([...staticRoster, ...rosterData]);
+    };
+
+    const fetchBlogPosts = async () => {
+        const querySnapshot = await getDocs(collection(db, "blogPosts"));
+        const postsData: BlogPost[] = querySnapshot.docs.map(doc => ({
+             id: doc.id,
+             slug: doc.data().title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''),
+             title: doc.data().title,
+             content: doc.data().content,
+             hint: "gamer portrait",
+             category: "News"
+        }));
+         // Static data for demonstration
+        const staticPosts = [
+            { id: '1', slug: "the-ultimate-guide-to-winning", title: "The Ultimate Guide to Winning", content: "Discover the strategies and tips from our pro players...", hint: "fantasy character art", category: "Tutorial" },
+            { id: '2', slug: "new-season-new-goals", title: "New Season, New Goals", content: "The new season is upon us! Here's what we're aiming for...", hint: "esports team strategy", category: "News" },
+        ];
+
+        setBlogPosts([...staticPosts, ...postsData].slice(0, 3));
+    };
+
+    const fetchAnnouncements = async () => {
+        const querySnapshot = await getDocs(collection(db, "announcements"));
+        const announcementsData: Announcement[] = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            author: doc.data().author,
+            content: doc.data().content,
+            date: new Date().toLocaleString()
+        }));
+
+        const staticAnnouncements = [
+             { id: '1', author: "@DukeGR4813", content: "New event announced! Check the events channel for more details and sign up now.", date: "06/06/2022 @ 11:25 AM CET" },
+        ];
+
+        setAnnouncements([...staticAnnouncements, ...announcementsData].slice(0,3));
+    };
+
+    fetchRoster();
+    fetchBlogPosts();
+    fetchAnnouncements();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -96,12 +175,12 @@ export default function Home() {
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {blogPosts.map((post, i) => (
-                <Link key={i} href={`/blog/${post.slug}`}>
+              {blogPosts.map((post) => (
+                <Link key={post.id} href={`/blog/${post.slug}`}>
                   <Card className="overflow-hidden flex flex-col h-full hover:border-primary transition-colors">
                     <CardHeader className="p-0 relative">
                       <Image
-                        src={`https://picsum.photos/400/${250 + i}`}
+                        src={`https://picsum.photos/400/250?random=${post.id}`}
                         alt="Blog Post Image"
                         width={400}
                         height={250}
@@ -113,7 +192,7 @@ export default function Home() {
                     <CardContent className="p-6 flex-grow flex flex-col">
                       <CardTitle className="text-xl font-headline mb-2">{post.title}</CardTitle>
                       <p className="text-muted-foreground text-sm flex-grow">
-                        Discover the strategies and tips from our pro players to dominate the competition and climb the ranks...
+                        {post.content.substring(0, 100)}...
                       </p>
                     </CardContent>
                   </Card>
@@ -170,7 +249,7 @@ export default function Home() {
                                     </TableHeader>
                                     <TableBody>
                                         {roster.map((member, index) => (
-                                            <TableRow key={index}>
+                                            <TableRow key={member.id}>
                                                 <TableCell>{index + 1}.</TableCell>
                                                 <TableCell>{member.name}</TableCell>
                                                 <TableCell><Badge variant="secondary" className={`${member.rankColor} text-white`}>{member.role}</Badge></TableCell>
@@ -199,16 +278,16 @@ export default function Home() {
                 <div className="grid lg:grid-cols-2 gap-8">
                     <div className="space-y-4">
                         <h3 className="text-xl font-bold flex items-center gap-2"><Dices /> Discord Announcements</h3>
-                        {[...Array(3)].map((_,i) => (
-                            <div key={i} className="bg-background/50 p-4 rounded-lg">
+                        {announcements.map((ann) => (
+                            <div key={ann.id} className="bg-background/50 p-4 rounded-lg">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Image src="https://picsum.photos/40/40" width={40} height={40} alt="User Avatar" className="rounded-full" data-ai-hint="person avatar"/>
                                     <div>
-                                        <span className="font-bold text-sm">@DukeGR4813</span>
-                                        <span className="text-xs text-muted-foreground ml-2">06/06/2022 @ 11:25 AM CET</span>
+                                        <span className="font-bold text-sm">{ann.author}</span>
+                                        <span className="text-xs text-muted-foreground ml-2">{ann.date}</span>
                                     </div>
                                 </div>
-                                <p className="text-sm text-muted-foreground">New event announced! Check the events channel for more details and sign up now.</p>
+                                <p className="text-sm text-muted-foreground">{ann.content}</p>
                             </div>
                         ))}
                     </div>
