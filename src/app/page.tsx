@@ -3,136 +3,218 @@ import { Footer } from "@/components/footer";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gamepad2, Users, Trophy } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { GhostIcon } from "@/components/icons";
+import { Dices, Swords, Users } from "lucide-react";
 
 export default function Home() {
+  const roster = [
+    { name: "ErnestoDKS412", role: "Legendary", server: "01Ernesto-5332", moderator: "Moderator", date: "06/06/2022 @ 11:25 AM CET", rankColor: "bg-purple-500" },
+    { name: "ErnestoDKS412", role: "Legendary", server: "01Ernesto-5332", moderator: "Moderator", date: "06/06/2022 @ 11:25 AM CET", rankColor: "bg-purple-500" },
+    { name: "ErnestoDKS412", role: "Pro", server: "01Ernesto-5332", moderator: "Moderator", date: "06/06/2022 @ 11:25 AM CET", rankColor: "bg-green-500" },
+    { name: "ErnestoDKS412", role: "Legendary", server: "01Ernesto-5332", moderator: "Moderator", date: "06/06/2022 @ 11:25 AM CET", rankColor: "bg-purple-500" },
+    { name: "ErnestoDKS412", role: "New Member", server: "01Ernesto-5332", moderator: "Moderator", date: "06/06/2022 @ 11:25 AM CET", rankColor: "bg-blue-500" },
+  ];
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <Header />
       <main className="flex-grow">
-        <section className="relative h-[60vh] md:h-[80vh] flex items-center justify-center text-center text-white">
+        {/* Hero Section */}
+        <section className="relative h-[70vh] flex items-center justify-center text-center text-white">
           <Image
             src="https://picsum.photos/1920/1080"
-            alt="Fantom eSport Team"
+            alt="Fantom eSport Background"
             fill
             className="object-cover"
-            data-ai-hint="gaming action"
+            data-ai-hint="dark fantasy landscape"
           />
-          <div className="absolute inset-0 bg-black/60" />
-          <div className="relative z-10 p-4 animate-in fade-in duration-1000">
-            <h1 className="text-4xl md:text-7xl font-headline font-bold mb-4">
-              Fantom eSport
+          <div className="absolute inset-0 bg-black/70" />
+          <div className="relative z-10 p-4 flex flex-col items-center animate-in fade-in duration-1000">
+            <h1 className="text-6xl md:text-8xl font-headline font-black mb-2 tracking-wider">
+              FANTOM
             </h1>
-            <p className="text-lg md:text-2xl mb-8">
-              Dominating the competition.
+            <p className="text-xl md:text-2xl font-headline text-primary">
+              POTENTIA INVICTA
             </p>
-            <Button size="lg">Join Our Discord</Button>
           </div>
         </section>
 
-        <section id="about" className="py-16 md:py-24 bg-card">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-12">
-              About Fantom eSport
-            </h2>
-            <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-              <div className="md:w-1/2">
-                <Image
-                  src="https://picsum.photos/600/400"
-                  alt="Team members celebrating"
-                  width={600}
-                  height={400}
-                  className="rounded-lg shadow-2xl"
-                  data-ai-hint="team celebration"
-                />
-              </div>
-              <div className="md:w-1/2">
-                <p className="text-muted-foreground text-lg mb-4">
-                  Fantom eSport was forged in the fires of competitive gaming. We are a dedicated group of players who strive for excellence, teamwork, and victory. Our journey is fueled by passion and a relentless drive to be the best.
-                </p>
-                <p className="text-muted-foreground text-lg">
-                  We believe in nurturing talent, fostering a positive community, and competing at the highest levels. Join us and become a part of our legacy.
-                </p>
-              </div>
+        {/* Server Status Section */}
+        <section id="servers" className="py-16 md:py-24">
+            <div className="container mx-auto px-4">
+                <div className="grid md:grid-cols-2 gap-8">
+                    <Card className="bg-card border-l-4 border-green-500">
+                        <CardContent className="p-6">
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-lg font-bold">L2Eve x1 Interlude Retail Like - [48/32/2091]</h3>
+                                <Users className="text-green-500"/>
+                            </div>
+                            <p className="text-muted-foreground mb-4">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                            <div className="flex items-center gap-4">
+                                <Button variant="accent" size="sm">Discord</Button>
+                                <p className="text-xs text-muted-foreground">https://private-server.com/l2eve-x1</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-card border-l-4 border-green-500">
+                        <CardContent className="p-6">
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-lg font-bold">Moon-Land Interlude Remastered - 04/11</h3>
+                                <Users className="text-green-500"/>
+                            </div>
+                            <p className="text-muted-foreground mb-4">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                             <div className="flex items-center gap-4">
+                                <Button variant="accent" size="sm">Discord</Button>
+                                <p className="text-xs text-muted-foreground">https://private-server.com/moon-land</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
-          </div>
         </section>
 
-        <section id="games" className="py-16 md:py-24">
+
+        {/* Blog Section */}
+        <section id="blog" className="py-16 md:py-24 bg-card">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-12">
-              Our Games
-            </h2>
+            <div className="text-center mb-12">
+              <p className="text-primary font-bold uppercase">Read Our Most Recent Blog Posts</p>
+              <h2 className="text-3xl md:text-4xl font-headline font-bold">
+                BLOG - RECENT ARTICLES
+              </h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <Card>
-                <CardHeader>
-                  <Image
-                    src="https://picsum.photos/400/250"
-                    alt="CODM"
-                    width={400}
-                    height={250}
-                    className="rounded-t-lg object-cover"
-                    data-ai-hint="mobile shooter"
-                  />
-                </CardHeader>
-                <CardContent>
-                  <CardTitle className="text-2xl font-headline mb-2">Call of Duty: Mobile</CardTitle>
-                  <p className="text-muted-foreground">
-                    Fast-paced mobile FPS action where we dominate the leaderboards.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <Image
-                    src="https://picsum.photos/400/251"
-                    alt="Blood Strike"
-                    width={400}
-                    height={251}
-                    className="rounded-t-lg object-cover"
-                    data-ai-hint="tactical shooter"
-                  />
-                </CardHeader>
-                <CardContent>
-                  <CardTitle className="text-2xl font-headline mb-2">Blood Strike</CardTitle>
-                  <p className="text-muted-foreground">
-                    Strategic gameplay and clutch moments are our specialty in this tactical shooter.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <Image
-                    src="https://picsum.photos/400/252"
-                    alt="Future Game"
-                    width={400}
-                    height={252}
-                    className="rounded-t-lg object-cover"
-                    data-ai-hint="esports arena"
-                  />
-                </CardHeader>
-                <CardContent>
-                  <CardTitle className="text-2xl font-headline mb-2">More to Come</CardTitle>
-                  <p className="text-muted-foreground">
-                    We are always looking to expand into new competitive titles.
-                  </p>
-                </CardContent>
-              </Card>
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <CardHeader className="p-0">
+                    <Image
+                      src={`https://picsum.photos/400/${250 + i}`}
+                      alt="Blog Post Image"
+                      width={400}
+                      height={250}
+                      className="w-full h-48 object-cover"
+                      data-ai-hint="fantasy character art"
+                    />
+                     <Badge className="absolute top-2 left-2" variant="primary">TUTORIAL</Badge>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <CardTitle className="text-xl font-headline mb-2">QUIS IPSUM SUSPENDISSE ULTRIPISER...</CardTitle>
+                    <p className="text-muted-foreground text-sm">
+                      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+             <div className="text-center mt-12">
+                <Button variant="outline">View All Posts</Button>
             </div>
           </div>
         </section>
 
-        <section id="join" className="py-16 md:py-24 bg-card">
+        {/* Clan Roster Section */}
+        <section id="roster" className="py-16 md:py-24">
+            <div className="container mx-auto px-4">
+                 <div className="text-center mb-12">
+                    <p className="text-primary font-bold uppercase">WE ARE BEST OF THE BEST, JOIN US!</p>
+                    <h2 className="text-3xl md:text-4xl font-headline font-bold">
+                        OUR CLAN - FANTOM
+                    </h2>
+                </div>
+                <div className="grid lg:grid-cols-3 gap-8 items-start">
+                    <Card className="lg:col-span-1 bg-card border-l-4 border-primary">
+                        <CardHeader>
+                            <CardTitle>LOREM IPSUM DOLOR SITERN!</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-muted-foreground mb-6">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida.</p>
+                            <Button variant="primary">Recruitment</Button>
+                        </CardContent>
+                    </Card>
+                    <div className="lg:col-span-2">
+                        <Card className="bg-card">
+                            <CardHeader className="flex flex-row justify-between items-center">
+                                <CardTitle className="flex items-center gap-2"><Swords/> Clan Roster</CardTitle>
+                                <div className="flex gap-2">
+                                    <Button variant="secondary" size="sm">Server 1</Button>
+                                    <Button variant="ghost" size="sm">Server 2</Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>#</TableHead>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Role</TableHead>
+                                            <TableHead>Server</TableHead>
+                                            <TableHead>Role</TableHead>
+                                            <TableHead>Date</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {roster.map((member, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell>{index + 1}.</TableCell>
+                                                <TableCell>{member.name}</TableCell>
+                                                <TableCell><Badge className={`${member.rankColor} text-white`}>{member.role}</Badge></TableCell>
+                                                <TableCell>{member.server}</TableCell>
+                                                <TableCell>{member.moderator}</TableCell>
+                                                <TableCell>{member.date}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        {/* Discord Section */}
+        <section id="discord" className="py-16 md:py-24 bg-card">
+            <div className="container mx-auto px-4 text-center">
+                 <p className="text-primary font-bold uppercase">JOIN TO OUT DISCORD SERVER!</p>
+                 <h2 className="text-3xl md:text-4xl font-headline font-bold mb-12">
+                    DISCORD SERVER
+                </h2>
+                <div className="grid lg:grid-cols-2 gap-8 text-left">
+                    <div className="space-y-4">
+                        <h3 className="text-xl font-bold flex items-center gap-2"><Dices /> Discord Announcements</h3>
+                        {[...Array(3)].map((_,i) => (
+                            <div key={i} className="bg-background/50 p-4 rounded-lg">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Image src="https://picsum.photos/40/40" width={40} height={40} alt="User Avatar" className="rounded-full" data-ai-hint="person avatar"/>
+                                    <div>
+                                        <span className="font-bold">@DukeGR4813</span>
+                                        <span className="text-xs text-muted-foreground ml-2">06/06/2022 @ 11:25 AM CET</span>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-muted-foreground">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt.</p>
+                            </div>
+                        ))}
+                    </div>
+                     <div className="flex flex-col items-center justify-center bg-background/50 rounded-lg p-8">
+                        <Image src="https://picsum.photos/300/400" width={300} height={400} alt="Discord Promo" className="mb-6 rounded-lg" data-ai-hint="fantasy warrior character" />
+                        <Button variant="primary" size="lg">Join Discord</Button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <section id="about" className="py-16 md:py-24">
           <div className="container mx-auto px-4 text-center">
+             <p className="text-primary font-bold uppercase">WE ARE THE BEST L2 PLAYERS</p>
             <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">
-              Join Our Ranks
+              ABOUT OUR CLAN
             </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-8">
-              Ready to take your gaming to the next level? Join the Fantom eSport community and compete with the best.
+            <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis. 
             </p>
-            <Button size="lg" variant="default">
-              Apply to Join
-            </Button>
           </div>
         </section>
       </main>
