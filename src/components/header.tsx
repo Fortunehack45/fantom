@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -14,10 +15,10 @@ import { Menu } from "lucide-react";
 
 export function Header() {
   const navLinks = [
-    { href: "#servers", label: "Servers Overview" },
-    { href: "#blog", label: "Blog" },
-    { href: "#roster", label: "Clan Roster" },
-    { href: "#recruitment", label: "Recruitment" },
+    { href: "/#servers", label: "Servers Overview" },
+    { href: "/blog", label: "Blog" },
+    { href: "/#roster", label: "Clan Roster" },
+    { href: "/#recruitment", label: "Recruitment" },
   ];
 
   return (

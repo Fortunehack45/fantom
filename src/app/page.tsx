@@ -1,4 +1,5 @@
 
+
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import Image from "next/image";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { GhostIcon } from "@/components/icons";
 import { Dices, Swords, Users } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   const roster = [
@@ -16,6 +18,12 @@ export default function Home() {
     { name: "PlayerThree", role: "New Member", server: "practice-server.fantom.gg", moderator: "Member", date: "08/06/2022 @ 09:00 AM CET", rankColor: "bg-blue-500" },
     { name: "PlayerFour", role: "Legendary", server: "01Ernesto-5332", moderator: "Moderator", date: "09/06/2022 @ 12:00 PM CET", rankColor: "bg-purple-500" },
     { name: "PlayerFive", role: "New Member", server: "01Ernesto-5332", moderator: "Member", date: "10/06/2022 @ 01:30 PM CET", rankColor: "bg-blue-500" },
+  ];
+
+  const blogPosts = [
+    { slug: "the-ultimate-guide-to-winning", title: "The Ultimate Guide to Winning", hint: "fantasy character art", category: "Tutorial" },
+    { slug: "new-season-new-goals", title: "New Season, New Goals", hint: "esports team strategy", category: "News" },
+    { slug: "community-spotlight-ernestodks412", title: "Community Spotlight: ErnestoDKS412", hint: "gamer portrait", category: "Interview" },
   ];
 
   return (
@@ -88,34 +96,34 @@ export default function Home() {
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[
-                {title: "The Ultimate Guide to Winning", hint: "fantasy character art"},
-                {title: "New Season, New Goals", hint: "esports team strategy"},
-                {title: "Community Spotlight: ErnestoDKS412", hint: "gamer portrait"},
-              ].map((post, i) => (
-                <Card key={i} className="overflow-hidden flex flex-col">
-                  <CardHeader className="p-0 relative">
-                    <Image
-                      src={`https://picsum.photos/400/${250 + i}`}
-                      alt="Blog Post Image"
-                      width={400}
-                      height={250}
-                      className="w-full h-48 object-cover"
-                      data-ai-hint={post.hint}
-                    />
-                     <Badge className="absolute top-2 left-2" variant="primary">TUTORIAL</Badge>
-                  </CardHeader>
-                  <CardContent className="p-6 flex-grow flex flex-col">
-                    <CardTitle className="text-xl font-headline mb-2">{post.title}</CardTitle>
-                    <p className="text-muted-foreground text-sm flex-grow">
-                      Discover the strategies and tips from our pro players to dominate the competition and climb the ranks...
-                    </p>
-                  </CardContent>
-                </Card>
+              {blogPosts.map((post, i) => (
+                <Link key={i} href={`/blog/${post.slug}`}>
+                  <Card className="overflow-hidden flex flex-col h-full hover:border-primary transition-colors">
+                    <CardHeader className="p-0 relative">
+                      <Image
+                        src={`https://picsum.photos/400/${250 + i}`}
+                        alt="Blog Post Image"
+                        width={400}
+                        height={250}
+                        className="w-full h-48 object-cover"
+                        data-ai-hint={post.hint}
+                      />
+                       <Badge className="absolute top-2 left-2" variant="primary">{post.category}</Badge>
+                    </CardHeader>
+                    <CardContent className="p-6 flex-grow flex flex-col">
+                      <CardTitle className="text-xl font-headline mb-2">{post.title}</CardTitle>
+                      <p className="text-muted-foreground text-sm flex-grow">
+                        Discover the strategies and tips from our pro players to dominate the competition and climb the ranks...
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
              <div className="text-center mt-12">
-                <Button variant="outline">View All Posts</Button>
+                <Link href="/blog">
+                    <Button variant="outline">View All Posts</Button>
+                </Link>
             </div>
           </div>
         </section>
