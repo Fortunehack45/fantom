@@ -11,9 +11,23 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Menu, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 export function Header() {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    try {
+      const authStatus = sessionStorage.getItem('isAuthenticated');
+      setIsAdmin(authStatus === 'true');
+    } catch (error) {
+        // sessionStorage not available
+    }
+  }, [pathname]);
+
   const navLinks = [
     { href: "/#servers", label: "Servers Overview" },
     { href: "/blog", label: "Blog" },
@@ -40,6 +54,15 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-2 transition-colors hover:text-primary text-foreground/80"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Admin
+            </Link>
+          )}
         </nav>
         <div className="flex flex-1 items-center justify-end gap-2">
           <Button variant="accent">Discord</Button>
@@ -71,6 +94,15 @@ export function Header() {
                     {link.label}
                   </Link>
                 ))}
+                {isAdmin && (
+                    <Link
+                        href="/admin"
+                        className="text-lg font-medium flex items-center gap-2"
+                    >
+                        <ShieldCheck className="h-5 w-5" />
+                        Admin
+                    </Link>
+                )}
               </nav>
             </SheetContent>
           </Sheet>
