@@ -60,7 +60,7 @@ export function Header() {
               className="flex items-center gap-2 transition-colors hover:text-primary text-foreground/80"
             >
               <ShieldCheck className="h-4 w-4" />
-              Admin
+              Clan Master
             </Link>
           )}
         </nav>
@@ -100,7 +100,7 @@ export function Header() {
                         className="text-lg font-medium flex items-center gap-2"
                     >
                         <ShieldCheck className="h-5 w-5" />
-                        Admin
+                        Clan Master
                     </Link>
                 )}
               </nav>

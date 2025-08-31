@@ -82,7 +82,7 @@ export default function AdminPage() {
       <main className="flex-grow container mx-auto px-4 py-16">
         <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-headline font-bold">
-                Admin Panel
+                Clan Master Panel
             </h1>
             <p className="text-muted-foreground mt-2">Manage your website's content from here.</p>
         </div>
