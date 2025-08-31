@@ -9,7 +9,6 @@ import { Menu } from "lucide-react";
 export function Header() {
   const navLinks = [
     { href: "#servers", label: "Servers Overview" },
-    { href: "#news", label: "News" },
     { href: "#blog", label: "Blog" },
     { href: "#roster", label: "Clan Roster" },
     { href: "#recruitment", label: "Recruitment" },
