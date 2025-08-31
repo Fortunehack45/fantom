@@ -20,7 +20,7 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center px-4">
         <Link href="/" className="flex items-center gap-2 mr-6">
           <GhostIcon className="w-8 h-8 text-primary" />
-          <span className="text-2xl font-bold font-headline uppercase">Fantom</span>
+          <span className="text-2xl font-bold font-headline uppercase">Fantom eSport</span>
         </Link>
         <nav className="hidden lg:flex items-center gap-6 text-sm font-medium uppercase">
           {navLinks.map((link) => (
@@ -46,7 +46,7 @@ export function Header() {
             <SheetContent side="right">
               <Link href="/" className="flex items-center gap-2 mb-8">
                  <GhostIcon className="w-8 h-8 text-primary" />
-                 <span className="text-2xl font-bold font-headline uppercase">Fantom</span>
+                 <span className="text-2xl font-bold font-headline uppercase">Fantom eSport</span>
               </Link>
               <nav className="flex flex-col gap-4">
                 {navLinks.map((link) => (

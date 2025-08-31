@@ -33,10 +33,10 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/70" />
           <div className="relative z-10 p-4 flex flex-col items-center animate-in fade-in duration-1000">
             <h1 className="text-6xl md:text-8xl font-headline font-black mb-2 tracking-wider">
-              FANTOM
+              FANTOM ESPORT
             </h1>
             <p className="text-xl md:text-2xl font-headline text-primary">
-              POTENTIA INVICTA
+              UNCONQUERED POWER
             </p>
           </div>
         </section>
@@ -48,26 +48,26 @@ export default function Home() {
                     <Card className="bg-card border-l-4 border-green-500">
                         <CardContent className="p-6">
                             <div className="flex justify-between items-center mb-2">
-                                <h3 className="text-lg font-bold">L2Eve x1 Interlude Retail Like - [48/32/2091]</h3>
+                                <h3 className="text-lg font-bold">Main Server - [LIVE]</h3>
                                 <Users className="text-green-500"/>
                             </div>
-                            <p className="text-muted-foreground mb-4">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                            <p className="text-muted-foreground mb-4">Our main server is online and ready for action. Join us for competitive play and community events.</p>
                             <div className="flex items-center gap-4">
                                 <Button variant="accent" size="sm">Discord</Button>
-                                <p className="text-xs text-muted-foreground">https://private-server.com/l2eve-x1</p>
+                                <p className="text-xs text-muted-foreground">main-server.fantom.gg</p>
                             </div>
                         </CardContent>
                     </Card>
                     <Card className="bg-card border-l-4 border-green-500">
                         <CardContent className="p-6">
                             <div className="flex justify-between items-center mb-2">
-                                <h3 className="text-lg font-bold">Moon-Land Interlude Remastered - 04/11</h3>
+                                <h3 className="text-lg font-bold">Practice Server - [LIVE]</h3>
                                 <Users className="text-green-500"/>
                             </div>
-                            <p className="text-muted-foreground mb-4">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                            <p className="text-muted-foreground mb-4">Hone your skills on our practice server. A perfect place for training and trying out new strategies.</p>
                              <div className="flex items-center gap-4">
                                 <Button variant="accent" size="sm">Discord</Button>
-                                <p className="text-xs text-muted-foreground">https://private-server.com/moon-land</p>
+                                <p className="text-xs text-muted-foreground">practice-server.fantom.gg</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -100,9 +100,9 @@ export default function Home() {
                      <Badge className="absolute top-2 left-2" variant="primary">TUTORIAL</Badge>
                   </CardHeader>
                   <CardContent className="p-6">
-                    <CardTitle className="text-xl font-headline mb-2">QUIS IPSUM SUSPENDISSE ULTRIPISER...</CardTitle>
+                    <CardTitle className="text-xl font-headline mb-2">The Ultimate Guide to Winning</CardTitle>
                     <p className="text-muted-foreground text-sm">
-                      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...
+                      Discover the strategies and tips from our pro players to dominate the competition and climb the ranks...
                     </p>
                   </CardContent>
                 </Card>
@@ -118,18 +118,18 @@ export default function Home() {
         <section id="roster" className="py-16 md:py-24">
             <div className="container mx-auto px-4">
                  <div className="text-center mb-12">
-                    <p className="text-primary font-bold uppercase">WE ARE BEST OF THE BEST, JOIN US!</p>
+                    <p className="text-primary font-bold uppercase">WE ARE THE BEST OF THE BEST, JOIN US!</p>
                     <h2 className="text-3xl md:text-4xl font-headline font-bold">
-                        OUR CLAN - FANTOM
+                        OUR CLAN - FANTOM ESPORT
                     </h2>
                 </div>
                 <div className="grid lg:grid-cols-3 gap-8 items-start">
                     <Card className="lg:col-span-1 bg-card border-l-4 border-primary">
                         <CardHeader>
-                            <CardTitle>LOREM IPSUM DOLOR SITERN!</CardTitle>
+                            <CardTitle>Join Our Ranks!</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-muted-foreground mb-6">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida.</p>
+                            <p className="text-muted-foreground mb-6">We are always looking for talented and dedicated players to join our family. Apply now and become part of our legacy.</p>
                             <Button variant="primary">Recruitment</Button>
                         </CardContent>
                     </Card>
@@ -177,7 +177,7 @@ export default function Home() {
         {/* Discord Section */}
         <section id="discord" className="py-16 md:py-24 bg-card">
             <div className="container mx-auto px-4 text-center">
-                 <p className="text-primary font-bold uppercase">JOIN TO OUT DISCORD SERVER!</p>
+                 <p className="text-primary font-bold uppercase">JOIN OUR DISCORD SERVER!</p>
                  <h2 className="text-3xl md:text-4xl font-headline font-bold mb-12">
                     DISCORD SERVER
                 </h2>
@@ -193,7 +193,7 @@ export default function Home() {
                                         <span className="text-xs text-muted-foreground ml-2">06/06/2022 @ 11:25 AM CET</span>
                                     </div>
                                 </div>
-                                <p className="text-sm text-muted-foreground">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt.</p>
+                                <p className="text-sm text-muted-foreground">New event announced! Check the events channel for more details and sign up now.</p>
                             </div>
                         ))}
                     </div>
@@ -213,7 +213,7 @@ export default function Home() {
               ABOUT OUR CLAN
             </h2>
             <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis. 
+              We are a competitive and friendly community of gamers who strive for excellence in every match. Our clan is built on teamwork, dedication, and a passion for winning. Join us to be a part of our journey.
             </p>
           </div>
         </section>

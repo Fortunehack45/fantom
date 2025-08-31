@@ -8,7 +8,7 @@ export function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center text-center">
           <div className="flex items-center gap-2 mb-4 md:mb-0">
             <GhostIcon className="w-6 h-6 text-primary" />
-            <span className="font-bold font-headline uppercase">Fantom</span>
+            <span className="font-bold font-headline uppercase">Fantom eSport</span>
           </div>
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Fantom eSport. All Rights Reserved.
