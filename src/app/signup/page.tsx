@@ -8,26 +8,39 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { GhostIcon } from '@/components/icons';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import Link from 'next/link';
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      toast({
+        variant: 'destructive',
+        title: 'Signup Failed',
+        description: 'Passwords do not match.',
+      });
+      return;
+    }
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // The auth state change will be handled by the layout
+      await createUserWithEmailAndPassword(auth, email, password);
+      toast({
+        title: 'Signup Successful',
+        description: 'You have successfully created an account.',
+      });
       router.push('/admin');
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Login Failed',
+        title: 'Signup Failed',
         description: error.message,
       });
     }
@@ -40,11 +53,11 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <GhostIcon className="w-12 h-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-headline">Clan Master Login</CardTitle>
-          <CardDescription>Enter your credentials to access the management panel.</CardDescription>
+          <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
+          <CardDescription>Join the Fantom eSport community.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -66,13 +79,23 @@ export default function LoginPage() {
                 required
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
             <Button type="submit" className="w-full" variant="primary">
-              Login
+              Sign Up
             </Button>
-             <p className="text-center text-sm text-muted-foreground">
-                Don't have an account?{' '}
-                <Link href="/signup" className="underline hover:text-primary">
-                    Sign Up
+            <p className="text-center text-sm text-muted-foreground">
+                Already have an account?{' '}
+                <Link href="/admin/login" className="underline hover:text-primary">
+                    Login
                 </Link>
             </p>
           </form>

@@ -11,22 +11,36 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, ShieldCheck } from "lucide-react";
+import { Menu, ShieldCheck, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 export function Header() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
     try {
-      const authStatus = sessionStorage.getItem('isAuthenticated');
-      setIsAdmin(authStatus === 'true');
+      await signOut(auth);
+      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+      router.push('/');
     } catch (error) {
-        // sessionStorage not available
+      toast({ variant: "destructive", title: "Logout Failed", description: "Could not log you out. Please try again." });
     }
-  }, [pathname]);
+  };
+
 
   const navLinks = [
     { href: "/#servers", label: "Servers Overview" },
@@ -54,7 +68,7 @@ export function Header() {
               {link.label}
             </Link>
           ))}
-          {isAdmin && (
+          {user && (
             <Link
               href="/admin"
               className="flex items-center gap-2 transition-colors hover:text-primary text-foreground/80"
@@ -65,8 +79,21 @@ export function Header() {
           )}
         </nav>
         <div className="flex flex-1 items-center justify-end gap-2">
-          <Button variant="accent">Discord</Button>
-          <Button variant="primary">Join Us</Button>
+          {user ? (
+             <Button variant="ghost" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          ) : (
+            <>
+              <Button asChild variant="ghost">
+                <Link href="/admin/login">Login</Link>
+              </Button>
+              <Button asChild variant="primary">
+                 <Link href="/signup">Sign Up</Link>
+              </Button>
+            </>
+          )}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="lg:hidden">
@@ -76,7 +103,7 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="right">
               <SheetHeader>
-                <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
+                 <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
               </SheetHeader>
               <Link href="/" className="flex items-center gap-2 mb-8">
                 <GhostIcon className="w-8 h-8 text-primary" />
@@ -94,7 +121,7 @@ export function Header() {
                     {link.label}
                   </Link>
                 ))}
-                {isAdmin && (
+                {user && (
                     <Link
                         href="/admin"
                         className="text-lg font-medium flex items-center gap-2"
