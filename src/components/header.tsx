@@ -46,14 +46,16 @@ export function Header() {
             <Button variant="outline" className="hidden lg:flex">
                 Discord
             </Button>
-             <Link href="/admin/login">
-                <Button variant="secondary" className="hidden lg:flex">
-                    Admin
-                </Button>
+            <Link href="/admin/login">
+              <Button variant="secondary" className="hidden lg:flex">
+                Login
+              </Button>
             </Link>
-            <Button variant="primary" className="hidden lg:flex">
-                Join Us
-            </Button>
+            <Link href="/signup">
+              <Button variant="primary" className="hidden lg:flex">
+                Sign up
+              </Button>
+            </Link>
              <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="lg:hidden text-white">
@@ -86,17 +88,21 @@ export function Header() {
                         {link.label}
                       </Link>
                     ))}
-                     <Link href="/admin/login" className="text-2xl font-bold uppercase tracking-wider text-white">
-                        Admin
-                    </Link>
                   </nav>
                   <div className="mt-8 flex flex-col gap-4">
                     <Button variant="outline" size="lg" className="w-full">
                         Discord
                     </Button>
-                    <Button variant="primary" size="lg" className="w-full">
-                        Join Us
-                    </Button>
+                     <Link href="/admin/login" className="w-full">
+                        <Button variant="secondary" size="lg" className="w-full">
+                            Login
+                        </Button>
+                     </Link>
+                     <Link href="/signup" className="w-full">
+                        <Button variant="primary" size="lg" className="w-full">
+                           Sign Up
+                        </Button>
+                     </Link>
                   </div>
                 </SheetContent>
               </Sheet>
