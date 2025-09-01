@@ -59,7 +59,6 @@ export default function Home() {
             const querySnapshot = await getDocs(q);
             const postsData: BlogPost[] = querySnapshot.docs.map(doc => ({
                  id: doc.id,
-                 slug: doc.data().title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''),
                  ...doc.data()
             } as BlogPost));
             if (postsData.length > 0) {
