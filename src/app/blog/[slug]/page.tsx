@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useParams } from 'next/navigation';
 
 interface Post {
     id: string;
@@ -25,13 +26,16 @@ interface Post {
 }
 
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
+export default function BlogPostPage() {
+    const params = useParams();
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchPost = async () => {
-            const slug = params.slug;
+            // useParams returns an object, but slug can be a string or string[]
+            const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+
             if (!slug) {
                 setLoading(false);
                 return;
@@ -70,7 +74,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         };
 
         fetchPost();
-    }, [params]);
+    }, [params.slug]);
 
     if (loading) {
         return (
