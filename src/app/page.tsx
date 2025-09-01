@@ -16,6 +16,7 @@ import { db } from "@/lib/firebase";
 import { format } from "date-fns";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 interface BlogPost {
@@ -60,12 +61,22 @@ interface HeroImage {
   hint: string;
 }
 
+const defaultHeroImages: HeroImage[] = [
+    {
+        id: 'default-1',
+        src: 'https://i.pinimg.com/originals/a1/8a/a5/a18aa5a7850f835567acb1164a3403a3.jpg',
+        alt: 'Cyberpunk warrior looking over a futuristic city',
+        hint: 'cyberpunk warrior city'
+    }
+];
+
 export default function Home() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [roster, setRoster] = useState<RosterMember[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
+  const [loadingHero, setLoadingHero] = useState(true);
 
   const autoplayPlugin = useRef(
     Autoplay({ delay: 5000, stopOnInteraction: true })
@@ -73,6 +84,7 @@ export default function Home() {
 
   useEffect(() => {
     const fetchAllData = async () => {
+        setLoadingHero(true);
         try {
             const blogQuery = query(collection(db, "blogPosts"), orderBy("date", "desc"), limit(3));
             const rosterQuery = query(collection(db, "roster"), limit(5));
@@ -104,9 +116,12 @@ export default function Home() {
             setRoster(rosterData);
             setAnnouncements(announcementsData);
             setGames(gamesData);
-            setHeroImages(heroImagesData);
+            setHeroImages(heroImagesData.length > 0 ? heroImagesData : defaultHeroImages);
         } catch (error) {
             console.error("Error fetching homepage data:", error);
+            setHeroImages(defaultHeroImages);
+        } finally {
+            setLoadingHero(false);
         }
     };
 
@@ -119,32 +134,36 @@ export default function Home() {
       <main className="flex-grow">
         {/* Hero Section */}
         <section id="hero" className="relative aspect-[16/9] flex items-center justify-center text-center bg-black">
-             <Carousel 
-                className="absolute inset-0 w-full h-full"
-                plugins={[autoplayPlugin.current]}
-                opts={{
-                    loop: true,
-                }}
-             >
-                <CarouselContent className="m-0 h-full">
-                    {heroImages.map((image, index) => (
-                         <CarouselItem key={image.id} className="p-0 h-full">
-                            <div className="relative w-full h-full">
-                                <Image
-                                    src={image.src}
-                                    alt={image.alt}
-                                    width={1600}
-                                    height={900}
-                                    className="object-cover w-full h-full"
-                                    data-ai-hint={image.hint}
-                                    priority={index === 0}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                            </div>
-                         </CarouselItem>
-                    ))}
-                </CarouselContent>
-             </Carousel>
+            {loadingHero ? (
+                <Skeleton className="absolute inset-0 w-full h-full" />
+            ) : (
+                <Carousel 
+                    className="absolute inset-0 w-full h-full"
+                    plugins={[autoplayPlugin.current]}
+                    opts={{
+                        loop: true,
+                    }}
+                >
+                    <CarouselContent className="m-0 h-full">
+                        {heroImages.map((image, index) => (
+                            <CarouselItem key={image.id} className="p-0 h-full">
+                                <div className="relative w-full h-full">
+                                    <Image
+                                        src={image.src}
+                                        alt={image.alt}
+                                        fill
+                                        sizes="100vw"
+                                        className="object-cover w-full h-full"
+                                        data-ai-hint={image.hint}
+                                        priority={index === 0}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                                </div>
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                </Carousel>
+            )}
             <div className="relative z-10 container mx-auto px-4 flex flex-col items-center">
                  <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
                     Fantom
@@ -369,3 +388,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
