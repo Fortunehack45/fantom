@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, doc, addDoc, serverTimestamp, onSnapshot, deleteDoc, getDoc, setDoc, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, addDoc, serverTimestamp, onSnapshot, deleteDoc, getDoc, setDoc, orderBy, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import Image from "next/image";
@@ -30,6 +30,7 @@ interface Post {
     hint: string;
     content: string;
     imageUrl?: string;
+    likes: string[];
 }
 
 interface Comment {
@@ -64,9 +65,6 @@ export default function BlogPostPage() {
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState('');
     
-    const [likes, setLikes] = useState<string[]>([]);
-    const [hasLiked, setHasLiked] = useState(false);
-
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
     const [replyContent, setReplyContent] = useState('');
 
@@ -79,14 +77,14 @@ export default function BlogPostPage() {
         return () => unsubscribe();
     }, []);
     
-    // Fetch Post Data
+    // Fetch Post Data and listen for updates on likes
     useEffect(() => {
-        const fetchPost = async () => {
-            if (!slug) {
-                setLoading(false);
-                return;
-            };
+        if (!slug) {
+            setLoading(false);
+            return;
+        }
 
+        const fetchPost = async () => {
             setLoading(true);
             try {
                 const postsRef = collection(db, 'blogPosts');
@@ -94,36 +92,48 @@ export default function BlogPostPage() {
                 const querySnapshot = await getDocs(q);
                 
                 if (!querySnapshot.empty) {
-                    const doc = querySnapshot.docs[0];
-                    const docData = doc.data();
-                    const postDate = docData.date ? new Date(docData.date.seconds * 1000) : new Date();
-
-                     setPost({
-                        id: doc.id,
-                        slug: slug,
-                        title: docData.title,
-                        content: docData.content,
-                        author: docData.author || "Fantom eSport",
-                        date: postDate,
-                        category: docData.category || "News",
-                        hint: docData.hint || "gamer portrait",
-                        imageUrl: docData.imageUrl,
-                    } as Post);
+                    const postDoc = querySnapshot.docs[0];
+                    // Set up a real-time listener for the post
+                    const unsubscribe = onSnapshot(doc(db, 'blogPosts', postDoc.id), (doc) => {
+                         const docData = doc.data();
+                         if (docData) {
+                            const postDate = docData.date ? new Date(docData.date.seconds * 1000) : new Date();
+                            setPost({
+                                id: doc.id,
+                                slug: slug,
+                                title: docData.title,
+                                content: docData.content,
+                                author: docData.author || "Fantom eSport",
+                                date: postDate,
+                                category: docData.category || "News",
+                                hint: docData.hint || "gamer portrait",
+                                imageUrl: docData.imageUrl,
+                                likes: docData.likes || [],
+                            } as Post);
+                         } else {
+                            setPost(null);
+                         }
+                    });
+                    setLoading(false);
+                    return unsubscribe; // Return the listener cleanup function
                 } else {
                     console.warn(`Post with slug "${slug}" not found.`);
                     setPost(null);
+                    setLoading(false);
                 }
             } catch (error) {
                 console.error("Error fetching post:", error);
                 setPost(null);
-            } finally {
                 setLoading(false);
             }
         };
 
-        if (slug) {
-            fetchPost();
-        }
+        const unsubscribePost = fetchPost();
+        
+        return () => {
+            unsubscribePost.then(unsub => unsub && unsub());
+        };
+
     }, [slug]);
 
     // Listener for Comments and their replies
@@ -134,16 +144,16 @@ export default function BlogPostPage() {
 
         const unsubscribe = onSnapshot(q, async (querySnapshot) => {
             const commentsData = await Promise.all(
-                querySnapshot.docs.map(async (doc) => {
-                    const repliesRef = collection(db, 'blogPosts', post.id, 'comments', doc.id, 'replies');
+                querySnapshot.docs.map(async (commentDoc) => {
+                    const repliesRef = collection(db, 'blogPosts', post.id, 'comments', commentDoc.id, 'replies');
                     const repliesQuery = query(repliesRef, orderBy('timestamp', 'asc'));
                     const repliesSnapshot = await getDocs(repliesQuery);
                     const replies = repliesSnapshot.docs.map(replyDoc => ({ id: replyDoc.id, ...replyDoc.data() } as Reply));
 
                     return {
-                        id: doc.id,
-                        ...doc.data(),
-                        likes: doc.data().likes || [],
+                        id: commentDoc.id,
+                        ...commentDoc.data(),
+                        likes: commentDoc.data().likes || [],
                         replies: replies,
                     } as Comment;
                 })
@@ -153,27 +163,11 @@ export default function BlogPostPage() {
 
         return () => unsubscribe();
     }, [post]);
-    
-    // Listener for Post Likes
-    useEffect(() => {
-        if (!post) return;
-        const likesRef = collection(db, 'blogPosts', post.id, 'likes');
-
-        const unsubscribe = onSnapshot(likesRef, (snapshot) => {
-            const likesUserIds = snapshot.docs.map(doc => doc.id);
-            setLikes(likesUserIds);
-            if (user) {
-                setHasLiked(likesUserIds.includes(user.uid));
-            }
-        });
-        
-        return () => unsubscribe();
-    }, [post, user]);
 
 
     const handleAddComment = async () => {
         if (!user || !post || !newComment.trim()) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Cannot post empty comment.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in and the comment cannot be empty.' });
             return;
         }
 
@@ -196,7 +190,7 @@ export default function BlogPostPage() {
     
     const handleAddReply = async (commentId: string) => {
         if (!user || !post || !replyContent.trim()) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Cannot post empty reply.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in and the reply cannot be empty.' });
             return;
         }
         
@@ -225,13 +219,18 @@ export default function BlogPostPage() {
             return;
         }
         
-        const likeRef = doc(db, 'blogPosts', post.id, 'likes', user.uid);
+        const postRef = doc(db, 'blogPosts', post.id);
+        const hasLiked = post.likes.includes(user.uid);
         
         try {
             if (hasLiked) {
-                await deleteDoc(likeRef);
+                await updateDoc(postRef, {
+                    likes: arrayRemove(user.uid)
+                });
             } else {
-                await setDoc(likeRef, { userId: user.uid });
+                await updateDoc(postRef, {
+                    likes: arrayUnion(user.uid)
+                });
             }
         } catch(error) {
             console.error("Error liking post: ", error);
@@ -260,16 +259,13 @@ export default function BlogPostPage() {
         const itemData = itemDoc.data();
         const currentLikes: string[] = itemData.likes || [];
         const hasLikedItem = currentLikes.includes(user.uid);
-        let newLikes: string[];
-
-        if (hasLikedItem) {
-            newLikes = currentLikes.filter(uid => uid !== user.uid);
-        } else {
-            newLikes = [...currentLikes, user.uid];
-        }
 
         try {
-            await setDoc(itemRef, { likes: newLikes }, { merge: true });
+            if (hasLikedItem) {
+                await updateDoc(itemRef, { likes: arrayRemove(user.uid) });
+            } else {
+                await updateDoc(itemRef, { likes: arrayUnion(user.uid) });
+            }
         } catch(error) {
              console.error("Error liking item: ", error);
             toast({ variant: 'destructive', title: 'Error', description: 'Could not process your like.'});
@@ -301,10 +297,12 @@ export default function BlogPostPage() {
     }
     
     const totalCommentsAndReplies = comments.reduce((acc, comment) => acc + 1 + comment.replies.length, 0);
+    const hasLikedPost = user ? post.likes.includes(user.uid) : false;
 
-    const CommentCard = ({ item, isReply, commentId, replyCount }: { item: Comment | Reply, isReply: boolean, commentId?: string, replyCount?: number }) => {
+    const CommentCard = ({ item, isReply, commentId }: { item: Comment | Reply, isReply: boolean, commentId?: string }) => {
         const itemLikes = item.likes || [];
         const hasLikedItem = user ? itemLikes.includes(user.uid) : false;
+        const replyCount = !isReply ? (item as Comment).replies.length : 0;
 
         const handleLikeClick = () => {
             if (isReply && commentId) {
@@ -315,7 +313,7 @@ export default function BlogPostPage() {
         };
 
         return (
-            <div className={`flex items-start gap-4 ${isReply ? 'ml-8' : ''}`}>
+            <div className={`flex items-start gap-4`}>
                 <Avatar className="w-10 h-10 border-2 border-transparent group-hover:border-primary transition-colors">
                     <AvatarImage src={item.authorPhotoURL || `https://i.pravatar.cc/150?u=${item.authorId}`} />
                     <AvatarFallback>{item.authorName.substring(0, 2).toUpperCase()}</AvatarFallback>
@@ -337,7 +335,7 @@ export default function BlogPostPage() {
                          {!isReply && (
                             <Button variant="ghost" className="h-auto p-0 flex items-center gap-1 text-muted-foreground hover:text-primary" onClick={() => setReplyingTo(replyingTo === item.id ? null : item.id)}>
                                 Reply
-                                {replyCount !== undefined && replyCount > 0 && <span className="text-xs">({replyCount})</span>}
+                                {replyCount > 0 && <span className="text-xs ml-1">({replyCount})</span>}
                             </Button>
                         )}
                     </div>
@@ -381,8 +379,8 @@ export default function BlogPostPage() {
                 {/* Interactions Section */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Button variant={hasLiked ? 'primary' : 'outline'} size="sm" onClick={handleLikePost} disabled={!user}>
-                            <ThumbsUp className="mr-2" /> Like ({likes.length})
+                        <Button variant={hasLikedPost ? 'primary' : 'outline'} size="sm" onClick={handleLikePost} disabled={!user}>
+                            <ThumbsUp className="mr-2" /> Like ({post.likes.length})
                         </Button>
                         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                             <MessageSquare /> 
@@ -430,7 +428,7 @@ export default function BlogPostPage() {
                     <div className="space-y-6">
                         {comments.map((comment) => (
                            <div key={comment.id} className="group">
-                                <CommentCard item={comment} isReply={false} replyCount={comment.replies.length} />
+                                <CommentCard item={comment} isReply={false} />
                                 
                                 {replyingTo === comment.id && user && (
                                     <div className="ml-12 mt-4">
@@ -460,11 +458,13 @@ export default function BlogPostPage() {
                                     </div>
                                 )}
 
-                                <div className="pl-12 mt-4 space-y-4 border-l-2 border-border/10 ml-5">
-                                    {comment.replies.map(reply => (
-                                        <CommentCard key={reply.id} item={reply} isReply={true} commentId={comment.id} />
-                                    ))}
-                                </div>
+                                {comment.replies && comment.replies.length > 0 && (
+                                     <div className="pl-12 mt-4 space-y-4 border-l-2 border-border/10 ml-5">
+                                        {comment.replies.map(reply => (
+                                            <CommentCard key={reply.id} item={reply} isReply={true} commentId={comment.id} />
+                                        ))}
+                                    </div>
+                                )}
                            </div>
                         ))}
                     </div>
@@ -484,5 +484,3 @@ export default function BlogPostPage() {
     </div>
   );
 }
-
-    
