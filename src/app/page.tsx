@@ -139,15 +139,18 @@ export default function Home() {
                 <CarouselContent className="m-0 h-full">
                     {heroImages.map((image, index) => (
                          <CarouselItem key={index} className="p-0 h-full">
-                             <Image
-                                src={image.src}
-                                alt={image.alt}
-                                width={1600}
-                                height={900}
-                                className="object-cover w-full h-full opacity-30"
-                                data-ai-hint={image.hint}
-                                priority={true}
-                            />
+                            <div className="relative w-full h-full">
+                                <Image
+                                    src={image.src}
+                                    alt={image.alt}
+                                    width={1600}
+                                    height={900}
+                                    className="object-cover w-full h-full"
+                                    data-ai-hint={image.hint}
+                                    priority={true}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-70" />
+                            </div>
                          </CarouselItem>
                     ))}
                 </CarouselContent>
