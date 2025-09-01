@@ -37,6 +37,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'pin.it',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
+        pathname: '/**',
       }
     ],
   },
