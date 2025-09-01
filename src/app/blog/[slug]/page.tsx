@@ -478,4 +478,3 @@ export default function BlogPostPage() {
     </div>
   );
 }
-
