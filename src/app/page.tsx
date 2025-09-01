@@ -83,7 +83,7 @@ export default function Home() {
       <Header />
       <main className="flex-grow">
         {/* Hero Section */}
-        <section id="hero" className="relative h-[40vh] flex items-center justify-center text-center bg-black">
+        <section id="hero" className="relative aspect-[3/1] flex items-center justify-center text-center bg-black">
             <div className="absolute inset-0">
                 <Image
                     src="https://picsum.photos/1600/900?random=fantasy-character"
@@ -280,3 +280,4 @@ export default function Home() {
     
 
     
+
