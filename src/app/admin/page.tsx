@@ -79,10 +79,16 @@ export default function AdminPage() {
         e.preventDefault();
         if (newPost.title && newPost.content) {
             try {
+                const slug = newPost.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
                 await addDoc(collection(db, "blogPosts"), { 
                     title: newPost.title,
                     content: newPost.content,
-                    imageUrl: newPost.imageUrl || `https://picsum.photos/400/250?random=${Date.now()}`
+                    slug: slug,
+                    imageUrl: newPost.imageUrl || `https://picsum.photos/400/250?random=${Date.now()}`,
+                    date: new Date(),
+                    author: "Fantom eSport",
+                    category: "News",
+                    hint: "gamer portrait"
                 });
 
                 setNewPost({ title: '', content: '', imageUrl: '' });
@@ -122,7 +128,7 @@ export default function AdminPage() {
             await deleteDoc(doc(db, "roster", id));
             fetchRoster();
             toast({ title: "Success", description: "Roster member deleted." });
-        } catch (error) => {
+        } catch (error) {
             toast({ variant: "destructive", title: "Error", description: "Could not delete roster member." });
         }
     };
@@ -184,7 +190,7 @@ export default function AdminPage() {
                                     <Input id="post-title" placeholder="Enter post title" value={newPost.title} onChange={(e) => setNewPost({...newPost, title: e.target.value})} required />
                                 </div>
                                 <div>
-                                    <Label htmlFor="post-image-url">Image URL</Label>
+                                    <Label htmlFor="post-image-url">Image URL (Pinterest, etc.)</Label>
                                     <Input id="post-image-url" type="text" placeholder="https://your-image-url.com/image.png" value={newPost.imageUrl} onChange={(e) => setNewPost({...newPost, imageUrl: e.target.value})} />
                                 </div>
                                 <div>
@@ -285,7 +291,7 @@ export default function AdminPage() {
                                     <Input id="ann-author" placeholder="@YourDiscordHandle" value={newAnnouncement.author} onChange={(e) => setNewAnnouncement({...newAnnouncement, author: e.target.value})} required />
                                 </div>
                                 <div>
-                                    <Label htmlFor="ann-author-image-url">Author Profile Picture URL</Label>
+                                    <Label htmlFor="ann-author-image-url">Author Profile Picture URL (Pinterest, etc.)</Label>
                                     <Input id="ann-author-image-url" type="text" placeholder="https://your-image-url.com/profile.png" value={newAnnouncement.authorImageUrl} onChange={(e) => setNewAnnouncement({...newAnnouncement, authorImageUrl: e.target.value})} />
                                 </div>
                                 <div>
@@ -319,3 +325,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

@@ -24,13 +24,14 @@ interface BlogPost {
 
 export default function BlogPage() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchBlogPosts = async () => {
+        setLoading(true);
         const querySnapshot = await getDocs(collection(db, "blogPosts"));
         const postsData: BlogPost[] = querySnapshot.docs.map(doc => ({
              id: doc.id,
-             slug: doc.data().title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''),
              ...doc.data(),
         } as BlogPost));
         
@@ -47,10 +48,19 @@ export default function BlogPage() {
             ];
             setBlogPosts(staticPosts);
         }
+        setLoading(false);
     };
 
     fetchBlogPosts();
   }, []);
+
+   if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background text-foreground justify-center items-center">
+        <p>Loading posts...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -81,7 +91,7 @@ export default function BlogPage() {
                     <CardContent className="p-6 flex-grow flex flex-col">
                         <CardTitle className="text-xl font-headline mb-2">{post.title}</CardTitle>
                         <p className="text-muted-foreground text-sm flex-grow">
-                        {post.content}
+                        {post.content.substring(0, 120)}...
                         </p>
                     </CardContent>
                 </Card>
@@ -93,3 +103,5 @@ export default function BlogPage() {
     </div>
   );
 }
+
+    
