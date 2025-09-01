@@ -35,7 +35,7 @@ export function Header() {
             <Link
               key={link.label}
               href={link.href}
-              className={`transition-colors text-white/80 hover:text-primary ${pathname === link.href ? 'text-primary' : ''}`}
+              className={`transition-colors text-white/80 hover:text-primary hover:drop-shadow-primary ${pathname === link.href ? 'text-primary drop-shadow-primary' : ''}`}
             >
               {link.label}
             </Link>
@@ -111,3 +111,5 @@ export function Header() {
     </header>
   );
 }
+
+    

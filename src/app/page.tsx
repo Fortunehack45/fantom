@@ -93,11 +93,11 @@ export default function Home() {
                 />
             </div>
             <div className="relative z-10 container mx-auto px-4 flex flex-col items-center">
-                 <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
-                    FANTOM
+                 <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
+                    Fantom
                 </h1>
                 <p className="mt-2 text-2xl text-muted-foreground uppercase font-bold tracking-widest">
-                    UNDEFEATED POWER
+                    Dominance is our creed
                 </p>
             </div>
         </section>
@@ -237,11 +237,10 @@ export default function Home() {
                                 })}
                             </CardContent>
                         </Card>
-                        <div className="relative h-full min-h-[300px] flex flex-col items-center justify-center">
-                             <Image src="https://picsum.photos/400/600?random=fantasy-warrior" alt="Fantasy Warrior" fill className="object-cover rounded-lg opacity-80" data-ai-hint="fantasy warrior art" />
-                             <div className="relative z-10 flex flex-col items-center">
-                                 <Button variant="primary" size="lg">Join Discord</Button>
-                             </div>
+                        <div className="relative h-full min-h-[300px] flex flex-col items-center justify-center bg-card rounded-lg p-8 text-center">
+                             <h3 className="text-2xl font-headline font-bold uppercase">Join the Conversation</h3>
+                             <p className="text-muted-foreground mt-2 mb-6">Connect with members, get real-time updates, and be part of our thriving community.</p>
+                             <Button variant="primary" size="lg">Join Our Discord</Button>
                         </div>
                     </div>
                 </div>
@@ -269,3 +268,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

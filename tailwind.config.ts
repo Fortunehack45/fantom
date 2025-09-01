@@ -1,4 +1,6 @@
+
 import type {Config} from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
 export default {
   darkMode: ['class'],
@@ -83,9 +85,40 @@ export default {
         'accordion-up': 'accordion-up 0.2s ease-out',
       },
       textShadow: {
-        DEFAULT: '0 0 8px hsl(var(--primary))',
+        DEFAULT: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        md: '0 4px 8px rgba(0, 0, 0, 0.15)',
+        lg: '0 15px 30px rgba(0, 0, 0, 0.2)',
+        primary: '0 0 8px hsl(var(--primary))',
       },
     },
   },
-  plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
+  plugins: [
+    require('tailwindcss-animate'), 
+    require('@tailwindcss/typography'),
+    plugin(function({ addUtilities, theme }) {
+      const newUtilities = {
+        '.text-shadow': {
+          textShadow: theme('textShadow.DEFAULT'),
+        },
+        '.text-shadow-md': {
+          textShadow: theme('textShadow.md'),
+        },
+        '.text-shadow-lg': {
+          textShadow: theme('textShadow.lg'),
+        },
+        '.text-shadow-primary': {
+          textShadow: theme('textShadow.primary'),
+        },
+        '.text-shadow-none': {
+          textShadow: 'none',
+        },
+        '.drop-shadow-primary': {
+            filter: `drop-shadow(0 0 5px hsl(var(--primary)))`
+        }
+      }
+      addUtilities(newUtilities, ['responsive', 'hover'])
+    })
+  ],
 } satisfies Config;
+
+    

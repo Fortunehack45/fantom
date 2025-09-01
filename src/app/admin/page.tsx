@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface BlogPost {
     id: string;
@@ -43,9 +44,7 @@ export default function AdminPage() {
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
     const [newPost, setNewPost] = useState({ title: '', content: '', imageUrl: '', category: 'News' });
-
     const [newMember, setNewMember] = useState({ name: '', role: '', server: '' });
-
     const [newAnnouncement, setNewAnnouncement] = useState({ author: '', content: '', authorImageUrl: '' });
     
     const fetchBlogPosts = async () => {
@@ -174,9 +173,15 @@ export default function AdminPage() {
             <p className="text-muted-foreground mt-2">Manage your website's content from here.</p>
         </div>
 
-        <div className="space-y-12">
-            {/* Manage Blog Posts */}
-            <Card className="bg-card">
+        <Tabs defaultValue="blog" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="blog">Blog Posts</TabsTrigger>
+            <TabsTrigger value="roster">Clan Roster</TabsTrigger>
+            <TabsTrigger value="announcements">Announcements</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="blog">
+             <Card className="bg-card mt-6">
                 <CardHeader>
                     <CardTitle>Manage Blog Posts</CardTitle>
                     <CardDescription>Add, edit, or delete blog posts.</CardDescription>
@@ -222,9 +227,10 @@ export default function AdminPage() {
                     </div>
                 </CardContent>
             </Card>
-
-            {/* Manage Clan Roster */}
-            <Card className="bg-card">
+          </TabsContent>
+          
+          <TabsContent value="roster">
+             <Card className="bg-card mt-6">
                 <CardHeader>
                     <CardTitle>Manage Clan Roster</CardTitle>
                     <CardDescription>Add or remove members from the clan roster.</CardDescription>
@@ -279,9 +285,9 @@ export default function AdminPage() {
                     </div>
                 </CardContent>
             </Card>
-            
-            {/* Manage Discord Announcements */}
-            <Card className="bg-card">
+          </TabsContent>
+          <TabsContent value="announcements">
+              <Card className="bg-card mt-6">
                 <CardHeader>
                     <CardTitle>Manage Discord Announcements</CardTitle>
                     <CardDescription>Create or delete Discord announcements.</CardDescription>
@@ -323,8 +329,8 @@ export default function AdminPage() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
-
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

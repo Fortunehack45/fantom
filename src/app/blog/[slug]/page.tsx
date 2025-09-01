@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -10,7 +11,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useParams } from 'next/navigation';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 
 
 interface Post {
@@ -129,7 +130,7 @@ export default function BlogPostPage() {
                     </div>
                 )}
                 <div 
-                    className="prose prose-invert prose-lg max-w-none mx-auto prose-p:text-foreground/80 prose-headings:text-foreground prose-strong:text-foreground"
+                    className="prose prose-invert prose-lg max-w-none mx-auto prose-p:text-foreground/80 prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary hover:prose-a:text-primary/80"
                     dangerouslySetInnerHTML={{ __html: post.content.replace(/\\n/g, '<br />') }} 
                 />
                  <div className="mt-12 text-center">
@@ -146,3 +147,5 @@ export default function BlogPostPage() {
     </div>
   );
 }
+
+    
