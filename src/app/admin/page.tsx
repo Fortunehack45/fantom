@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -77,7 +78,7 @@ export default function AdminPage() {
             try {
                 await addDoc(collection(db, "blogPosts"), { 
                     ...newPost, 
-                    imageUrl: newPost.imageUrl || 'https://picsum.photos/400/250' 
+                    imageUrl: newPost.imageUrl || `https://picsum.photos/400/250?random=${Date.now()}`
                 });
                 setNewPost({ title: '', imageUrl: '', content: '' });
                 fetchBlogPosts();
@@ -186,7 +187,7 @@ export default function AdminPage() {
                         </div>
                         <div>
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Existing Posts</h3>
-                             <div className="space-y-4">
+                             <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
                                 {blogPosts.map((post) => (
                                 <div key={post.id} className="flex justify-between items-center bg-background/50 p-3 rounded-lg">
                                     <p className="font-medium">{post.title}</p>
@@ -230,28 +231,30 @@ export default function AdminPage() {
                         </div>
                         <div>
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Current Roster</h3>
-                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Role</TableHead>
-                                        <TableHead>Server</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {roster.map((member) => (
-                                        <TableRow key={member.id}>
-                                            <TableCell>{member.name}</TableCell>
-                                            <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
-                                            <TableCell>{member.server}</TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteMember(member.id)}><Trash2 className="h-4 w-4"/></Button>
-                                            </TableCell>
+                             <div className="max-h-96 overflow-y-auto">
+                                 <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Role</TableHead>
+                                            <TableHead>Server</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {roster.map((member) => (
+                                            <TableRow key={member.id}>
+                                                <TableCell>{member.name}</TableCell>
+                                                <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
+                                                <TableCell>{member.server}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteMember(member.id)}><Trash2 className="h-4 w-4"/></Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                             </div>
                         </div>
                     </div>
                 </CardContent>
@@ -281,7 +284,7 @@ export default function AdminPage() {
                         </div>
                         <div>
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Recent Announcements</h3>
-                             <div className="space-y-4">
+                             <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
                                 {announcements.map((ann) => (
                                 <div key={ann.id} className="flex justify-between items-start bg-background/50 p-3 rounded-lg">
                                     <div>
@@ -303,3 +306,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

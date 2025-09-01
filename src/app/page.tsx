@@ -8,10 +8,10 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
-import { ArrowRight, ChevronRight, Dot } from "lucide-react";
+import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
+import { ArrowRight, ChevronRight, Dot, Gamepad2 } from "lucide-react";
 import Link from "next/link";
 import { FantomIcon } from '@/components/icons';
 
@@ -38,6 +38,13 @@ interface Announcement {
     date: string;
 }
 
+const games = [
+    { name: "Game Title 1", hint: "fantasy battle scene", imageUrl: "https://picsum.photos/500/700?random=1" },
+    { name: "Game Title 2", hint: "sci-fi soldier", imageUrl: "https://picsum.photos/500/700?random=2" },
+    { name: "Game Title 3", hint: "esports arena", imageUrl: "https://picsum.photos/500/700?random=3" },
+    { name: "Game Title 4", hint: "dragon video game", imageUrl: "https://picsum.photos/500/700?random=4" },
+]
+
 export default function Home() {
     const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
     const [roster, setRoster] = useState<RosterMember[]>([]);
@@ -55,13 +62,31 @@ export default function Home() {
                  hint: "fantasy character art",
                  category: "News"
             }));
-            setBlogPosts(postsData);
+            if (postsData.length > 0) {
+                setBlogPosts(postsData);
+            } else {
+                 setBlogPosts([
+                    { id: 'static-1', slug: "the-ultimate-guide-to-winning", title: "The Ultimate Guide to Winning", content: "Discover the strategies and tips from our pro players to dominate the competition...", hint: "fantasy character art", category: "Tutorial" },
+                    { id: 'static-2', slug: "new-season-new-goals", title: "New Season, New Goals", content: "The new season is upon us! Here's what we're aiming for as a clan...", hint: "esports team strategy", category: "News" },
+                    { id: 'static-3', slug: "community-spotlight-ernestodks412", title: "Community Spotlight: ErnestoDKS412", content: "An interview with one of our most legendary members...", hint: "gamer portrait", category: "Interview" },
+                ]);
+            }
         };
         const fetchRoster = async () => {
             const q = query(collection(db, "roster"), limit(5));
             const querySnapshot = await getDocs(q);
             const rosterData: RosterMember[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RosterMember));
-            setRoster(rosterData);
+             if (rosterData.length > 0) {
+                setRoster(rosterData);
+            } else {
+                setRoster([
+                    { id: '1', name: 'ShadowStriker', role: 'Legendary', server: 'L2Eve x1' },
+                    { id: '2', name: 'Vortex', role: 'Pro', server: 'L2Eve x1' },
+                    { id: '3', name: 'Phoenix', role: 'Pro', server: 'L2Eve x1' },
+                    { id: '4', name: 'Fury', role: 'New Member', server: 'Moon-Land' },
+                    { id: '5', name: 'Ghost', role: 'New Member', server: 'Moon-Land' },
+                ]);
+            }
         };
         const fetchAnnouncements = async () => {
             const q = query(collection(db, "announcements"), limit(3));
@@ -69,9 +94,17 @@ export default function Home() {
             const announcementsData: Announcement[] = querySnapshot.docs.map(doc => ({ 
                 id: doc.id, 
                 ...doc.data(),
-                date: "06/06/2022 - 11:26 AM CET"
+                date: new Date().toLocaleDateString()
             } as Announcement));
-            setAnnouncements(announcementsData);
+            if (announcementsData.length > 0) {
+                setAnnouncements(announcementsData);
+            } else {
+                setAnnouncements([
+                     { id: '1', author: 'ClanMaster', content: 'Big clan meeting this Friday! Be there!', date: new Date().toLocaleDateString() },
+                     { id: '2', author: 'ViceMaster', content: 'New raid strategy is up on the forums. Make sure to read it.', date: new Date().toLocaleDateString() },
+                     { id: '3', author: 'RecruitmentOfficer', content: 'We are officially opening recruitment for two new spots. Spread the word!', date: new Date().toLocaleDateString() },
+                ]);
+            }
         };
 
         fetchBlogPosts();
@@ -89,12 +122,12 @@ export default function Home() {
             src="https://picsum.photos/1920/1080"
             alt="Fantasy background"
             fill
-            className="object-cover object-top z-0"
+            className="object-cover object-center z-0"
             data-ai-hint="dark fantasy landscape"
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent z-10" />
-           <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-transparent z-10" />
+           <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-transparent z-10" />
           <div className="relative z-20 flex flex-col items-center">
             <FantomIcon className="w-96 h-auto" />
              <p className="font-headline text-2xl uppercase tracking-widest text-shadow">Strength and Victory</p>
@@ -110,28 +143,26 @@ export default function Home() {
         </section>
 
         {/* Servers Section */}
-        <section className="py-12 container mx-auto px-4">
+        <section className="py-16 container mx-auto px-4">
              <div className="grid md:grid-cols-2 gap-8">
-                 <div className="bg-card border border-border p-4 rounded-md flex items-center gap-4">
-                     <Dot className="text-green-500 w-12 h-12" />
+                 <div className="bg-card border border-border p-6 rounded-lg flex items-center gap-4 hover:border-primary transition-colors">
+                     <Dot className="text-green-500 w-12 h-12 flex-shrink-0" />
                      <div>
-                         <h3 className="font-headline text-lg">L2Eve x1 Interlude Retail Like - [48/32/2091]</h3>
+                         <h3 className="font-headline text-lg">L2Eve x1 Interlude Retail Like</h3>
                          <p className="text-sm text-muted-foreground">Join our main server for an epic retail-like experience with balanced progression.</p>
                          <div className="flex items-center gap-4 mt-2">
                              <Button variant="secondary" size="sm">Discord</Button>
-                             <span className="text-xs text-muted-foreground">https://private-server.com/l2eve-x1</span>
                          </div>
                      </div>
                       <ChevronRight className="ml-auto text-muted-foreground" />
                  </div>
-                 <div className="bg-card border border-border p-4 rounded-md flex items-center gap-4">
-                     <Dot className="text-green-500 w-12 h-12" />
+                 <div className="bg-card border border-border p-6 rounded-lg flex items-center gap-4 hover:border-primary transition-colors">
+                     <Dot className="text-green-500 w-12 h-12 flex-shrink-0" />
                      <div>
-                         <h3 className="font-headline text-lg">Moon-Land Interlude Remastered - 04/11</h3>
+                         <h3 className="font-headline text-lg">Moon-Land Interlude Remastered</h3>
                          <p className="text-sm text-muted-foreground">Experience a remastered world with unique features and challenging gameplay.</p>
                          <div className="flex items-center gap-4 mt-2">
                              <Button variant="secondary" size="sm">Discord</Button>
-                             <span className="text-xs text-muted-foreground">https://private-server.com/moon-land</span>
                          </div>
                      </div>
                      <ChevronRight className="ml-auto text-muted-foreground" />
@@ -139,13 +170,46 @@ export default function Home() {
              </div>
         </section>
 
+        {/* Games We Play Section */}
+        <section id="games" className="py-16 md:py-24 bg-card/50">
+            <div className="container mx-auto px-4">
+                <div className="text-center mb-12">
+                    <p className="text-primary font-bold uppercase">Our Battlegrounds</p>
+                    <h2 className="text-4xl md:text-5xl font-headline font-black uppercase">
+                        Games We Play
+                    </h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    {games.map((game) => (
+                        <Card key={game.name} className="bg-background border-border overflow-hidden group">
+                           <div className="relative">
+                                <Image
+                                    src={game.imageUrl}
+                                    alt={game.name}
+                                    width={500}
+                                    height={700}
+                                    className="w-full h-[400px] object-cover group-hover:scale-105 transition-transform duration-300"
+                                    data-ai-hint={game.hint}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                                <div className="absolute bottom-0 left-0 p-4">
+                                     <h3 className="text-xl font-headline text-white">{game.name}</h3>
+                                </div>
+                           </div>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        </section>
+
+
         {/* Blog Section */}
         <section id="blog" className="py-16 md:py-24">
             <div className="container mx-auto px-4">
                 <div className="text-center mb-12">
                     <p className="text-primary font-bold uppercase">Read our most recent blog posts</p>
                     <h2 className="text-4xl md:text-5xl font-headline font-black uppercase">
-                        Blog - Recent Articles
+                        Recent Articles
                     </h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -158,13 +222,13 @@ export default function Home() {
                                 alt="Blog Post Image"
                                 width={400}
                                 height={250}
-                                className="w-full h-48 object-cover"
+                                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                                 data-ai-hint={post.hint}
                                 />
                                  <Badge className="absolute top-2 left-2" variant="primary">{post.category}</Badge>
                             </div>
-                            <CardContent className="p-4 flex-grow flex flex-col">
-                                <h3 className="text-lg font-headline mb-2 group-hover:text-primary transition-colors">{post.title}</h3>
+                            <CardContent className="p-6 flex-grow flex flex-col">
+                                <h3 className="text-xl font-headline mb-2 group-hover:text-primary transition-colors">{post.title}</h3>
                                 <p className="text-muted-foreground text-sm flex-grow">
                                 {post.content.substring(0, 100)}...
                                 </p>
@@ -182,12 +246,12 @@ export default function Home() {
         </section>
         
         {/* Clan Roster & Recruitment */}
-        <section id="roster" className="py-16 md:py-24">
+        <section id="roster" className="py-16 md:py-24 bg-card/50">
              <div className="container mx-auto px-4">
                 <div className="text-center mb-12">
-                    <p className="text-primary font-bold uppercase">We are the best of the best, join us!</p>
+                    <p className="text-primary font-bold uppercase">We are the best of the best</p>
                     <h2 className="text-4xl md:text-5xl font-headline font-black uppercase">
-                        Our Clan - Fantom eSport
+                        Our Clan Roster
                     </h2>
                 </div>
                 <div className="grid lg:grid-cols-3 gap-8">
@@ -198,15 +262,22 @@ export default function Home() {
                         </p>
                          <Button variant="primary" size="lg">Recruitment</Button>
                     </div>
-                    <div className="lg:col-span-2 bg-card border border-border rounded-lg p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-headline text-2xl uppercase">Clan Roster</h3>
+                    <div className="lg:col-span-2 bg-card border border-border rounded-lg">
+                        <div className="flex justify-between items-center p-6">
+                            <h3 className="font-headline text-2xl uppercase">Clan Members</h3>
                              <div>
                                  <Button variant="ghost" size="sm">Server 1</Button>
                                  <Button variant="ghost" size="sm" className="text-muted-foreground">Server 2</Button>
                              </div>
                         </div>
                         <Table>
+                            <TableHeader>
+                                <TableRow className="border-b-white/10">
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Role</TableHead>
+                                    <TableHead>Server</TableHead>
+                                </TableRow>
+                            </TableHeader>
                             <TableBody>
                                 {roster.map((member) => (
                                     <TableRow key={member.id} className="border-b-white/10">
@@ -217,8 +288,6 @@ export default function Home() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-muted-foreground">{member.server}</TableCell>
-                                        <TableCell className="text-muted-foreground">Moderator</TableCell>
-                                        <TableCell className="text-muted-foreground">06/06/2022 - 11:26 AM CET</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -232,14 +301,14 @@ export default function Home() {
         <section id="discord" className="py-16 md:py-24">
              <div className="container mx-auto px-4">
                 <div className="text-center mb-12">
-                    <p className="text-primary font-bold uppercase">Join our discord server</p>
+                    <p className="text-primary font-bold uppercase">Join our community</p>
                     <h2 className="text-4xl md:text-5xl font-headline font-black uppercase">
                         Discord Server
                     </h2>
                 </div>
                 <div className="grid lg:grid-cols-3 gap-8 items-start">
                     <div className="lg:col-span-2 bg-card border border-border rounded-lg p-6 space-y-4">
-                         <h3 className="font-headline text-2xl uppercase mb-4">Discord Announcements</h3>
+                         <h3 className="font-headline text-2xl uppercase mb-4">Latest Announcements</h3>
                         {announcements.map(ann => (
                             <div key={ann.id} className="border-b border-border pb-4 last:border-b-0">
                                 <div className="flex items-center gap-2 mb-2">
@@ -254,7 +323,7 @@ export default function Home() {
                         ))}
                     </div>
                      <div className="lg:col-span-1 flex flex-col items-center">
-                        <Image src="https://picsum.photos/400/500" width={400} height={500} alt="Discord Character" className="mb-4" data-ai-hint="fantasy knight character" />
+                        <Image src="https://picsum.photos/400/500" width={400} height={500} alt="Discord Character" className="mb-4 rounded-lg" data-ai-hint="fantasy knight character" />
                         <Button variant="secondary" size="lg" className="w-full">Join Discord</Button>
                     </div>
                 </div>
@@ -262,9 +331,9 @@ export default function Home() {
         </section>
 
          {/* About Us Section */}
-        <section className="py-16 md:py-24 border-t border-border">
+        <section className="py-16 md:py-24 border-t border-border bg-card/50">
             <div className="container mx-auto px-4 text-center">
-                 <p className="text-primary font-bold uppercase">We are the best L2 players</p>
+                 <p className="text-primary font-bold uppercase">Get to know us</p>
                 <h2 className="text-4xl md:text-5xl font-headline font-black uppercase">
                     About Our Clan
                 </h2>
