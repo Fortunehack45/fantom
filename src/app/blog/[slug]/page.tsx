@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, doc, addDoc, serverTimestamp, onSnapshot, deleteDoc, getDoc, setDoc, orderBy, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, addDoc, serverTimestamp, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import Image from "next/image";
@@ -30,18 +30,7 @@ interface Post {
     hint: string;
     content: string;
     imageUrl?: string;
-    likes: string[];
-}
-
-interface Comment {
-    id: string;
-    authorId: string;
-    authorName: string;
-    authorPhotoURL?: string;
-    content: string;
-    timestamp: any;
-    likes: string[];
-    replies: Reply[];
+    likes: string[]; // Array of user IDs
 }
 
 interface Reply {
@@ -51,7 +40,18 @@ interface Reply {
     authorPhotoURL?: string;
     content: string;
     timestamp: any;
-    likes: string[];
+    likes: string[]; // Array of user IDs
+}
+
+interface Comment {
+    id: string;
+    authorId: string;
+    authorName: string;
+    authorPhotoURL?: string;
+    content: string;
+    timestamp: any;
+    likes: string[]; // Array of user IDs
+    replies: Reply[];
 }
 
 
@@ -115,7 +115,7 @@ export default function BlogPostPage() {
                          }
                     });
                     setLoading(false);
-                    return unsubscribe; // Return the listener cleanup function
+                    return unsubscribe; 
                 } else {
                     console.warn(`Post with slug "${slug}" not found.`);
                     setPost(null);
@@ -179,6 +179,7 @@ export default function BlogPostPage() {
                 content: newComment,
                 timestamp: serverTimestamp(),
                 likes: [],
+                replies: [],
             });
             setNewComment('');
             toast({ title: 'Success', description: 'Comment posted!' });
@@ -249,18 +250,21 @@ export default function BlogPostPage() {
             : `blogPosts/${post.id}/comments/${commentId}`;
         
         const itemRef = doc(db, path);
-        const itemDoc = await getDoc(itemRef);
-
-        if (!itemDoc.exists()) {
-             toast({ variant: 'destructive', title: 'Error', description: 'Item not found.'});
-             return;
-        }
-
-        const itemData = itemDoc.data();
-        const currentLikes: string[] = itemData.likes || [];
-        const hasLikedItem = currentLikes.includes(user.uid);
 
         try {
+            // Find the correct item in the local state to check if it's liked
+            let currentLikes: string[] = [];
+            if(replyId){
+                const comment = comments.find(c => c.id === commentId);
+                const reply = comment?.replies.find(r => r.id === replyId);
+                currentLikes = reply?.likes || [];
+            } else {
+                const comment = comments.find(c => c.id === commentId);
+                currentLikes = comment?.likes || [];
+            }
+        
+            const hasLikedItem = currentLikes.includes(user.uid);
+
             if (hasLikedItem) {
                 await updateDoc(itemRef, { likes: arrayRemove(user.uid) });
             } else {
@@ -329,7 +333,7 @@ export default function BlogPostPage() {
                     <div className="flex items-center gap-4 mt-2 text-xs">
                         <Button variant="ghost" className="h-auto p-0 flex items-center gap-1 text-muted-foreground hover:text-primary" onClick={handleLikeClick} disabled={!user}>
                            <ThumbsUp className={`h-4 w-4 transition-colors ${hasLikedItem ? 'text-primary' : ''}`}/>
-                           <span>{itemLikes.length}</span>
+                           <span>{itemLikes.length > 0 ? itemLikes.length : ''}</span>
                         </Button>
 
                          {!isReply && (
@@ -384,7 +388,7 @@ export default function BlogPostPage() {
                         </Button>
                         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                             <MessageSquare /> 
-                            <span>{totalCommentsAndReplies}</span>
+                            <span>{totalCommentsAndReplies} Comments</span>
                         </div>
                     </div>
                      <Button variant="outline" size="sm"><Share2 className="mr-2" /> Share</Button>
@@ -484,3 +488,6 @@ export default function BlogPostPage() {
     </div>
   );
 }
+
+
+    
