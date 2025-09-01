@@ -19,36 +19,3 @@ export function GhostIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
-export function FantomIcon(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg" {...props}>
-            <text 
-                x="50%" 
-                y="50%" 
-                dy=".35em" 
-                textAnchor="middle" 
-                fontFamily="Teko, sans-serif" 
-                fontSize="48" 
-                fill="currentColor"
-                className="font-bold"
-                letterSpacing="0.1em"
-            >
-                FANTOM
-            </text>
-        </svg>
-    )
-}
-
-export function TsmIcon(props: SVGProps<SVGSVGElement>) {
-    return (
-      <svg viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg" {...props}>
-        <circle cx="50" cy="50" r="48" stroke="currentColor" strokeWidth="4" fill="none" />
-        <path d="M30 35 H 70 L 50 55 Z" fill="currentColor" />
-        <path d="M50 55 L 30 75 H 70 L 50 55 Z" stroke="currentColor" strokeWidth="2" fill="none" />
-         <text x="50" y="58" textAnchor="middle" fontSize="20" fontWeight="bold" fill="currentColor" fontFamily="sans-serif">T</text>
-         <text x="35" y="45" textAnchor="middle" fontSize="20" fontWeight="bold" fill="currentColor" fontFamily="sans-serif">S</text>
-         <text x="65" y="45" textAnchor="middle" fontSize="20" fontWeight="bold" fill="currentColor" fontFamily="sans-serif">M</text>
-      </svg>
-    )
-}

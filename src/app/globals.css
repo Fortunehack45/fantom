@@ -12,23 +12,31 @@ body {
   :root {
     --background: 224 71% 4%;
     --foreground: 210 40% 98%;
+
     --card: 222 84% 4.9%;
     --card-foreground: 210 40% 98%;
+
     --popover: 222 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 210 90% 60%;
+
+    --primary: 196 100% 47%; /* Neon Blue: #00AEEF */
     --primary-foreground: 210 40% 98%;
+
     --secondary: 217 91% 60%;
     --secondary-foreground: 222 47% 11%;
+
     --muted: 217 28% 17%;
     --muted-foreground: 215 20% 65%;
-    --accent: 217 28% 17%;
+
+    --accent: 196 100% 47%; /* Neon Blue */
     --accent-foreground: 210 40% 98%;
+
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 216 34% 17%;
+
+    --border: 196 100% 27%;
     --input: 216 34% 17%;
-    --ring: 216 34% 17%;
+    --ring: 196 100% 47%;
     --radius: 0.5rem;
   }
 
@@ -39,19 +47,19 @@ body {
     --card-foreground: 210 40% 98%;
     --popover: 222 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 210 90% 60%;
+    --primary: 196 100% 47%;
     --primary-foreground: 210 40% 98%;
     --secondary: 217 91% 60%;
     --secondary-foreground: 222 47% 11%;
     --muted: 217 28% 17%;
     --muted-foreground: 215 20% 65%;
-    --accent: 217 28% 17%;
+    --accent: 196 100% 47%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 216 34% 17%;
+    --border: 196 100% 27%;
     --input: 216 34% 17%;
-    --ring: 216 34% 17%;
+    --ring: 196 100% 47%;
   }
 }
 
@@ -64,15 +72,10 @@ body {
   }
 }
 
-.text-stroke {
-    -webkit-text-stroke: 1px #000;
-    text-shadow: 0px 2px 4px rgba(0,0,0,0.5);
-}
-
 .btn-primary-glow {
-    box-shadow: none;
+    box-shadow: 0 0 5px theme('colors.primary.DEFAULT'), 0 0 10px theme('colors.primary.DEFAULT'), 0 0 15px theme('colors.primary.DEFAULT');
 }
 
 .btn-secondary-glow {
-    box-shadow: none;
+    box-shadow: 0 0 5px theme('colors.primary.DEFAULT'), 0 0 10px theme('colors.primary.DEFAULT');
 }

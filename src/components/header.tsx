@@ -1,66 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { TsmIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, ShieldCheck, LogOut, X, ChevronDown, TwitterIcon, TwitchIcon, YoutubeIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { useToast } from "@/hooks/use-toast";
+import { Menu, Gamepad2, Play, X } from "lucide-react";
+import { usePathname } from "next/navigation";
+
 
 export function Header() {
-  const [user, setUser] = useState<User | null>(null);
   const pathname = usePathname();
-  const router = useRouter();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast({ title: "Logged Out", description: "You have been successfully logged out." });
-      router.push('/');
-    } catch (error) {
-      toast({ variant: "destructive", title: "Logout Failed", description: "Could not log you out. Please try again." });
-    }
-  };
 
   const navLinks = [
-    { href: "/#teams", label: "Teams" },
-    { href: "#", label: "Facility" },
-    { href: "/#news", label: "News" },
-    { href: "#", label: "Partners" },
-    { href: "/#shop", label: "Store" },
-    { href: "#", label: "More" },
-    { href: "#", label: "Contact" },
+    { href: "/#game", label: "Game" },
+    { href: "/#teams", label: "Team" },
+    { href: "#", label: "Roadmap" },
+    { href: "#", label: "Staking" },
+    { href: "/#marketplace", label: "Marketplace" },
   ];
 
   return (
-    <header className="absolute top-0 z-50 w-full bg-transparent">
-      <div className="container mx-auto flex h-20 items-center justify-between px-4">
+    <header className="absolute top-0 z-50 w-full bg-gradient-to-b from-black/50 to-transparent">
+      <div className="container mx-auto flex h-24 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
-          <TsmIcon className="w-16 h-auto text-white" />
+          <Gamepad2 className="w-8 h-8 text-primary" />
+          <span className="text-2xl font-bold uppercase text-white tracking-widest font-headline">ALICA</span>
         </Link>
         
-        <nav className="hidden lg:flex items-center gap-6 text-sm font-bold uppercase">
+        <nav className="hidden lg:flex items-center gap-8 text-sm font-bold uppercase">
           {navLinks.map((link) => (
             <Link
               key={link.label}
               href={link.href}
-              className={`transition-colors hover:text-white pb-1 border-b-2 ${pathname === link.href || (link.href === '/#news' && (pathname === '/' || pathname.startsWith('/blog'))) ? 'text-white border-white' : 'text-foreground/80 border-transparent'}`}
+              className={`transition-colors text-white/80 hover:text-white hover:text-shadow-[0_0_8px_hsl(var(--primary))]`}
             >
               {link.label}
             </Link>
@@ -68,16 +43,10 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-            <div className="hidden lg:flex items-center gap-4">
-                <TwitterIcon className="w-5 h-5 text-foreground/80 hover:text-white transition-colors" />
-                <TwitchIcon className="w-5 h-5 text-foreground/80 hover:text-white transition-colors" />
-                <YoutubeIcon className="w-5 h-5 text-foreground/80 hover:text-white transition-colors" />
-            </div>
-            {user && (
-              <Link href="/admin">
-                <Button variant="outline" size="icon" className="border-primary text-primary"><ShieldCheck /></Button>
-              </Link>
-            )}
+            <Button variant="primary" className="hidden lg:flex btn-primary-glow">
+                <Play className="mr-2" />
+                Play Now
+            </Button>
              <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="lg:hidden text-white">
@@ -85,10 +54,11 @@ export function Header() {
                     <span className="sr-only">Toggle Menu</span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="bg-background border-l-white/10">
+                <SheetContent side="right" className="bg-background border-l-primary/20">
                   <div className="flex justify-between items-center mb-8">
                      <Link href="/" className="flex items-center gap-2">
-                       <TsmIcon className="w-16 h-auto text-white" />
+                        <Gamepad2 className="w-8 h-8 text-primary" />
+                        <span className="text-2xl font-bold uppercase text-white tracking-widest font-headline">ALICA</span>
                     </Link>
                     <SheetTrigger asChild>
                        <Button variant="ghost" size="icon">
@@ -97,7 +67,7 @@ export function Header() {
                       </Button>
                     </SheetTrigger>
                   </div>
-                  <nav className="flex flex-col gap-4">
+                  <nav className="flex flex-col gap-6">
                     {navLinks.map((link) => (
                       <Link
                         key={link.label}
@@ -107,30 +77,11 @@ export function Header() {
                         {link.label}
                       </Link>
                     ))}
-                     <div className="mt-auto pt-4 border-t border-border">
-                        {user ? (
-                            <>
-                                 <Link
-                                    href="/admin"
-                                    className="text-lg font-medium flex items-center gap-2 mb-2 text-white"
-                                >
-                                    <ShieldCheck className="h-5 w-5" />
-                                    Clan Master
-                                </Link>
-                                 <Button variant="ghost" onClick={handleLogout} className="justify-start w-full text-white">
-                                  <LogOut className="mr-2 h-5 w-5" />
-                                  Logout
-                                </Button>
-                            </>
-                          ) : (
-                             
-                                 <Button asChild variant="ghost" className="justify-start w-full text-white">
-                                    <Link href="/admin/login">Login</Link>
-                                  </Button>
-                             
-                          )}
-                     </div>
                   </nav>
+                  <Button variant="primary" size="lg" className="mt-8 w-full btn-primary-glow">
+                    <Play className="mr-2" />
+                    Play Now
+                  </Button>
                 </SheetContent>
               </Sheet>
         </div>

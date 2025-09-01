@@ -17,8 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Roboto', 'sans-serif'],
-        headline: ['Teko', 'sans-serif'],
+        body: ['var(--font-inter)', 'sans-serif'],
+        headline: ['var(--font-montserrat)', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
