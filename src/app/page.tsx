@@ -118,7 +118,7 @@ export default function Home() {
       <Header />
       <main className="flex-grow">
         {/* Hero Section */}
-        <section id="hero" className="relative aspect-[3/1] flex items-center justify-center text-center bg-black">
+        <section id="hero" className="relative aspect-[16/9] flex items-center justify-center text-center bg-black">
              <Carousel 
                 className="absolute inset-0 w-full h-full"
                 plugins={[autoplayPlugin.current]}
@@ -132,8 +132,8 @@ export default function Home() {
                              <Image
                                 src={image.src}
                                 alt={image.alt}
-                                width={1800}
-                                height={600}
+                                width={1600}
+                                height={900}
                                 className="object-cover w-full h-full opacity-30"
                                 data-ai-hint={image.hint}
                                 priority={true}
