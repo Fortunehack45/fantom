@@ -1,14 +1,14 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { Inter, Montserrat } from 'next/font/google';
+import { Inter, Unica_One } from 'next/font/google';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const montserrat = Montserrat({ subsets: ['latin'], variable: '--font-montserrat', weight: ['400', '700'] });
+const unicaOne = Unica_One({ subsets: ['latin'], variable: '--font-unica-one', weight: ['400'] });
 
 export const metadata: Metadata = {
-  title: 'ALICA - The Next Generation',
-  description: 'Welcome to the official website of ALICA',
+  title: 'Fantom eSport',
+  description: 'Welcome to the official website of Fantom eSport',
 };
 
 export default function RootLayout({
@@ -19,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head />
-      <body className={`${inter.variable} ${montserrat.variable} font-body antialiased`}>
+      <body className={`${inter.variable} ${unicaOne.variable} font-body antialiased`}>
         {children}
         <Toaster />
       </body>

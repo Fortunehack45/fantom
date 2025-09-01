@@ -5,7 +5,7 @@
 body {
   font-family: 'var(--font-inter)', sans-serif;
   background-color: hsl(var(--background));
-  background-image: none;
+  background-image: url('https://www.transparenttextures.com/patterns/dark-matter.png');
 }
 
 @layer base {
@@ -19,7 +19,7 @@ body {
     --popover: 222 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 196 100% 47%; /* Neon Blue: #00AEEF */
+    --primary: 0 72% 51%; /* Fiery Red */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 217 91% 60%;
@@ -28,15 +28,15 @@ body {
     --muted: 217 28% 17%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 196 100% 47%; /* Neon Blue */
+    --accent: 0 72% 51%; /* Fiery Red */
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 196 100% 27%;
+    --border: 0 72% 21%;
     --input: 216 34% 17%;
-    --ring: 196 100% 47%;
+    --ring: 0 72% 51%;
     --radius: 0.5rem;
   }
 
@@ -47,19 +47,19 @@ body {
     --card-foreground: 210 40% 98%;
     --popover: 222 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 196 100% 47%;
+    --primary: 0 72% 51%;
     --primary-foreground: 210 40% 98%;
     --secondary: 217 91% 60%;
     --secondary-foreground: 222 47% 11%;
     --muted: 217 28% 17%;
     --muted-foreground: 215 20% 65%;
-    --accent: 196 100% 47%;
+    --accent: 0 72% 51%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 196 100% 27%;
+    --border: 0 72% 21%;
     --input: 216 34% 17%;
-    --ring: 196 100% 47%;
+    --ring: 0 72% 51%;
   }
 }
 

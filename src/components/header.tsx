@@ -7,26 +7,24 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, Gamepad2, Play, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export function Header() {
   const pathname = usePathname();
 
   const navLinks = [
-    { href: "/#game", label: "Game" },
-    { href: "/#teams", label: "Team" },
-    { href: "#", label: "Roadmap" },
-    { href: "#", label: "Staking" },
-    { href: "/#marketplace", label: "Marketplace" },
+    { href: "/", label: "Servers Overview" },
+    { href: "/blog", label: "News" },
+    { href: "/#clan-roster", label: "Clan Roster" },
+    { href: "/#recruitment", label: "Recruitment" },
   ];
 
   return (
-    <header className="absolute top-0 z-50 w-full bg-gradient-to-b from-black/50 to-transparent">
-      <div className="container mx-auto flex h-24 items-center justify-between px-4">
+    <header className="sticky top-0 z-50 w-full border-b border-b-primary/20 bg-background/80 backdrop-blur-sm">
+      <div className="container mx-auto flex h-20 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
-          <Gamepad2 className="w-8 h-8 text-primary" />
-          <span className="text-2xl font-bold uppercase text-white tracking-widest font-headline">ALICA</span>
+          <span className="text-3xl font-bold uppercase text-white tracking-widest font-headline">Fantom eSport</span>
         </Link>
         
         <nav className="hidden lg:flex items-center gap-8 text-sm font-bold uppercase">
@@ -34,17 +32,19 @@ export function Header() {
             <Link
               key={link.label}
               href={link.href}
-              className={`transition-colors text-white/80 hover:text-white hover:text-shadow-[0_0_8px_hsl(var(--primary))] ${pathname === link.href ? 'text-primary text-shadow-[0_0_8px_hsl(var(--primary))]' : ''}`}
+              className={`transition-colors text-white/80 hover:text-primary ${pathname === link.href ? 'text-primary' : ''}`}
             >
               {link.label}
             </Link>
           ))}
         </nav>
 
-        <div className="flex items-center gap-4">
-            <Button variant="primary" className="hidden lg:flex btn-primary-glow">
-                <Play className="mr-2" />
-                Play Now
+        <div className="flex items-center gap-2">
+            <Button variant="outline" className="hidden lg:flex">
+                Discord
+            </Button>
+            <Button variant="primary" className="hidden lg:flex">
+                Join Us
             </Button>
              <Sheet>
                 <SheetTrigger asChild>
@@ -56,8 +56,7 @@ export function Header() {
                 <SheetContent side="right" className="bg-background border-l-primary/20">
                   <div className="flex justify-between items-center mb-8">
                      <Link href="/" className="flex items-center gap-2">
-                        <Gamepad2 className="w-8 h-8 text-primary" />
-                        <span className="text-2xl font-bold uppercase text-white tracking-widest font-headline">ALICA</span>
+                        <span className="text-2xl font-bold uppercase text-white tracking-widest font-headline">Fantom eSport</span>
                     </Link>
                     <SheetTrigger asChild>
                        <Button variant="ghost" size="icon">
@@ -77,10 +76,14 @@ export function Header() {
                       </Link>
                     ))}
                   </nav>
-                  <Button variant="primary" size="lg" className="mt-8 w-full btn-primary-glow">
-                    <Play className="mr-2" />
-                    Play Now
-                  </Button>
+                  <div className="mt-8 flex flex-col gap-4">
+                    <Button variant="outline" size="lg" className="w-full">
+                        Discord
+                    </Button>
+                    <Button variant="primary" size="lg" className="w-full">
+                        Join Us
+                    </Button>
+                  </div>
                 </SheetContent>
               </Sheet>
         </div>

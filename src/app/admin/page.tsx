@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -42,14 +42,15 @@ export default function AdminPage() {
     const [roster, setRoster] = useState<RosterMember[]>([]);
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
-    const [newPost, setNewPost] = useState({ title: '', content: '', imageUrl: '' });
+    const [newPost, setNewPost] = useState({ title: '', content: '', imageUrl: '', category: 'News' });
 
     const [newMember, setNewMember] = useState({ name: '', role: '', server: '' });
 
     const [newAnnouncement, setNewAnnouncement] = useState({ author: '', content: '', authorImageUrl: '' });
     
     const fetchBlogPosts = async () => {
-        const querySnapshot = await getDocs(collection(db, "blogPosts"));
+        const q = query(collection(db, "blogPosts"), orderBy("date", "desc"));
+        const querySnapshot = await getDocs(q);
         const posts: BlogPost[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
         setBlogPosts(posts);
     };
@@ -86,11 +87,11 @@ export default function AdminPage() {
                     imageUrl: newPost.imageUrl || `https://picsum.photos/400/250?random=${Date.now()}`,
                     date: serverTimestamp(),
                     author: "Fantom eSport",
-                    category: "News",
+                    category: newPost.category,
                     hint: "gamer portrait"
                 });
 
-                setNewPost({ title: '', content: '', imageUrl: '' });
+                setNewPost({ title: '', content: '', imageUrl: '', category: 'News' });
                 fetchBlogPosts();
                  toast({ title: "Success", description: "Blog post added." });
             } catch (error) {
@@ -140,6 +141,7 @@ export default function AdminPage() {
                 await addDoc(collection(db, "announcements"), {
                     author: newAnnouncement.author,
                     content: newAnnouncement.content,
+                    date: serverTimestamp(),
                     authorImageUrl: newAnnouncement.authorImageUrl || `https://picsum.photos/40/40?random=${Date.now()}`
                 });
                 setNewAnnouncement({ author: '', content: '', authorImageUrl: ''});
@@ -187,6 +189,10 @@ export default function AdminPage() {
                                 <div>
                                     <Label htmlFor="post-title">Title</Label>
                                     <Input id="post-title" placeholder="Enter post title" value={newPost.title} onChange={(e) => setNewPost({...newPost, title: e.target.value})} required />
+                                </div>
+                                 <div>
+                                    <Label htmlFor="post-category">Category</Label>
+                                    <Input id="post-category" placeholder="e.g. News, Tutorial" value={newPost.category} onChange={(e) => setNewPost({...newPost, category: e.target.value})} required />
                                 </div>
                                 <div>
                                     <Label htmlFor="post-image-url">Image URL (Pinterest, etc.)</Label>

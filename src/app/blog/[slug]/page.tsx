@@ -111,10 +111,10 @@ export default function BlogPostPage() {
         <div className="container mx-auto px-4">
             <article className="max-w-4xl mx-auto">
                 <header className="mb-8 text-center">
-                    <p className="text-primary font-semibold uppercase">{post.category}</p>
+                    <Badge variant="primary">{post.category}</Badge>
                     <h1 className="text-4xl md:text-6xl font-headline font-bold uppercase my-2">{post.title}</h1>
                     <p className="text-muted-foreground text-sm">
-                        By {post.author} - Posted {formatDistanceToNow(post.date)} ago
+                        By {post.author} - Posted {formatDistanceToNow(post.date, { addSuffix: true })}
                     </p>
                 </header>
                 {post.imageUrl && (

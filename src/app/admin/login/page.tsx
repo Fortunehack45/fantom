@@ -22,7 +22,6 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // The auth state change will be handled by the layout
       router.push('/admin');
     } catch (error: any) {
       toast({
