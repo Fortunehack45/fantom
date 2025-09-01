@@ -30,10 +30,13 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const slug = params.slug;
-        if (!slug) return;
-
         const fetchPost = async () => {
+            const slug = params.slug;
+            if (!slug) {
+                setLoading(false);
+                return;
+            };
+
             setLoading(true);
             try {
                 const postsRef = collection(db, 'blogPosts');
@@ -135,3 +138,4 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     </div>
   );
 }
+
