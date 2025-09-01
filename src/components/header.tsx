@@ -10,7 +10,6 @@ import {
 import { Menu, Gamepad2, Play, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 
-
 export function Header() {
   const pathname = usePathname();
 
@@ -35,7 +34,7 @@ export function Header() {
             <Link
               key={link.label}
               href={link.href}
-              className={`transition-colors text-white/80 hover:text-white hover:text-shadow-[0_0_8px_hsl(var(--primary))]`}
+              className={`transition-colors text-white/80 hover:text-white hover:text-shadow-[0_0_8px_hsl(var(--primary))] ${pathname === link.href ? 'text-primary text-shadow-[0_0_8px_hsl(var(--primary))]' : ''}`}
             >
               {link.label}
             </Link>

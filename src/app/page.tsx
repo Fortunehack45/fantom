@@ -1,28 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { collection, getDocs, limit, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Play, Users } from "lucide-react";
-import Link from "next/link";
-import { format } from 'date-fns';
-
-interface BlogPost {
-  id: string;
-  slug: string;
-  title: string;
-  content: string;
-  hint: string;
-  category: string;
-  imageUrl?: string;
-  date: any; 
-  logoUrl?: string;
-}
 
 interface Team {
     id: string;
@@ -37,7 +20,7 @@ const teams: Team[] = [
     { id: '3', name: 'Fortnite', memberCount: 12, logoUrl: '/icons/fortnite.svg' },
     { id: '4', name: 'Rainbow 6 Siege', memberCount: 6, logoUrl: '/icons/r6.svg' },
     { id: '5', name: 'Super Smash Bros', memberCount: 2, logoUrl: '/icons/smash.svg' },
-    { id: '6', name: 'Apex Legends', memberCount: 5, logoUrl: '/icons/apex.svg' },
+    { id: '6',name: 'Apex Legends', memberCount: 5, logoUrl: '/icons/apex.svg' },
 ];
 
 export default function Home() {
@@ -57,7 +40,7 @@ export default function Home() {
                     data-ai-hint="cyberpunk city neon"
                     priority
                 />
-                <div className="absolute inset-0 bg-black/60 bg-gradient-to-b from-black/20 via-transparent to-black/80" />
+                <div className="absolute inset-0 bg-black/60 bg-gradient-to-b from-black/20 via-transparent to-background" />
             </div>
             <div className="relative z-10 container mx-auto px-4">
                 <div className="max-w-4xl mx-auto">
@@ -78,70 +61,70 @@ export default function Home() {
                     </div>
                 </div>
             </div>
-             <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-background to-transparent" />
+             <Footer />
         </section>
         
-        <section id="game" className="py-16 md:py-24 border-y-2 border-primary/20">
-             <div className="container mx-auto px-4">
-                <div className="grid md:grid-cols-2 gap-12 items-center">
-                    <div className="relative aspect-video">
-                        <Image src="https://picsum.photos/600/400?random=gameplay" alt="Gameplay" fill className="object-cover rounded-lg" data-ai-hint="futuristic game" />
+        <div className="bg-background">
+            <section id="game" className="py-16 md:py-24 border-y-2 border-primary/20">
+                 <div className="container mx-auto px-4">
+                    <div className="grid md:grid-cols-2 gap-12 items-center">
+                        <div className="relative aspect-video">
+                            <Image src="https://picsum.photos/600/400?random=gameplay" alt="Gameplay" fill className="object-cover rounded-lg" data-ai-hint="futuristic game" />
+                        </div>
+                        <div>
+                            <h2 className="text-4xl md:text-5xl font-headline font-bold uppercase text-white">The Game</h2>
+                            <p className="mt-4 text-muted-foreground">Dive into a persistent online world where every action matters. Form alliances, conquer territories, and write your legend in the annals of ALICA. Experience tactical combat, deep customization, and a player-driven economy.</p>
+                            <Button variant="primary" className="mt-6">Learn More</Button>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-4xl md:text-5xl font-headline font-bold uppercase text-white">The Game</h2>
-                        <p className="mt-4 text-muted-foreground">Dive into a persistent online world where every action matters. Form alliances, conquer territories, and write your legend in the annals of ALICA. Experience tactical combat, deep customization, and a player-driven economy.</p>
-                        <Button variant="primary" className="mt-6">Learn More</Button>
-                    </div>
-                </div>
-             </div>
-        </section>
+                 </div>
+            </section>
 
-        {/* Teams Section */}
-        <section id="teams" className="py-16 md:py-24 bg-background">
-            <div className="container mx-auto px-4">
-                <div className="text-center mb-12">
-                    <h2 className="text-4xl md:text-5xl font-headline font-black uppercase text-white">
-                        Meet Our Teams
-                    </h2>
-                    <p className="text-primary font-bold text-xl">#ALICAWIN</p>
-                </div>
-                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    {teams.map((team) => (
-                        <Card key={team.id} className="bg-muted/20 border-border p-4 rounded-lg flex flex-col items-center justify-center text-center group hover:bg-primary/10 hover:border-primary transition-colors">
-                           <div className="relative w-12 h-12 mb-3 grayscale group-hover:grayscale-0 transition-all">
-                            <Image src={team.logoUrl} alt={`${team.name} logo`} fill className="object-contain" />
-                           </div>
-                           <h3 className="font-bold uppercase text-sm text-white">{team.name}</h3>
-                           <p className="text-xs text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" /> {team.memberCount} Members</p>
-                        </Card>
-                    ))}
-                </div>
-            </div>
-        </section>
-        
-        <section id="marketplace" className="py-16 md:py-24 border-y-2 border-primary/20">
-             <div className="container mx-auto px-4">
-                <div className="grid md:grid-cols-2 gap-12 items-center">
-                     <div className="order-2 md:order-1">
-                        <h2 className="text-4xl md:text-5xl font-headline font-bold uppercase text-white">
-                            Marketplace
+            {/* Teams Section */}
+            <section id="teams" className="py-16 md:py-24">
+                <div className="container mx-auto px-4">
+                    <div className="text-center mb-12">
+                        <h2 className="text-4xl md:text-5xl font-headline font-black uppercase text-white">
+                            Meet Our Teams
                         </h2>
-                         <p className="mt-4 text-muted-foreground max-w-lg">
-                            Trade unique digital assets, from powerful in-game items to limited edition skins. Our marketplace is secure, transparent, and driven by the community.
-                        </p>
-                         <Button variant="primary" className="mt-6">
-                            Go to Marketplace
-                        </Button>
+                        <p className="text-primary font-bold text-xl">#ALICAWIN</p>
                     </div>
-                    <div className="relative aspect-video order-1 md:order-2">
-                        <Image src="https://picsum.photos/600/400?random=marketplace" alt="Marketplace" fill className="object-cover rounded-lg" data-ai-hint="digital assets crypto" />
+                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        {teams.map((team) => (
+                            <Card key={team.id} className="bg-muted/20 border-border p-4 rounded-lg flex flex-col items-center justify-center text-center group hover:bg-primary/10 hover:border-primary transition-colors">
+                               <div className="relative w-12 h-12 mb-3 grayscale group-hover:grayscale-0 transition-all">
+                                <Image src={team.logoUrl} alt={`${team.name} logo`} fill className="object-contain" />
+                               </div>
+                               <h3 className="font-bold uppercase text-sm text-white">{team.name}</h3>
+                               <p className="text-xs text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" /> {team.memberCount} Members</p>
+                            </Card>
+                        ))}
                     </div>
                 </div>
-             </div>
-        </section>
-
+            </section>
+            
+            <section id="marketplace" className="py-16 md:py-24 border-y-2 border-primary/20">
+                 <div className="container mx-auto px-4">
+                    <div className="grid md:grid-cols-2 gap-12 items-center">
+                         <div className="order-2 md:order-1">
+                            <h2 className="text-4xl md:text-5xl font-headline font-bold uppercase text-white">
+                                Marketplace
+                            </h2>
+                             <p className="mt-4 text-muted-foreground max-w-lg">
+                                Trade unique digital assets, from powerful in-game items to limited edition skins. Our marketplace is secure, transparent, and driven by the community.
+                            </p>
+                             <Button variant="primary" className="mt-6">
+                                Go to Marketplace
+                            </Button>
+                        </div>
+                        <div className="relative aspect-video order-1 md:order-2">
+                            <Image src="https://picsum.photos/600/400?random=marketplace" alt="Marketplace" fill className="object-cover rounded-lg" data-ai-hint="digital assets crypto" />
+                        </div>
+                    </div>
+                 </div>
+            </section>
+        </div>
       </main>
-      <Footer />
     </div>
   );
 }
