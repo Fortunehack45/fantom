@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Gamepad2 } from "lucide-react";
+import { DoomIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -43,95 +43,92 @@ export function Header() {
 
 
   const navLinks = [
-    { href: "/#game", label: "Game" },
-    { href: "/#team", label: "Team" },
-    { href: "/#roadmap", label: "Roadmap" },
-    { href: "/#staking", label: "Staking" },
-    { href: "/#marketplace", label: "Marketplace" },
+    { href: "/#servers", label: "Servers Overview" },
+    { href: "/#news", label: "News" },
+    { href: "/blog", label: "Blog" },
+    { href: "/#roster", label: "Clan Roster" },
+    { href: "/#recruitment", label: "Recruitment" },
   ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-20 items-center px-4">
-        <Link href="/" className="flex items-center gap-2 mr-6">
-          <Gamepad2 className="w-8 h-8 text-primary" />
-          <span className="text-2xl font-bold font-headline uppercase">
-            Alica
-          </span>
+      <div className="container mx-auto flex h-24 items-center justify-between px-4">
+        <Link href="/" className="flex items-center gap-2">
+          <DoomIcon className="w-24 h-auto" />
         </Link>
-        <nav className="hidden lg:flex items-center gap-6 text-sm font-medium uppercase">
+        
+        <nav className="hidden lg:flex items-center gap-6 text-sm font-bold uppercase">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="transition-colors hover:text-primary text-foreground/80"
+              className="transition-colors hover:text-primary text-foreground/80 tracking-wider"
             >
               {link.label}
             </Link>
           ))}
-          {user && (
-            <Link
-              href="/admin"
-              className="flex items-center gap-2 transition-colors hover:text-primary text-foreground/80"
-            >
-              <ShieldCheck className="h-4 w-4" />
-              Clan Master
-            </Link>
-          )}
         </nav>
-        <div className="flex flex-1 items-center justify-end gap-4">
-           <Button asChild variant="primary" className="hidden sm:inline-flex">
-                 <Link href="#">Play Now</Link>
-           </Button>
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden">
-                <Menu />
-                <span className="sr-only">Toggle Menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right">
-                <SheetHeader>
-                  <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
-                </SheetHeader>
-              <Link href="/" className="flex items-center gap-2 mb-8">
-                <Gamepad2 className="w-8 h-8 text-primary" />
-                <span className="text-2xl font-bold font-headline uppercase">
-                  Alica
-                </span>
+
+        <div className="flex items-center gap-2">
+            <Button variant="secondary" className="hidden sm:inline-flex">Discord</Button>
+            <Button variant="primary" className="hidden sm:inline-flex">Join Us</Button>
+            {user && (
+              <Link href="/admin">
+                <Button variant="outline" size="icon"><ShieldCheck /></Button>
               </Link>
-              <nav className="flex flex-col gap-4">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="text-lg font-medium"
-                  >
-                    {link.label}
+            )}
+             <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="lg:hidden">
+                    <Menu />
+                    <span className="sr-only">Toggle Menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right">
+                    <SheetHeader>
+                      <SheetTitle>Menu</SheetTitle>
+                    </SheetHeader>
+                  <Link href="/" className="flex items-center gap-2 mb-8">
+                     <DoomIcon className="w-24 h-auto" />
                   </Link>
-                ))}
-                {user && (
-                    <Link
-                        href="/admin"
-                        className="text-lg font-medium flex items-center gap-2"
-                    >
-                        <ShieldCheck className="h-5 w-5" />
-                        Clan Master
-                    </Link>
-                )}
-                 {user ? (
-                     <Button variant="ghost" onClick={handleLogout} className="justify-start mt-4">
-                      <LogOut className="mr-2 h-5 w-5" />
-                      Logout
-                    </Button>
-                  ) : (
-                     <Button asChild variant="ghost" className="justify-start mt-4">
-                        <Link href="/admin/login">Login</Link>
-                      </Button>
-                  )}
-              </nav>
-            </SheetContent>
-          </Sheet>
+                  <nav className="flex flex-col gap-4">
+                    {navLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="text-lg font-medium"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                    <div className="flex flex-col gap-2 mt-4">
+                        <Button variant="secondary">Discord</Button>
+                        <Button variant="primary">Join Us</Button>
+                    </div>
+                    {user ? (
+                        <div className="mt-auto pt-4 border-t border-border">
+                             <Link
+                                href="/admin"
+                                className="text-lg font-medium flex items-center gap-2 mb-2"
+                            >
+                                <ShieldCheck className="h-5 w-5" />
+                                Clan Master
+                            </Link>
+                             <Button variant="ghost" onClick={handleLogout} className="justify-start w-full">
+                              <LogOut className="mr-2 h-5 w-5" />
+                              Logout
+                            </Button>
+                        </div>
+                      ) : (
+                         <div className="mt-auto pt-4 border-t border-border">
+                             <Button asChild variant="ghost" className="justify-start w-full">
+                                <Link href="/admin/login">Login</Link>
+                              </Button>
+                         </div>
+                      )}
+                  </nav>
+                </SheetContent>
+              </Sheet>
         </div>
       </div>
     </header>
