@@ -32,10 +32,10 @@ export default function BlogPostPage() {
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+
     useEffect(() => {
         const fetchPost = async () => {
-            const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
-
             if (!slug) {
                 setLoading(false);
                 return;
@@ -75,10 +75,10 @@ export default function BlogPostPage() {
             }
         };
 
-        if (params.slug) {
+        if (slug) {
             fetchPost();
         }
-    }, [params]);
+    }, [slug]);
 
 
     if (loading) {
