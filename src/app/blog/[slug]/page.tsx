@@ -70,7 +70,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         };
 
         fetchPost();
-    }, [params.slug]);
+    }, [params]);
 
     if (loading) {
         return (
