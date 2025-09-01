@@ -13,6 +13,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 interface Post {
+    id: string;
     slug: string;
     title: string;
     author: string;
@@ -29,12 +30,13 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!params.slug) return;
+        const slug = params.slug;
+        if (!slug) return;
 
         const fetchPost = async () => {
             setLoading(true);
             const postsRef = collection(db, 'blogPosts');
-            const q = query(postsRef, where("slug", "==", params.slug));
+            const q = query(postsRef, where("slug", "==", slug));
             const querySnapshot = await getDocs(q);
             
             if (!querySnapshot.empty) {
@@ -42,7 +44,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                 const docData = doc.data();
                  setPost({
                     id: doc.id,
-                    slug: params.slug,
+                    slug: slug,
                     title: docData.title,
                     content: docData.content,
                     author: docData.author || "Fantom eSport",
@@ -52,9 +54,9 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                     imageUrl: docData.imageUrl,
                 } as Post);
             } else {
-                 // Fallback to static post if not found in DB
                 const staticPost = {
-                    slug: params.slug,
+                    id: 'not-found',
+                    slug: slug,
                     title: "Post Not Found",
                     author: "System",
                     date: new Date().toLocaleDateString(),
