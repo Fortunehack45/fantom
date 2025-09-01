@@ -1,10 +1,10 @@
 
-
 'use client';
 
 import { useState, useEffect } from "react";
 import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -44,9 +44,15 @@ export default function AdminPage() {
     const [roster, setRoster] = useState<RosterMember[]>([]);
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
-    const [newPost, setNewPost] = useState({ title: '', imageUrl: '', content: '' });
+    const [newPost, setNewPost] = useState({ title: '', content: '' });
+    const [newPostImage, setNewPostImage] = useState<File | null>(null);
+
     const [newMember, setNewMember] = useState({ name: '', role: '', server: '' });
-    const [newAnnouncement, setNewAnnouncement] = useState({ author: '', content: '', authorImageUrl: '' });
+
+    const [newAnnouncement, setNewAnnouncement] = useState({ author: '', content: '' });
+    const [newAnnouncementImage, setNewAnnouncementImage] = useState<File | null>(null);
+    
+    const [isUploading, setIsUploading] = useState(false);
 
     const fetchBlogPosts = async () => {
         const querySnapshot = await getDocs(collection(db, "blogPosts"));
@@ -72,20 +78,37 @@ export default function AdminPage() {
         fetchAnnouncements();
     }, []);
 
+    const uploadImage = async (file: File, path: string): Promise<string> => {
+        const storageRef = ref(storage, path);
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        return downloadURL;
+    };
+
     // Blog Post Handlers
     const handleAddPost = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newPost.title && newPost.content) {
+            setIsUploading(true);
             try {
+                let imageUrl = `https://picsum.photos/400/250?random=${Date.now()}`;
+                if (newPostImage) {
+                    imageUrl = await uploadImage(newPostImage, `blog_images/${Date.now()}_${newPostImage.name}`);
+                }
+                
                 await addDoc(collection(db, "blogPosts"), { 
                     ...newPost, 
-                    imageUrl: newPost.imageUrl || `https://picsum.photos/400/250?random=${Date.now()}`
+                    imageUrl
                 });
-                setNewPost({ title: '', imageUrl: '', content: '' });
+
+                setNewPost({ title: '', content: '' });
+                setNewPostImage(null);
                 fetchBlogPosts();
                  toast({ title: "Success", description: "Blog post added." });
             } catch (error) {
                 toast({ variant: "destructive", title: "Error", description: "Could not add blog post." });
+            } finally {
+                setIsUploading(false);
             }
         }
     };
@@ -127,16 +150,24 @@ export default function AdminPage() {
     const handleAddAnnouncement = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newAnnouncement.author && newAnnouncement.content) {
+            setIsUploading(true);
             try {
+                let authorImageUrl = `https://picsum.photos/40/40?random=${Date.now()}`;
+                 if (newAnnouncementImage) {
+                    authorImageUrl = await uploadImage(newAnnouncementImage, `author_images/${Date.now()}_${newAnnouncementImage.name}`);
+                }
                 await addDoc(collection(db, "announcements"), {
                     ...newAnnouncement,
-                    authorImageUrl: newAnnouncement.authorImageUrl || `https://picsum.photos/40/40?random=${Date.now()}`
+                    authorImageUrl
                 });
-                setNewAnnouncement({ author: '', content: '', authorImageUrl: '' });
+                setNewAnnouncement({ author: '', content: ''});
+                setNewAnnouncementImage(null);
                 fetchAnnouncements();
                 toast({ title: "Success", description: "Announcement added." });
             } catch (error) {
                 toast({ variant: "destructive", title: "Error", description: "Could not add announcement." });
+            } finally {
+                setIsUploading(false);
             }
         }
     };
@@ -176,17 +207,17 @@ export default function AdminPage() {
                              <form className="space-y-4" onSubmit={handleAddPost}>
                                 <div>
                                     <Label htmlFor="post-title">Title</Label>
-                                    <Input id="post-title" placeholder="Enter post title" value={newPost.title} onChange={(e) => setNewPost({...newPost, title: e.target.value})} />
+                                    <Input id="post-title" placeholder="Enter post title" value={newPost.title} onChange={(e) => setNewPost({...newPost, title: e.target.value})} required />
                                 </div>
                                 <div>
-                                    <Label htmlFor="post-image">Image URL (e.g., from Pinterest)</Label>
-                                    <Input id="post-image" placeholder="https://i.pinimg.com/..." value={newPost.imageUrl} onChange={(e) => setNewPost({...newPost, imageUrl: e.target.value})} />
+                                    <Label htmlFor="post-image">Image</Label>
+                                    <Input id="post-image" type="file" accept="image/*" onChange={(e) => setNewPostImage(e.target.files ? e.target.files[0] : null)} />
                                 </div>
                                 <div>
                                     <Label htmlFor="post-content">Content</Label>
-                                    <Textarea id="post-content" placeholder="Write your blog post content here..." value={newPost.content} onChange={(e) => setNewPost({...newPost, content: e.target.value})} />
+                                    <Textarea id="post-content" placeholder="Write your blog post content here..." value={newPost.content} onChange={(e) => setNewPost({...newPost, content: e.target.value})} required />
                                 </div>
-                                <Button type="submit" variant="primary">Add Post</Button>
+                                <Button type="submit" variant="primary" disabled={isUploading}>{isUploading ? 'Uploading...' : 'Add Post'}</Button>
                              </form>
                         </div>
                         <div>
@@ -220,15 +251,15 @@ export default function AdminPage() {
                              <form className="space-y-4" onSubmit={handleAddMember}>
                                 <div>
                                     <Label htmlFor="member-name">Name</Label>
-                                    <Input id="member-name" placeholder="Enter member's name" value={newMember.name} onChange={(e) => setNewMember({...newMember, name: e.target.value})} />
+                                    <Input id="member-name" placeholder="Enter member's name" value={newMember.name} onChange={(e) => setNewMember({...newMember, name: e.target.value})} required/>
                                 </div>
                                 <div>
                                     <Label htmlFor="member-role">Role</Label>
-                                    <Input id="member-role" placeholder="e.g., Legendary, Pro, New Member" value={newMember.role} onChange={(e) => setNewMember({...newMember, role: e.target.value})} />
+                                    <Input id="member-role" placeholder="e.g., Legendary, Pro, New Member" value={newMember.role} onChange={(e) => setNewMember({...newMember, role: e.target.value})} required/>
                                 </div>
                                  <div>
                                     <Label htmlFor="member-server">Server</Label>
-                                    <Input id="member-server" placeholder="Enter server ID" value={newMember.server} onChange={(e) => setNewMember({...newMember, server: e.target.value})} />
+                                    <Input id="member-server" placeholder="Enter server ID" value={newMember.server} onChange={(e) => setNewMember({...newMember, server: e.target.value})} required/>
                                 </div>
                                 <Button variant="primary" type="submit">Add Member</Button>
                              </form>
@@ -277,17 +308,17 @@ export default function AdminPage() {
                              <form className="space-y-4" onSubmit={handleAddAnnouncement}>
                                 <div>
                                     <Label htmlFor="ann-author">Author</Label>
-                                    <Input id="ann-author" placeholder="@YourDiscordHandle" value={newAnnouncement.author} onChange={(e) => setNewAnnouncement({...newAnnouncement, author: e.target.value})} />
+                                    <Input id="ann-author" placeholder="@YourDiscordHandle" value={newAnnouncement.author} onChange={(e) => setNewAnnouncement({...newAnnouncement, author: e.target.value})} required />
                                 </div>
                                 <div>
-                                    <Label htmlFor="ann-author-image">Author Image URL (e.g., from Pinterest)</Label>
-                                    <Input id="ann-author-image" placeholder="https://i.pinimg.com/..." value={newAnnouncement.authorImageUrl} onChange={(e) => setNewAnnouncement({...newAnnouncement, authorImageUrl: e.target.value})} />
+                                    <Label htmlFor="ann-author-image">Author Profile Picture</Label>
+                                    <Input id="ann-author-image" type="file" accept="image/*" onChange={(e) => setNewAnnouncementImage(e.target.files ? e.target.files[0] : null)} />
                                 </div>
                                 <div>
                                     <Label htmlFor="ann-content">Content</Label>
-                                    <Textarea id="ann-content" placeholder="Write your announcement here..." value={newAnnouncement.content} onChange={(e) => setNewAnnouncement({...newAnnouncement, content: e.target.value})} />
+                                    <Textarea id="ann-content" placeholder="Write your announcement here..." value={newAnnouncement.content} onChange={(e) => setNewAnnouncement({...newAnnouncement, content: e.target.value})} required />
                                 </div>
-                                <Button variant="primary" type="submit">Add Announcement</Button>
+                                <Button variant="primary" type="submit" disabled={isUploading}>{isUploading ? 'Uploading...' : 'Add Announcement'}</Button>
                              </form>
                         </div>
                         <div>
