@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Flame, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -97,7 +97,7 @@ export default function Home() {
                     FANTOM
                 </h1>
                 <p className="mt-2 text-2xl text-muted-foreground uppercase font-bold tracking-widest">
-                    Potentia Invicta
+                    UNDEFEATED POWER
                 </p>
             </div>
         </section>
@@ -107,9 +107,9 @@ export default function Home() {
             <section id="blog" className="py-16 md:py-24">
                  <div className="container mx-auto px-4">
                     <div className="text-center mb-12">
-                        <p className="text-primary font-semibold">READ OUR MOST RECENT BLOG POSTS</p>
+                        <p className="text-primary font-semibold">OUR LATEST NEWS & UPDATES</p>
                         <h2 className="text-4xl md:text-5xl font-headline font-bold uppercase text-white">
-                            Blog - Recent Articles
+                            Recent Articles
                         </h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -154,25 +154,25 @@ export default function Home() {
             <section id="clan-roster" className="py-16 md:py-24 border-t-2 border-primary/20">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-12">
-                         <p className="text-primary font-semibold">WE ARE THE BEST, JOIN US!</p>
+                         <p className="text-primary font-semibold">MEET OUR ELITE MEMBERS</p>
                         <h2 className="text-4xl md:text-5xl font-headline font-bold uppercase text-white">
-                            Our Clan - Fantom
+                            Clan Roster
                         </h2>
                     </div>
                     <div className="grid md:grid-cols-3 gap-8">
                         <Card className="bg-card md:col-span-1" id="recruitment">
                              <CardHeader>
-                                <CardTitle className="text-primary uppercase">Lorem Ipsum Dolor</CardTitle>
+                                <CardTitle className="text-primary uppercase">Join Our Ranks</CardTitle>
                              </CardHeader>
                              <CardContent>
-                                <p className="text-muted-foreground">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida.</p>
+                                <p className="text-muted-foreground">Ready to compete with the best? We are always looking for skilled and dedicated players to join our cause. Apply now and become a part of the Fantom legacy.</p>
                                 <Button variant="primary" className="mt-6">Recruitment</Button>
                              </CardContent>
                         </Card>
                         <Card className="bg-card md:col-span-2">
                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Users /> Clan Roster</CardTitle>
-                                <CardDescription>Lorem ipsum dolor sit amet, consectetur adipiscing elit</CardDescription>
+                                <CardTitle className="flex items-center gap-2"><Users /> Active Roster</CardTitle>
+                                <CardDescription>The core of our strength. Meet the players who represent Fantom.</CardDescription>
                              </CardHeader>
                              <CardContent>
                                 <Table>
@@ -203,7 +203,7 @@ export default function Home() {
             <section id="discord" className="py-16 md:py-24 border-t-2 border-primary/20">
                 <div className="container mx-auto px-4">
                      <div className="text-center mb-12">
-                        <p className="text-primary font-semibold">JOIN TO OUT DISCORD SERVER</p>
+                        <p className="text-primary font-semibold">CONNECT WITH OUR COMMUNITY</p>
                         <h2 className="text-4xl md:text-5xl font-headline font-bold uppercase text-white">
                             Discord Server
                         </h2>
@@ -211,8 +211,8 @@ export default function Home() {
                     <div className="grid md:grid-cols-3 gap-8 items-start">
                         <Card className="md:col-span-2 bg-card">
                             <CardHeader>
-                                <CardTitle>Discord Announcements</CardTitle>
-                                <CardDescription>Browse the latest announcements from our discord server</CardDescription>
+                                <CardTitle>Latest Announcements</CardTitle>
+                                <CardDescription>Stay updated with the latest news from our official Discord server.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 {announcements.map((ann) => {
@@ -250,12 +250,12 @@ export default function Home() {
             {/* About Section */}
             <section id="about" className="py-16 md:py-24 border-t-2 border-primary/20">
                  <div className="container mx-auto px-4 text-center">
-                    <p className="text-primary font-semibold">WE ARE THE BEST L2 PLAYERS</p>
+                    <p className="text-primary font-semibold">FORGED IN BATTLE</p>
                     <h2 className="text-4xl md:text-5xl font-headline font-bold uppercase text-white">
-                        About our Clan
+                        About Our Clan
                     </h2>
                     <p className="mt-4 text-muted-foreground max-w-3xl mx-auto">
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis. 
+                        Fantom eSport was founded by a group of passionate gamers dedicated to achieving excellence. We compete at the highest level, value teamwork, and foster a community built on respect and skill.
                     </p>
                  </div>
             </section>

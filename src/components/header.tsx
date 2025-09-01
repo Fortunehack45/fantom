@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -14,9 +15,9 @@ export function Header() {
   const pathname = usePathname();
 
   const navLinks = [
-    { href: "/", label: "Servers Overview" },
+    { href: "/", label: "Home" },
     { href: "/blog", label: "News" },
-    { href: "/#clan-roster", label: "Clan Roster" },
+    { href: "/#clan-roster", label: "Roster" },
     { href: "/#recruitment", label: "Recruitment" },
   ];
 

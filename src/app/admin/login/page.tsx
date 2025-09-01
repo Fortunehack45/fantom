@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -39,7 +40,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <GhostIcon className="w-12 h-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-headline">Clan Master Login</CardTitle>
+          <CardTitle className="text-2xl font-headline">Admin Login</CardTitle>
           <CardDescription>Enter your credentials to access the management panel.</CardDescription>
         </CardHeader>
         <CardContent>

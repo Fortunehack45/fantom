@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -56,7 +57,7 @@ export default function BlogPage() {
       <main className="flex-grow container mx-auto px-4 py-16">
         <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-headline font-bold uppercase">
-                Fantom eSport News
+                News & Updates
             </h1>
             <p className="text-muted-foreground mt-2">News, tutorials, and updates from the clan.</p>
         </div>
