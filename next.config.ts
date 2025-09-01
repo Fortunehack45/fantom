@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -23,23 +24,25 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https',
-        hostname: 'pin.it',
-        port: '',
+        protocol: 'https-pinned-from',
+        hostname: 'i.pinimg.com',
         pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'i.pinimg.com',
-        port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'www.pinterest.com',
-        port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'pin.it',
+        pathname: '/**',
+      }
     ],
   },
 };
