@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Image from "next/image";
 
 interface BlogPost {
     id: string;
@@ -39,15 +40,24 @@ interface Announcement {
     content: string;
 }
 
+interface Game {
+    id: string;
+    name: string;
+    imageUrl: string;
+    hint: string;
+}
+
 export default function AdminPage() {
     const { toast } = useToast();
     const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
     const [roster, setRoster] = useState<RosterMember[]>([]);
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+    const [games, setGames] = useState<Game[]>([]);
 
     const [newPost, setNewPost] = useState({ title: '', content: '', imageUrl: '', category: 'News' });
     const [newMember, setNewMember] = useState({ name: '', rank: '', game: '', role: '', server: '' });
     const [newAnnouncement, setNewAnnouncement] = useState({ author: '', content: '', authorImageUrl: '' });
+    const [newGame, setNewGame] = useState({ name: '', imageUrl: '', hint: '' });
     
     const fetchBlogPosts = async () => {
         const q = query(collection(db, "blogPosts"), orderBy("date", "desc"));
@@ -68,10 +78,17 @@ export default function AdminPage() {
         setAnnouncements(announcementsData);
     };
 
+    const fetchGames = async () => {
+        const querySnapshot = await getDocs(collection(db, "games"));
+        const gamesData: Game[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
+        setGames(gamesData);
+    }
+
     useEffect(() => {
         fetchBlogPosts();
         fetchRoster();
         fetchAnnouncements();
+        fetchGames();
     }, []);
 
 
@@ -163,6 +180,31 @@ export default function AdminPage() {
         }
     };
 
+    // Games Handlers
+    const handleAddGame = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newGame.name && newGame.imageUrl && newGame.hint) {
+            try {
+                await addDoc(collection(db, "games"), newGame);
+                setNewGame({ name: '', imageUrl: '', hint: '' });
+                fetchGames();
+                toast({ title: "Success", description: "Game added." });
+            } catch (error) {
+                toast({ variant: "destructive", title: "Error", description: "Could not add game." });
+            }
+        }
+    };
+
+    const handleDeleteGame = async (id: string) => {
+        try {
+            await deleteDoc(doc(db, "games", id));
+            fetchGames();
+            toast({ title: "Success", description: "Game deleted." });
+        } catch (error) {
+            toast({ variant: "destructive", title: "Error", description: "Could not delete game." });
+        }
+    };
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -176,10 +218,11 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="blog" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="blog">Blog Posts</TabsTrigger>
             <TabsTrigger value="roster">Clan Roster</TabsTrigger>
             <TabsTrigger value="announcements">Announcements</TabsTrigger>
+            <TabsTrigger value="games">Games</TabsTrigger>
           </TabsList>
           
           <TabsContent value="blog">
@@ -300,6 +343,7 @@ export default function AdminPage() {
                 </CardContent>
             </Card>
           </TabsContent>
+
           <TabsContent value="announcements">
               <Card className="bg-card mt-6">
                 <CardHeader>
@@ -336,6 +380,51 @@ export default function AdminPage() {
                                         <p className="text-sm text-muted-foreground">{ann.content}</p>
                                     </div>
                                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 flex-shrink-0" onClick={() => handleDeleteAnnouncement(ann.id)}><Trash2 className="h-4 w-4"/></Button>
+                                </div>
+                                ))}
+                             </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="games">
+              <Card className="bg-card mt-6">
+                <CardHeader>
+                    <CardTitle>Manage Games</CardTitle>
+                    <CardDescription>Add or remove games from the homepage.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <div className="grid md:grid-cols-2 gap-8">
+                        <div>
+                             <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Game</h3>
+                             <form className="space-y-4" onSubmit={handleAddGame}>
+                                <div>
+                                    <Label htmlFor="game-name">Game Name</Label>
+                                    <Input id="game-name" placeholder="e.g., Valorant" value={newGame.name} onChange={(e) => setNewGame({...newGame, name: e.target.value})} required />
+                                </div>
+                                <div>
+                                    <Label htmlFor="game-image-url">Image URL (Pinterest, etc.)</Label>
+                                    <Input id="game-image-url" type="text" placeholder="https://your-image-url.com/image.png" value={newGame.imageUrl} onChange={(e) => setNewGame({...newGame, imageUrl: e.target.value})} required/>
+                                </div>
+                                <div>
+                                    <Label htmlFor="game-hint">Image Hint</Label>
+                                    <Input id="game-hint" placeholder="e.g., valorant agent" value={newGame.hint} onChange={(e) => setNewGame({...newGame, hint: e.target.value})} required />
+                                </div>
+                                <Button variant="primary" type="submit">Add Game</Button>
+                             </form>
+                        </div>
+                        <div>
+                             <h3 className="text-lg font-semibold mb-4 border-b pb-2">Current Games</h3>
+                             <div className="space-y-4 max-h-96 overflow-y-auto pr-4 grid grid-cols-2 gap-4">
+                                {games.map((game) => (
+                                <div key={game.id} className="relative group">
+                                    <Image src={game.imageUrl} alt={game.name} width={200} height={266} className="rounded-lg w-full object-cover aspect-[3/4]" />
+                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-end p-2 text-center rounded-lg">
+                                        <p className="font-bold text-sm text-white">{game.name}</p>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 mt-2" onClick={() => handleDeleteGame(game.id)}><Trash2 className="h-4 w-4"/></Button>
+                                    </div>
                                 </div>
                                 ))}
                              </div>

@@ -43,34 +43,19 @@ interface Announcement {
     date: any;
 }
 
-const games = [
-  {
-    name: 'Valorant',
-    imageUrl: 'https://picsum.photos/600/800?random=valorant',
-    hint: 'valorant agent',
-  },
-  {
-    name: 'League of Legends',
-    imageUrl: 'https://picsum.photos/600/800?random=league-of-legends',
-    hint: 'league of legends champion',
-  },
-  {
-    name: 'Apex Legends',
-    imageUrl: 'https://picsum.photos/600/800?random=apex-legends',
-    hint: 'apex legends character',
-  },
-  {
-    name: 'Counter-Strike 2',
-    imageUrl: 'https://picsum.photos/600/800?random=csgo',
-    hint: 'csgo character',
-  }
-];
+interface Game {
+  id: string;
+  name: string;
+  imageUrl: string;
+  hint: string;
+}
 
 
 export default function Home() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [roster, setRoster] = useState<RosterMember[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
 
   useEffect(() => {
     const fetchBlogPosts = async () => {
@@ -96,9 +81,16 @@ export default function Home() {
         setAnnouncements(announcementsData);
     };
 
+    const fetchGames = async () => {
+        const querySnapshot = await getDocs(collection(db, "games"));
+        const gamesData: Game[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
+        setGames(gamesData);
+    };
+
     fetchBlogPosts();
     fetchRoster();
     fetchAnnouncements();
+    fetchGames();
   }, []);
 
   return (
@@ -186,7 +178,7 @@ export default function Home() {
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
                         {games.map((game) => (
-                          <Card key={game.name} className="bg-card border-border overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300">
+                          <Card key={game.id} className="bg-card border-border overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300">
                                 <div className="relative aspect-[3/4]">
                                     <Image
                                       src={game.imageUrl}
@@ -330,3 +322,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
