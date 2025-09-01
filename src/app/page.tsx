@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Users, Gamepad2 } from "lucide-react";
+import { Users, Gamepad2, ArrowRight } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -99,7 +99,8 @@ export default function Home() {
     };
 
     const fetchRoster = async () => {
-        const querySnapshot = await getDocs(collection(db, "roster"));
+        const q = query(collection(db, "roster"), limit(5));
+        const querySnapshot = await getDocs(q);
         const rosterData: RosterMember[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RosterMember));
         setRoster(rosterData);
     };
@@ -266,29 +267,32 @@ export default function Home() {
                              </CardContent>
                         </Card>
                         <Card className="bg-card md:col-span-2">
-                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Users /> Active Roster</CardTitle>
-                                <CardDescription>The core of our strength. Meet the players who represent Fantom.</CardDescription>
+                             <CardHeader className="flex flex-row justify-between items-center">
+                                <div>
+                                    <CardTitle className="flex items-center gap-2"><Users /> Active Roster</CardTitle>
+                                    <CardDescription>The core of our strength. Meet the players who represent Fantom.</CardDescription>
+                                </div>
+                                <Link href="/roster">
+                                    <Button variant="outline">View Full Roster <ArrowRight className="ml-2 h-4 w-4"/></Button>
+                                </Link>
                              </CardHeader>
                              <CardContent>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Name</TableHead>
-                                            <TableHead>Rank</TableHead>
-                                            <TableHead>Game</TableHead>
+                                            <TableHead className="hidden sm:table-cell">Game</TableHead>
+                                            <TableHead className="hidden md:table-cell">Rank</TableHead>
                                             <TableHead>Role</TableHead>
-                                            <TableHead>Server</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {roster.map((member) => (
                                             <TableRow key={member.id}>
                                                 <TableCell className="font-medium">{member.name}</TableCell>
-                                                <TableCell>{member.rank}</TableCell>
-                                                <TableCell>{member.game}</TableCell>
+                                                <TableCell className="hidden sm:table-cell">{member.game}</TableCell>
+                                                <TableCell className="hidden md:table-cell">{member.rank}</TableCell>
                                                 <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
-                                                <TableCell>{member.server}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -310,9 +314,14 @@ export default function Home() {
                     </div>
                     <div className="grid md:grid-cols-3 gap-8 items-start">
                         <Card className="md:col-span-2 bg-card">
-                            <CardHeader>
-                                <CardTitle>Latest Announcements</CardTitle>
-                                <CardDescription>Stay updated with the latest news from our official Discord server.</CardDescription>
+                            <CardHeader className="flex flex-row justify-between items-center">
+                                <div>
+                                    <CardTitle>Latest Announcements</CardTitle>
+                                    <CardDescription>Stay updated with the latest news from our official Discord server.</CardDescription>
+                                </div>
+                                <Link href="/announcements">
+                                    <Button variant="ghost">View All</Button>
+                                </Link>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 {announcements.map((ann) => {
@@ -356,6 +365,9 @@ export default function Home() {
                     <p className="mt-4 text-muted-foreground max-w-3xl mx-auto">
                         Fantom eSport was founded by a group of passionate gamers dedicated to achieving excellence. We compete at the highest level, value teamwork, and foster a community built on respect and skill.
                     </p>
+                    <Link href="/about" className="mt-6 inline-block">
+                        <Button variant="primary">Learn Our Story</Button>
+                    </Link>
                  </div>
             </section>
         </div>

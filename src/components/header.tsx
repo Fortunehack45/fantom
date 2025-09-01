@@ -57,7 +57,8 @@ export function Header() {
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/blog", label: "News" },
-    { href: "/#clan-roster", label: "Roster" },
+    { href: "/roster", label: "Roster" },
+    { href: "/about", label: "About" },
     { href: "/#recruitment", label: "Recruitment" },
   ];
 
