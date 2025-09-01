@@ -70,7 +70,6 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     
     const [deletingItem, setDeletingItem] = useState<{commentId: string, replyId?: string} | null>(null);
 
-
     const { slug } = params;
 
     useEffect(() => {
