@@ -12,6 +12,8 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useParams } from 'next/navigation';
+import { formatDistanceToNow } from 'date-fns';
+
 
 interface Post {
     id: string;
@@ -50,13 +52,15 @@ export default function BlogPostPage() {
                 if (!querySnapshot.empty) {
                     const doc = querySnapshot.docs[0];
                     const docData = doc.data();
+                    const postDate = docData.date ? new Date(docData.date.seconds * 1000) : new Date();
+
                      setPost({
                         id: doc.id,
                         slug: slug,
                         title: docData.title,
                         content: docData.content,
                         author: docData.author || "Fantom eSport",
-                        date: docData.date ? new Date(docData.date.seconds * 1000).toLocaleDateString() : new Date().toLocaleDateString(),
+                        date: `${formatDistanceToNow(postDate)} ago`,
                         category: docData.category || "News",
                         hint: docData.hint || "gamer portrait",
                         imageUrl: docData.imageUrl,
@@ -73,8 +77,10 @@ export default function BlogPostPage() {
             }
         };
 
-        fetchPost();
-    }, [params.slug]);
+        if (params.slug) {
+            fetchPost();
+        }
+    }, [params]);
 
     if (loading) {
         return (
@@ -118,7 +124,7 @@ export default function BlogPostPage() {
                     <Badge variant="primary" className="mb-4">{post.category}</Badge>
                     <h1 className="text-4xl md:text-6xl font-headline font-bold mb-4">{post.title}</h1>
                     <p className="text-muted-foreground">
-                        By {post.author} on {post.date}
+                        By {post.author} - Posted {post.date}
                     </p>
                 </header>
                 {post.imageUrl && (

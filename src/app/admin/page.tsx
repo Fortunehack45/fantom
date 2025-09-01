@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -85,7 +85,7 @@ export default function AdminPage() {
                     content: newPost.content,
                     slug: slug,
                     imageUrl: newPost.imageUrl || `https://picsum.photos/400/250?random=${Date.now()}`,
-                    date: new Date(),
+                    date: serverTimestamp(),
                     author: "Fantom eSport",
                     category: "News",
                     hint: "gamer portrait"
