@@ -3,58 +3,85 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Helper function to check if the user is the administrator
+
+    // Helper function to check for admin role
     function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'fortunedomination@gmail.com';
+      return request.auth.token.email == 'fortunedomination@gmail.com';
     }
 
-    // Helper function to check if a user is authenticated
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Helper function to check if the user is the owner of a resource
+    // Helper function to check if a user is the owner of a resource
     function isOwner(resource) {
         return request.auth.uid == resource.data.authorId;
     }
 
-    // Rules for all top-level content collections
-    // Allow public read access, but restrict writes to the admin
-    match /{collection}/{docId}
-      where collection in ['blogPosts', 'roster', 'announcements', 'games', 'heroImages', 'timelineEvents', 'coreValues', 'galleryImages'] {
-      
-      // Anyone can read the documents in these collections
-      allow read: if true;
+    // Helper function to check if a user is authenticated
+    function isAuthenticated() {
+        return request.auth != null;
+    }
 
-      // Only the admin can create, update, or delete documents
+    // Rules for all content collections: Publicly readable, only writable by admin
+    match /games/{gameId} {
+      allow read: if true;
       allow write: if isAdmin();
     }
-    
-    // Rules for the 'comments' subcollection within 'blogPosts'
-    match /blogPosts/{postId}/comments/{commentId} {
-      
-      // Anyone can read comments
+    match /heroImages/{imageId} {
       allow read: if true;
-      
-      // Only authenticated users can create comments
-      allow create: if isSignedIn();
-
-      // Only the author of the comment or an admin can update/delete it
-      allow update, delete: if isOwner(resource) || isAdmin();
+      allow write: if isAdmin();
     }
-
-    // Rules for the 'replies' subcollection within 'comments'
-    match /blogPosts/{postId}/comments/{commentId}/replies/{replyId} {
-        
-        // Anyone can read replies
+    match /timelineEvents/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /coreValues/{valueId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /galleryImages/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /announcements/{announcementId} {
         allow read: if true;
+        allow write: if isAdmin();
+    }
+    match /roster/{memberId} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+    
+    // Blog Posts
+    match /blogPosts/{postId} {
+      // Anyone can read blog posts
+      allow read: if true;
 
-        // Only authenticated users can create replies
-        allow create: if isSignedIn();
+      // Only admin can create or delete blog posts
+      allow create, delete: if isAdmin();
+      
+      // Admin can update any field. Authenticated users can only update the 'likes' field.
+      allow update: if isAdmin() || 
+                      (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
 
-        // Only the author of the reply or an admin can update/delete it
-        allow update, delete: if isOwner(resource) || isAdmin();
+      // Comments subcollection
+      match /comments/{commentId} {
+        // Anyone can read comments
+        allow read: if true;
+        // Authenticated users can create comments
+        allow create: if isAuthenticated();
+        // Users can only update/delete their own comments. Admin can delete any comment.
+        allow update: if isOwner(resource);
+        allow delete: if isOwner(resource) || isAdmin();
+
+        // Replies sub-subcollection
+        match /replies/{replyId} {
+          // Anyone can read replies
+          allow read: if true;
+          // Authenticated users can create replies
+          allow create: if isAuthenticated();
+          // Users can only update/delete their own replies. Admin can delete any reply.
+          allow update: if isOwner(resource);
+          allow delete: if isOwner(resource) || isAdmin();
+        }
+      }
     }
   }
 }
