@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Users } from "lucide-react";
+import { Users, Gamepad2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -42,6 +42,29 @@ interface Announcement {
     content: string;
     date: any;
 }
+
+const games = [
+  {
+    name: 'Valorant',
+    imageUrl: 'https://picsum.photos/600/800?random=valorant',
+    hint: 'valorant agent',
+  },
+  {
+    name: 'League of Legends',
+    imageUrl: 'https://picsum.photos/600/800?random=league-of-legends',
+    hint: 'league of legends champion',
+  },
+  {
+    name: 'Apex Legends',
+    imageUrl: 'https://picsum.photos/600/800?random=apex-legends',
+    hint: 'apex legends character',
+  },
+  {
+    name: 'Counter-Strike 2',
+    imageUrl: 'https://picsum.photos/600/800?random=csgo',
+    hint: 'csgo character',
+  }
+];
 
 
 export default function Home() {
@@ -150,6 +173,39 @@ export default function Home() {
                         </Link>
                     </div>
                  </div>
+            </section>
+            
+            {/* Games Section */}
+            <section id="games" className="py-16 md:py-24 border-t-2 border-primary/20">
+                <div className="container mx-auto px-4">
+                    <div className="text-center mb-12">
+                        <p className="text-primary font-semibold">WHERE WE COMPETE</p>
+                        <h2 className="text-4xl md:text-5xl font-headline font-bold uppercase text-white">
+                            Our Battlegrounds
+                        </h2>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+                        {games.map((game) => (
+                          <Card key={game.name} className="bg-card border-border overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300">
+                                <div className="relative aspect-[3/4]">
+                                    <Image
+                                      src={game.imageUrl}
+                                      alt={game.name}
+                                      fill
+                                      className="object-cover"
+                                      data-ai-hint={game.hint}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                                    <div className="absolute bottom-0 left-0 p-4">
+                                       <h3 className="text-lg md:text-xl font-headline font-bold uppercase text-white group-hover:text-primary transition-colors">
+                                            {game.name}
+                                        </h3>
+                                    </div>
+                                </div>
+                          </Card>
+                        ))}
+                    </div>
+                </div>
             </section>
 
              {/* Clan Section */}
@@ -274,10 +330,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
-
-    
-
