@@ -162,7 +162,7 @@ export default function Home() {
                         </h2>
                     </div>
                     <div className="grid md:grid-cols-3 gap-8">
-                        <Card className="bg-card md:col-span-1" id="recruitment">
+                        <Card className="md:col-span-1" id="recruitment" variant="glow">
                              <CardHeader>
                                 <CardTitle className="text-primary uppercase">Join Our Ranks</CardTitle>
                              </CardHeader>
@@ -243,11 +243,11 @@ export default function Home() {
                                 })}
                             </CardContent>
                         </Card>
-                        <div className="relative h-full min-h-[300px] flex flex-col items-center justify-center bg-card rounded-lg p-8 text-center">
+                        <Card variant="glow" className="relative h-full min-h-[300px] flex flex-col items-center justify-center bg-card rounded-lg p-8 text-center">
                              <h3 className="text-2xl font-headline font-bold uppercase">Join the Conversation</h3>
                              <p className="text-muted-foreground mt-2 mb-6">Connect with members, get real-time updates, and be part of our thriving community.</p>
                              <Button variant="primary" size="lg">Join Our Discord</Button>
-                        </div>
+                        </Card>
                     </div>
                 </div>
             </section>
