@@ -132,10 +132,11 @@ export default function Home() {
                              <Image
                                 src={image.src}
                                 alt={image.alt}
-                                fill
-                                className="object-cover opacity-30"
+                                width={1800}
+                                height={600}
+                                className="object-cover w-full h-full opacity-30"
                                 data-ai-hint={image.hint}
-                                priority={index === 0}
+                                priority={true}
                             />
                          </CarouselItem>
                     ))}
@@ -354,5 +355,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
