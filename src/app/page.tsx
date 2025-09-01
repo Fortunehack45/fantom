@@ -65,7 +65,7 @@ export default function Home() {
     };
     
     const fetchAnnouncements = async () => {
-        const q = query(collection(db, "announcements"), limit(3));
+        const q = query(collection(db, "announcements"), orderBy("date", "desc"), limit(3));
         const querySnapshot = await getDocs(q);
         const announcementsData: Announcement[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
         setAnnouncements(announcementsData);
@@ -84,7 +84,7 @@ export default function Home() {
         <section id="hero" className="relative h-[60vh] flex items-center justify-center text-center bg-black">
             <div className="absolute inset-0">
                 <Image
-                    src="https://picsum.photos/1920/1080?random=fantasy-character"
+                    src="https://picsum.photos/1600/900?random=fantasy-character"
                     alt="Fantasy character"
                     fill
                     className="object-cover opacity-30"
