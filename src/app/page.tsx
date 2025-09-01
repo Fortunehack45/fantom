@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Header } from "@/components/header";
@@ -214,23 +215,26 @@ export default function Home() {
                                 <CardDescription>Browse the latest announcements from our discord server</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                {announcements.map((ann) => (
-                                    <div key={ann.id} className="flex items-start gap-4">
-                                        <Avatar>
-                                            <AvatarImage src={ann.authorImageUrl || `https://picsum.photos/40/40?random=${ann.id}`} />
-                                            <AvatarFallback>{ann.author.substring(0, 2)}</AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <div className="flex items-baseline gap-2">
-                                                <p className="font-bold text-primary">{ann.author}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                     {ann.date ? format(new Date(ann.date.seconds * 1000), 'dd/MM/yyyy - hh:mm a') : ''}
-                                                </p>
+                                {announcements.map((ann) => {
+                                    if (!ann.author) return null;
+                                    return (
+                                        <div key={ann.id} className="flex items-start gap-4">
+                                            <Avatar>
+                                                <AvatarImage src={ann.authorImageUrl || `https://picsum.photos/40/40?random=${ann.id}`} />
+                                                <AvatarFallback>{ann.author.substring(0, 2)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <div className="flex items-baseline gap-2">
+                                                    <p className="font-bold text-primary">{ann.author}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                         {ann.date ? format(new Date(ann.date.seconds * 1000), 'dd/MM/yyyy - hh:mm a') : ''}
+                                                    </p>
+                                                </div>
+                                                <p className="text-sm text-foreground/80">{ann.content}</p>
                                             </div>
-                                            <p className="text-sm text-foreground/80">{ann.content}</p>
                                         </div>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </CardContent>
                         </Card>
                         <div className="relative h-full min-h-[300px] flex flex-col items-center justify-center">
