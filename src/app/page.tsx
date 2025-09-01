@@ -79,6 +79,11 @@ export default function Home() {
           src: "https://i.pinimg.com/736x/12/40/4e/12404e7f34f307f3a910df46ed225ba8.jpg",
           alt: "Sci-fi character in futuristic city",
           hint: "sci-fi character city"
+      },
+      {
+        src: "https://i.pinimg.com/736x/57/00/02/570002ab712a71a1c96c81a26a4e1276.jpg",
+        alt: "Female knight in silver armor",
+        hint: "female knight armor"
       }
   ];
 
