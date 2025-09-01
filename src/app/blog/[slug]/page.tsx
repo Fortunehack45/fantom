@@ -253,7 +253,7 @@ export default function BlogPostPage() {
         const itemDoc = await getDoc(itemRef);
 
         if (!itemDoc.exists()) {
-             toast({ variant: 'destructive', title: 'Error', description: 'Comment not found.'});
+             toast({ variant: 'destructive', title: 'Error', description: 'Item not found.'});
              return;
         }
 
@@ -299,14 +299,16 @@ export default function BlogPostPage() {
             </div>
         );
     }
+    
+    const totalCommentsAndReplies = comments.reduce((acc, comment) => acc + 1 + comment.replies.length, 0);
 
-    const CommentCard = ({ item, isReply, commentId }: { item: Comment | Reply, isReply: boolean, commentId?: string }) => {
+    const CommentCard = ({ item, isReply, commentId, replyCount }: { item: Comment | Reply, isReply: boolean, commentId?: string, replyCount?: number }) => {
         const itemLikes = item.likes || [];
         const hasLikedItem = user ? itemLikes.includes(user.uid) : false;
 
         const handleLikeClick = () => {
-            if (isReply) {
-                handleLikeComment(commentId!, item.id);
+            if (isReply && commentId) {
+                handleLikeComment(commentId, item.id);
             } else {
                 handleLikeComment(item.id);
             }
@@ -327,14 +329,15 @@ export default function BlogPostPage() {
                     </div>
                     <p className="text-sm text-foreground/80 mt-1">{item.content}</p>
                     <div className="flex items-center gap-4 mt-2 text-xs">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleLikeClick} disabled={!user}>
-                           <ThumbsUp className={`h-4 w-4 transition-colors ${hasLikedItem ? 'text-primary' : 'text-muted-foreground'}`}/>
+                        <Button variant="ghost" className="h-auto p-0 flex items-center gap-1 text-muted-foreground hover:text-primary" onClick={handleLikeClick} disabled={!user}>
+                           <ThumbsUp className={`h-4 w-4 transition-colors ${hasLikedItem ? 'text-primary' : ''}`}/>
+                           <span>{itemLikes.length}</span>
                         </Button>
-                        <span className="text-muted-foreground">{itemLikes.length}</span>
 
                          {!isReply && (
-                            <Button variant="ghost" className="h-auto p-0 text-xs text-muted-foreground hover:text-primary" onClick={() => setReplyingTo(replyingTo === item.id ? null : item.id)}>
+                            <Button variant="ghost" className="h-auto p-0 flex items-center gap-1 text-muted-foreground hover:text-primary" onClick={() => setReplyingTo(replyingTo === item.id ? null : item.id)}>
                                 Reply
+                                {replyCount !== undefined && replyCount > 0 && <span className="text-xs">({replyCount})</span>}
                             </Button>
                         )}
                     </div>
@@ -381,7 +384,10 @@ export default function BlogPostPage() {
                         <Button variant={hasLiked ? 'primary' : 'outline'} size="sm" onClick={handleLikePost} disabled={!user}>
                             <ThumbsUp className="mr-2" /> Like ({likes.length})
                         </Button>
-                        <Button variant="outline" size="sm"><MessageSquare className="mr-2" /> Comment ({comments.length})</Button>
+                        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                            <MessageSquare /> 
+                            <span>{totalCommentsAndReplies}</span>
+                        </div>
                     </div>
                      <Button variant="outline" size="sm"><Share2 className="mr-2" /> Share</Button>
                 </div>
@@ -390,7 +396,7 @@ export default function BlogPostPage() {
 
                  {/* Comments Section */}
                 <div className="space-y-8">
-                    <h2 className="text-2xl font-headline font-bold">Comments ({comments.length})</h2>
+                    <h2 className="text-2xl font-headline font-bold">Comments ({totalCommentsAndReplies})</h2>
                     
                     {user ? (
                         <Card className="bg-card shadow-none">
@@ -424,7 +430,7 @@ export default function BlogPostPage() {
                     <div className="space-y-6">
                         {comments.map((comment) => (
                            <div key={comment.id} className="group">
-                                <CommentCard item={comment} isReply={false} />
+                                <CommentCard item={comment} isReply={false} replyCount={comment.replies.length} />
                                 
                                 {replyingTo === comment.id && user && (
                                     <div className="ml-12 mt-4">
@@ -478,3 +484,5 @@ export default function BlogPostPage() {
     </div>
   );
 }
+
+    
