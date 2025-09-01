@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { FantomIcon } from "./icons";
 
@@ -12,7 +13,7 @@ export function Footer() {
            </p>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>Design & Animation by</span>
-            <span className="font-bold text-foreground">PUNITS STORE</span>
+            <span className="font-bold text-foreground">Fourtuna</span>
           </div>
         </div>
       </div>
