@@ -10,11 +10,47 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged, User, signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 export function Header() {
   const pathname = usePathname();
+  const { toast } = useToast();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Logout Failed", description: "There was an error logging you out." });
+    }
+  };
+
+  const getUsername = (email: string | null | undefined) => {
+      if (!email) return "User";
+      return email.split('@')[0];
+  }
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -46,16 +82,44 @@ export function Header() {
             <Button variant="outline" className="hidden lg:flex">
                 Discord
             </Button>
-            <Link href="/admin/login">
-              <Button variant="secondary" className="hidden lg:flex">
-                Login
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button variant="primary" className="hidden lg:flex">
-                Sign up
-              </Button>
-            </Link>
+            {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                        <Avatar className="h-10 w-10">
+                            <AvatarImage src={user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
+                            <AvatarFallback>{user.email?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                     </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                      <DropdownMenuLabel className="font-normal">
+                          <div className="flex flex-col space-y-1">
+                              <p className="text-sm font-medium leading-none">{getUsername(user.email)}</p>
+                              <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                          </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleLogout}>
+                          <LogOut className="mr-2 h-4 w-4" />
+                          <span>Log out</span>
+                      </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+            ) : (
+              <>
+                <Link href="/admin/login">
+                  <Button variant="secondary" className="hidden lg:flex">
+                    Login
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button variant="primary" className="hidden lg:flex">
+                    Sign up
+                  </Button>
+                </Link>
+              </>
+            )}
              <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="lg:hidden text-white">
@@ -93,16 +157,20 @@ export function Header() {
                     <Button variant="outline" size="lg" className="w-full">
                         Discord
                     </Button>
-                     <Link href="/admin/login" className="w-full">
-                        <Button variant="secondary" size="lg" className="w-full">
-                            Login
-                        </Button>
-                     </Link>
-                     <Link href="/signup" className="w-full">
-                        <Button variant="primary" size="lg" className="w-full">
-                           Sign Up
-                        </Button>
-                     </Link>
+                    {!user && (
+                      <>
+                         <Link href="/admin/login" className="w-full">
+                            <Button variant="secondary" size="lg" className="w-full">
+                                Login
+                            </Button>
+                         </Link>
+                         <Link href="/signup" className="w-full">
+                            <Button variant="primary" size="lg" className="w-full">
+                               Sign Up
+                            </Button>
+                         </Link>
+                      </>
+                    )}
                   </div>
                 </SheetContent>
               </Sheet>
@@ -111,5 +179,3 @@ export function Header() {
     </header>
   );
 }
-
-    

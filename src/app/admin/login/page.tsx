@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { GhostIcon } from '@/components/icons';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import Link from 'next/link';
 
@@ -19,24 +19,28 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // If user is already logged in, redirect them.
+        // Admins go to /admin, others go to homepage.
+        if (user.email === 'fortunedomination@gmail.com') {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Let the AdminLayout handle redirection.
-      // If it's an admin, they go to /admin.
-      // If it's a regular user, they are logged in but stay here.
-      // A better UX would be to redirect them to the homepage.
-      if (email !== 'fortunedomination@gmail.com') {
-         router.push('/');
-         toast({
-            title: 'Login Successful',
-            description: "Welcome! You can now comment and like posts.",
-        });
-      } else {
-        router.push('/admin');
-      }
-
+      // Let the useEffect handle redirection after successful login.
+      // The onAuthStateChanged listener will fire and redirect accordingly.
     } catch (error: any) {
       toast({
         variant: 'destructive',

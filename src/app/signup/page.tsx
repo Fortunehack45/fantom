@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { GhostIcon } from '@/components/icons';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import Link from 'next/link';
 
@@ -19,6 +19,17 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
   const { toast } = useToast();
+  
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // If user is already logged in, redirect them to the homepage.
+        router.push('/');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
