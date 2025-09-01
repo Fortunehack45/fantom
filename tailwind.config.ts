@@ -12,13 +12,13 @@ export default {
       center: true,
       padding: '2rem',
       screens: {
-        '2xl': '1400px',
+        '2xl': '1280px',
       },
     },
     extend: {
       fontFamily: {
         body: ['Roboto', 'sans-serif'],
-        headline: ['Cinzel', 'serif'],
+        headline: ['Teko', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',

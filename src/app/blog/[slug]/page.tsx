@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -12,7 +11,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useParams } from 'next/navigation';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 
 
 interface Post {
@@ -20,7 +19,7 @@ interface Post {
     slug: string;
     title: string;
     author: string;
-    date: string;
+    date: any;
     category: string;
     hint: string;
     content: string;
@@ -35,7 +34,6 @@ export default function BlogPostPage() {
 
     useEffect(() => {
         const fetchPost = async () => {
-            // useParams returns an object, but slug can be a string or string[]
             const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
             if (!slug) {
@@ -60,7 +58,7 @@ export default function BlogPostPage() {
                         title: docData.title,
                         content: docData.content,
                         author: docData.author || "Fantom eSport",
-                        date: `${formatDistanceToNow(postDate)} ago`,
+                        date: postDate,
                         category: docData.category || "News",
                         hint: docData.hint || "gamer portrait",
                         imageUrl: docData.imageUrl,
@@ -81,6 +79,7 @@ export default function BlogPostPage() {
             fetchPost();
         }
     }, [params]);
+
 
     if (loading) {
         return (
@@ -111,36 +110,37 @@ export default function BlogPostPage() {
       <Header />
       <main className="flex-grow py-12 md:py-24">
         <div className="container mx-auto px-4">
-            <div className="mb-8">
-                 <Link href="/blog">
-                    <Button variant="ghost">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Blog
-                    </Button>
-                </Link>
-            </div>
             <article className="max-w-4xl mx-auto">
                 <header className="mb-8 text-center">
-                    <Badge variant="primary" className="mb-4">{post.category}</Badge>
-                    <h1 className="text-4xl md:text-6xl font-headline font-bold mb-4">{post.title}</h1>
-                    <p className="text-muted-foreground">
-                        By {post.author} - Posted {post.date}
+                    <p className="text-primary font-semibold uppercase">{post.category}</p>
+                    <h1 className="text-4xl md:text-6xl font-headline font-bold uppercase my-2">{post.title}</h1>
+                    <p className="text-muted-foreground text-sm">
+                        By {post.author} - Posted {formatDistanceToNow(post.date)} ago
                     </p>
                 </header>
                 {post.imageUrl && (
-                    <Image
-                        src={post.imageUrl}
-                        alt={post.title}
-                        width={1200}
-                        height={600}
-                        className="w-full rounded-lg mb-8"
-                        data-ai-hint={post.hint}
-                    />
+                    <div className="relative aspect-video mb-8">
+                      <Image
+                          src={post.imageUrl}
+                          alt={post.title}
+                          fill
+                          className="w-full rounded-lg object-cover"
+                          data-ai-hint={post.hint}
+                      />
+                    </div>
                 )}
                 <div 
-                    className="prose prose-invert prose-lg max-w-none mx-auto"
+                    className="prose prose-invert prose-lg max-w-none mx-auto prose-p:text-foreground/80 prose-headings:text-foreground prose-strong:text-foreground"
                     dangerouslySetInnerHTML={{ __html: post.content.replace(/\\n/g, '<br />') }} 
                 />
+                 <div className="mt-12 text-center">
+                     <Link href="/blog">
+                        <Button variant="outline">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back to News
+                        </Button>
+                    </Link>
+                </div>
             </article>
         </div>
       </main>

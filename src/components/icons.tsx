@@ -22,34 +22,19 @@ export function GhostIcon(props: SVGProps<SVGSVGElement>) {
 
 export function FantomIcon(props: SVGProps<SVGSVGElement>) {
     return (
-        <svg viewBox="0 0 400 50" xmlns="http://www.w3.org/2000/svg" {...props}>
-            <defs>
-                <linearGradient id="goldGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" style={{stopColor: '#FFD700', stopOpacity: 1}} />
-                    <stop offset="100%" style={{stopColor: '#FFA500', stopOpacity: 1}} />
-                </linearGradient>
-                <filter id="glow">
-                    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
-                    <feMerge>
-                        <feMergeNode in="coloredBlur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                </filter>
-            </defs>
+        <svg viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg" {...props}>
             <text 
                 x="50%" 
                 y="50%" 
                 dy=".35em" 
                 textAnchor="middle" 
-                fontFamily="Cinzel, serif" 
-                fontSize="32" 
-                fill="url(#goldGradient)"
-                stroke="#6b4a00"
-                strokeWidth="0.5"
-                style={{filter: 'url(#glow)'}}
-                className="font-black"
+                fontFamily="Teko, sans-serif" 
+                fontSize="48" 
+                fill="white"
+                className="font-bold"
+                letterSpacing="0.1em"
             >
-                Fantom eSport
+                FANTOM
             </text>
         </svg>
     )

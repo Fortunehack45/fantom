@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -7,11 +6,9 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, ShieldCheck, LogOut } from "lucide-react";
+import { Menu, ShieldCheck, LogOut, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
@@ -43,26 +40,25 @@ export function Header() {
 
 
   const navLinks = [
-    { href: "/#servers", label: "Servers Overview" },
     { href: "/#news", label: "News" },
+    { href: "/#teams", label: "Teams" },
     { href: "/blog", label: "Blog" },
-    { href: "/#roster", label: "Clan Roster" },
-    { href: "/#recruitment", label: "Recruitment" },
+    { href: "/#roster", label: "Roster" },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-24 items-center justify-between px-4">
+    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur-sm">
+      <div className="container mx-auto flex h-20 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
-          <FantomIcon className="w-48 h-auto" />
+          <FantomIcon className="w-24 h-auto" />
         </Link>
         
-        <nav className="hidden lg:flex items-center gap-6 text-sm font-bold uppercase">
+        <nav className="hidden lg:flex items-center gap-8 text-sm font-bold uppercase">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="transition-colors hover:text-primary text-foreground/80 tracking-wider"
+              className={`transition-colors hover:text-primary tracking-wider ${pathname === link.href ? 'text-primary' : 'text-foreground/80'}`}
             >
               {link.label}
             </Link>
@@ -70,11 +66,9 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-            <Button variant="secondary" className="hidden sm:inline-flex">Discord</Button>
-            <Button variant="primary" className="hidden sm:inline-flex">Join Us</Button>
             {user && (
               <Link href="/admin">
-                <Button variant="outline" size="icon"><ShieldCheck /></Button>
+                <Button variant="outline" size="icon" className="border-primary text-primary"><ShieldCheck /></Button>
               </Link>
             )}
              <Sheet>
@@ -84,48 +78,51 @@ export function Header() {
                     <span className="sr-only">Toggle Menu</span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right">
-                    <SheetHeader>
-                      <SheetTitle className="sr-only">Menu</SheetTitle>
-                    </SheetHeader>
-                  <Link href="/" className="flex items-center gap-2 mb-8">
-                     <FantomIcon className="w-36 h-auto" />
-                  </Link>
+                <SheetContent side="right" className="bg-background border-l-white/10">
+                  <div className="flex justify-between items-center mb-8">
+                     <Link href="/" className="flex items-center gap-2">
+                       <FantomIcon className="w-24 h-auto" />
+                    </Link>
+                    <SheetTrigger asChild>
+                       <Button variant="ghost" size="icon">
+                        <X />
+                        <span className="sr-only">Close Menu</span>
+                      </Button>
+                    </SheetTrigger>
+                  </div>
                   <nav className="flex flex-col gap-4">
                     {navLinks.map((link) => (
                       <Link
                         key={link.href}
                         href={link.href}
-                        className="text-lg font-medium"
+                        className="text-2xl font-bold uppercase tracking-wider"
                       >
                         {link.label}
                       </Link>
                     ))}
-                    <div className="flex flex-col gap-2 mt-4">
-                        <Button variant="secondary">Discord</Button>
-                        <Button variant="primary">Join Us</Button>
-                    </div>
-                    {user ? (
-                        <div className="mt-auto pt-4 border-t border-border">
-                             <Link
-                                href="/admin"
-                                className="text-lg font-medium flex items-center gap-2 mb-2"
-                            >
-                                <ShieldCheck className="h-5 w-5" />
-                                Clan Master
-                            </Link>
-                             <Button variant="ghost" onClick={handleLogout} className="justify-start w-full">
-                              <LogOut className="mr-2 h-5 w-5" />
-                              Logout
-                            </Button>
-                        </div>
-                      ) : (
-                         <div className="mt-auto pt-4 border-t border-border">
-                             <Button asChild variant="ghost" className="justify-start w-full">
-                                <Link href="/admin/login">Login</Link>
-                              </Button>
-                         </div>
-                      )}
+                     <div className="mt-auto pt-4 border-t border-border">
+                        {user ? (
+                            <>
+                                 <Link
+                                    href="/admin"
+                                    className="text-lg font-medium flex items-center gap-2 mb-2"
+                                >
+                                    <ShieldCheck className="h-5 w-5" />
+                                    Clan Master
+                                </Link>
+                                 <Button variant="ghost" onClick={handleLogout} className="justify-start w-full">
+                                  <LogOut className="mr-2 h-5 w-5" />
+                                  Logout
+                                </Button>
+                            </>
+                          ) : (
+                             
+                                 <Button asChild variant="ghost" className="justify-start w-full">
+                                    <Link href="/admin/login">Login</Link>
+                                  </Button>
+                             
+                          )}
+                     </div>
                   </nav>
                 </SheetContent>
               </Sheet>
