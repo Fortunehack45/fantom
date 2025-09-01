@@ -83,6 +83,11 @@ export function Header() {
                 Discord
             </Button>
             {user ? (
+              <>
+                <Button onClick={handleLogout} variant="secondary" className="hidden lg:flex">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                      <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -106,6 +111,7 @@ export function Header() {
                       </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+              </>
             ) : (
               <>
                 <Link href="/admin/login">
@@ -157,7 +163,11 @@ export function Header() {
                     <Button variant="outline" size="lg" className="w-full">
                         Discord
                     </Button>
-                    {!user && (
+                    {user ? (
+                      <Button onClick={handleLogout} variant="secondary" size="lg" className="w-full">
+                          Logout
+                      </Button>
+                    ) : (
                       <>
                          <Link href="/admin/login" className="w-full">
                             <Button variant="secondary" size="lg" className="w-full">
