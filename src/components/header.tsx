@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { FantomIcon } from "@/components/icons";
+import { TsmIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, ShieldCheck, LogOut, X } from "lucide-react";
+import { Menu, ShieldCheck, LogOut, X, ChevronDown, TwitterIcon, TwitchIcon, YoutubeIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
@@ -38,34 +38,41 @@ export function Header() {
     }
   };
 
-
   const navLinks = [
-    { href: "/#news", label: "News" },
     { href: "/#teams", label: "Teams" },
-    { href: "/blog", label: "Blog" },
-    { href: "/#roster", label: "Roster" },
+    { href: "#", label: "Facility" },
+    { href: "/#news", label: "News" },
+    { href: "#", label: "Partners" },
+    { href: "/#shop", label: "Store" },
+    { href: "#", label: "More" },
+    { href: "#", label: "Contact" },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur-sm">
+    <header className="absolute top-0 z-50 w-full bg-transparent">
       <div className="container mx-auto flex h-20 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
-          <FantomIcon className="w-24 h-auto" />
+          <TsmIcon className="w-16 h-auto text-white" />
         </Link>
         
-        <nav className="hidden lg:flex items-center gap-8 text-sm font-bold uppercase">
+        <nav className="hidden lg:flex items-center gap-6 text-sm font-bold uppercase">
           {navLinks.map((link) => (
             <Link
-              key={link.href}
+              key={link.label}
               href={link.href}
-              className={`transition-colors hover:text-primary tracking-wider ${pathname === link.href ? 'text-primary' : 'text-foreground/80'}`}
+              className={`transition-colors hover:text-white pb-1 border-b-2 ${pathname === link.href || (link.href === '/#news' && (pathname === '/' || pathname.startsWith('/blog'))) ? 'text-white border-white' : 'text-foreground/80 border-transparent'}`}
             >
               {link.label}
             </Link>
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-4">
+                <TwitterIcon className="w-5 h-5 text-foreground/80 hover:text-white transition-colors" />
+                <TwitchIcon className="w-5 h-5 text-foreground/80 hover:text-white transition-colors" />
+                <YoutubeIcon className="w-5 h-5 text-foreground/80 hover:text-white transition-colors" />
+            </div>
             {user && (
               <Link href="/admin">
                 <Button variant="outline" size="icon" className="border-primary text-primary"><ShieldCheck /></Button>
@@ -73,7 +80,7 @@ export function Header() {
             )}
              <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="lg:hidden">
+                  <Button variant="ghost" size="icon" className="lg:hidden text-white">
                     <Menu />
                     <span className="sr-only">Toggle Menu</span>
                   </Button>
@@ -81,7 +88,7 @@ export function Header() {
                 <SheetContent side="right" className="bg-background border-l-white/10">
                   <div className="flex justify-between items-center mb-8">
                      <Link href="/" className="flex items-center gap-2">
-                       <FantomIcon className="w-24 h-auto" />
+                       <TsmIcon className="w-16 h-auto text-white" />
                     </Link>
                     <SheetTrigger asChild>
                        <Button variant="ghost" size="icon">
@@ -93,9 +100,9 @@ export function Header() {
                   <nav className="flex flex-col gap-4">
                     {navLinks.map((link) => (
                       <Link
-                        key={link.href}
+                        key={link.label}
                         href={link.href}
-                        className="text-2xl font-bold uppercase tracking-wider"
+                        className="text-2xl font-bold uppercase tracking-wider text-white"
                       >
                         {link.label}
                       </Link>
@@ -105,19 +112,19 @@ export function Header() {
                             <>
                                  <Link
                                     href="/admin"
-                                    className="text-lg font-medium flex items-center gap-2 mb-2"
+                                    className="text-lg font-medium flex items-center gap-2 mb-2 text-white"
                                 >
                                     <ShieldCheck className="h-5 w-5" />
                                     Clan Master
                                 </Link>
-                                 <Button variant="ghost" onClick={handleLogout} className="justify-start w-full">
+                                 <Button variant="ghost" onClick={handleLogout} className="justify-start w-full text-white">
                                   <LogOut className="mr-2 h-5 w-5" />
                                   Logout
                                 </Button>
                             </>
                           ) : (
                              
-                                 <Button asChild variant="ghost" className="justify-start w-full">
+                                 <Button asChild variant="ghost" className="justify-start w-full text-white">
                                     <Link href="/admin/login">Login</Link>
                                   </Button>
                              

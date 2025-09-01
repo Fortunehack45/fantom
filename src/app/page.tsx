@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, getDocs, limit, query } from 'firebase/firestore';
+import { collection, getDocs, limit, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, Gamepad2, Users } from "lucide-react";
+import { ChevronRight, Users, Gamepad2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { format } from 'date-fns';
 
@@ -21,6 +21,7 @@ interface BlogPost {
   category: string;
   imageUrl?: string;
   date: any; 
+  logoUrl?: string;
 }
 
 interface Team {
@@ -44,28 +45,47 @@ const teams: Team[] = [
     { id: '11', name: 'Twitch Team', memberCount: 3, logoUrl: '/icons/twitch.svg' },
 ];
 
+const teamLogos: {[key: string]: string} = {
+  'Rainbow Six Siege': '/icons/r6.svg',
+  'PUBG': '/icons/pubg.svg',
+  'Apex Legends': '/icons/apex.svg',
+  'Fortnite': '/icons/fortnite.svg',
+  'TSM News': '/icons/tsm-logo.svg',
+  'Default': '/icons/tsm-logo-shield.svg',
+};
+
+
 export default function Home() {
     const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+     const [loading, setLoading] = useState(true);
     
     useEffect(() => {
         const fetchBlogPosts = async () => {
-            const q = query(collection(db, "blogPosts"), limit(5));
+            setLoading(true);
+            const q = query(collection(db, "blogPosts"), orderBy("date", "desc"), limit(6));
             const querySnapshot = await getDocs(q);
-            const postsData: BlogPost[] = querySnapshot.docs.map(doc => ({
-                 id: doc.id,
-                 ...doc.data()
-            } as BlogPost));
-            if (postsData.length > 0) {
-                setBlogPosts(postsData);
-            } else {
-                 setBlogPosts([
-                    { id: 'static-1', slug: "the-ultimate-guide-to-winning", title: "Roster Swap for TSM Rainbow 6", content: "Discover the strategies and tips from our pro players to dominate the competition...", hint: "fantasy character art", category: "Rainbow Six Siege", imageUrl: "https://picsum.photos/600/400?random=1", date: new Date('2024-08-17') },
-                    { id: 'static-2', slug: "new-season-new-goals", title: "Welcome Back TSM PUBG", content: "The new season is upon us! Here's what we're aiming for as a clan...", hint: "esports team strategy", category: "PUBG", imageUrl: "https://picsum.photos/600/400?random=2", date: new Date('2024-08-04') },
-                    { id: 'static-3', slug: "community-spotlight-ernestodks412", title: "TannerSlays joins TSM Apex Legends", content: "An interview with one of our most legendary members...", hint: "gamer portrait", category: "Apex Legends", imageUrl: "https://picsum.photos/600/400?random=3", date: new Date('2024-07-29') },
-                    { id: 'static-4', slug: 'welcome-tsm-mackwood', title: 'Welcome TSM Mackwood!', content: '...', hint: 'gamer portrait', category: 'Fortnite', imageUrl: 'https://picsum.photos/600/400?random=4', date: new Date('2024-07-05') },
-                    { id: 'static-5', slug: 'hiring-ecommerce-manager', title: 'Hiring: E-Commerce Manager', content: '...', hint: 'office computer', category: 'TSM News', imageUrl: 'https://picsum.photos/600/400?random=5', date: new Date('2024-06-02') },
-                ]);
+            let postsData: BlogPost[] = querySnapshot.docs.map(doc => {
+                 const data = doc.data();
+                 return {
+                    id: doc.id,
+                    logoUrl: teamLogos[data.category as string] || teamLogos['Default'],
+                    ...data
+                 } as BlogPost
+            });
+
+            if (postsData.length === 0) {
+                 postsData = [
+                    { id: 'static-1', slug: "the-ultimate-guide-to-winning", title: "Roster Swap for TSM Rainbow 6", content: "Discover the strategies and tips from our pro players to dominate the competition...", hint: "fantasy character art", category: "Rainbow Six Siege", imageUrl: "https://picsum.photos/600/400?random=1", date: new Date('2024-08-17'), logoUrl: teamLogos['Rainbow Six Siege'] },
+                    { id: 'static-2', slug: "new-season-new-goals", title: "Welcome Back TSM PUBG", content: "The new season is upon us! Here's what we're aiming for as a clan...", hint: "esports team strategy", category: "PUBG", imageUrl: "https://picsum.photos/600/400?random=2", date: new Date('2024-08-04'), logoUrl: teamLogos['PUBG'] },
+                    { id: 'static-3', slug: "community-spotlight-ernestodks412", title: "TannerSlays joins TSM Apex Legends", content: "An interview with one of our most legendary members...", hint: "gamer portrait", category: "Apex Legends", imageUrl: "https://picsum.photos/600/400?random=3", date: new Date('2024-07-29'), logoUrl: teamLogos['Apex Legends'] },
+                    { id: 'static-4', slug: 'welcome-tsm-mackwood', title: 'Welcome TSM Mackwood!', content: '...', hint: 'gamer portrait', category: 'Fortnite', imageUrl: 'https://picsum.photos/600/400?random=4', date: new Date('2024-07-05'), logoUrl: teamLogos['Fortnite'] },
+                    { id: 'static-5', slug: 'hiring-ecommerce-manager', title: 'Hiring: E-Commerce Manager', content: '...', hint: 'office computer', category: 'TSM News', imageUrl: 'https://picsum.photos/600/400?random=5', date: new Date('2024-06-02'), logoUrl: teamLogos['TSM News'] },
+                    { id: 'static-6', slug: "meet-the-new-recruits", title: "Meet the New Recruits", content: "Welcome the newest members of the Fantom eSport family. Let's give them a warm welcome!", hint: "team photo", category: "Community", imageUrl: "https://picsum.photos/400/250?random=6", date: new Date('2024-05-15'), logoUrl: teamLogos['Default'] },
+                ].sort((a,b) => b.date.getTime() - a.date.getTime());
             }
+
+            setBlogPosts(postsData);
+            setLoading(false);
         };
         fetchBlogPosts();
       }, []);
@@ -77,66 +97,95 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <Header />
       <main className="flex-grow">
-        {/* Hero & News Section */}
-        <section id="news" className="py-12 md:py-20">
-            <div className="container mx-auto px-4">
-               {mainPost && (
-                 <div className="grid md:grid-cols-2 gap-8 items-center mb-12">
-                    <div className="relative aspect-video">
-                         <Image
-                            src={mainPost.imageUrl || "https://picsum.photos/1280/720"}
+        {/* Hero Section */}
+        <section id="news" className="relative min-h-[50vh] md:min-h-[70vh] flex items-center">
+            {mainPost && (
+                <>
+                    <div className="absolute inset-0">
+                        <Image
+                            src={mainPost.imageUrl || "https://picsum.photos/1920/1080"}
                             alt={mainPost.title}
                             fill
-                            className="object-cover rounded-lg"
+                            className="object-cover"
                             data-ai-hint={mainPost.hint}
                             priority
                         />
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/70 to-transparent" />
                     </div>
-                    <div>
-                        <h1 className="text-4xl md:text-6xl font-headline font-bold uppercase leading-none">
-                            {mainPost.title}
-                        </h1>
-                        <p className="mt-4 text-muted-foreground max-w-lg">
-                           {mainPost.content.substring(0, 150)}...
-                        </p>
-                        <Link href={`/blog/${mainPost.slug}`}>
-                            <Button variant="link" className="text-lg p-0 mt-4">
-                                Read More <ChevronRight className="ml-1"/>
-                            </Button>
-                        </Link>
+                    <div className="relative container mx-auto px-4 z-10">
+                        <div className="max-w-xl">
+                            <h1 className="text-4xl md:text-6xl font-headline font-bold uppercase leading-none text-white">
+                                {mainPost.title}
+                            </h1>
+                            <p className="mt-4 text-muted-foreground max-w-lg">
+                               {mainPost.content.substring(0, 150)}...
+                            </p>
+                            <Link href={`/blog/${mainPost.slug}`}>
+                                <Button variant="link" className="text-lg p-0 mt-4 text-white font-bold tracking-widest">
+                                    READ MORE <ChevronRight className="ml-1 h-5 w-5"/><ChevronRight className="ml-[-12px] h-5 w-5"/><ChevronRight className="ml-[-12px] h-5 w-5"/>
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
-                </div>
-               )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                </>
+            )}
+            {loading && !mainPost && (
+                 <div className="container mx-auto px-4 z-10">
+                     <div className="max-w-xl space-y-4">
+                         <div className="h-16 bg-muted/50 rounded w-3/4 animate-pulse"></div>
+                         <div className="h-6 bg-muted/50 rounded w-full animate-pulse"></div>
+                         <div className="h-6 bg-muted/50 rounded w-2/3 animate-pulse"></div>
+                     </div>
+                 </div>
+            )}
+        </section>
+        
+        {/* News Grid */}
+        <section className="py-16 bg-background">
+             <div className="container mx-auto px-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {otherPosts.map((post) => (
                         <Link key={post.id} href={`/blog/${post.slug}`}>
-                            <Card className="bg-card border-border overflow-hidden group h-full flex flex-col">
+                            <Card className="bg-card border-border overflow-hidden group h-full flex flex-col transition-all duration-300 hover:border-primary hover:-translate-y-1">
                                <div className="relative aspect-video">
                                     <Image
                                         src={post.imageUrl || "https://picsum.photos/600/400"}
                                         alt={post.title}
                                         fill
-                                        className="object-cover group-hover:scale-105 transition-transform"
+                                        className="object-cover"
                                         data-ai-hint={post.hint}
                                     />
-                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                      {post.logoUrl && (
+                                        <div className="absolute bottom-3 right-3 w-8 h-8 md:w-10 md:h-10 z-10">
+                                            <Image src={post.logoUrl} alt={`${post.category} logo`} fill className="object-contain" />
+                                        </div>
+                                    )}
                                </div>
                                 <CardContent className="p-4 flex-grow flex flex-col">
                                     <p className="text-xs text-muted-foreground uppercase">
                                         {post.date ? format(new Date(post.date.seconds ? post.date.seconds * 1000 : post.date), 'MMM d, yyyy') : ''} | {post.category}
                                     </p>
-                                    <h3 className="text-lg font-headline font-bold uppercase leading-tight mt-1 group-hover:text-primary transition-colors">
+                                    <h3 className="text-lg font-headline font-semibold uppercase leading-tight mt-1 text-white group-hover:text-primary transition-colors">
                                         {post.title}
                                     </h3>
                                 </CardContent>
                             </Card>
                         </Link>
                     ))}
+                     {loading && otherPosts.length === 0 && Array.from({ length: 5 }).map((_, i) => (
+                        <Card key={i} className="bg-card border-border overflow-hidden h-full flex flex-col">
+                            <div className="relative aspect-video bg-muted/50 animate-pulse"></div>
+                            <CardContent className="p-4 flex-grow flex flex-col">
+                                <div className="h-4 bg-muted/50 w-1/2 rounded animate-pulse mb-2"></div>
+                                <div className="h-6 bg-muted/50 w-full rounded animate-pulse"></div>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
                  <div className="text-center mt-12">
                     <Link href="/blog">
-                        <Button variant="outline" size="lg">All News <ChevronRight className="ml-2" /></Button>
+                        <Button variant="outline" size="lg" className="text-white">All News <ArrowRight className="ml-2" /></Button>
                     </Link>
                 </div>
             </div>
@@ -146,10 +195,10 @@ export default function Home() {
         <section id="teams" className="py-16 md:py-24 bg-card/20">
             <div className="container mx-auto px-4">
                 <div className="text-center mb-12">
-                    <h2 className="text-4xl md:text-5xl font-headline font-black uppercase">
+                    <h2 className="text-4xl md:text-5xl font-headline font-black uppercase text-white">
                         Meet Our Teams
                     </h2>
-                    <p className="text-primary font-bold text-xl">#FANTOMWIN</p>
+                    <p className="text-primary font-bold text-xl">#TSMWIN</p>
                 </div>
                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                     {teams.map((team) => (
@@ -157,7 +206,7 @@ export default function Home() {
                            <div className="relative w-12 h-12 mb-3">
                             <Image src={team.logoUrl} alt={`${team.name} logo`} fill className="object-contain" />
                            </div>
-                           <h3 className="font-bold uppercase text-sm">{team.name}</h3>
+                           <h3 className="font-bold uppercase text-sm text-white">{team.name}</h3>
                            <p className="text-xs text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" /> {team.memberCount} Members</p>
                         </Card>
                     ))}
@@ -170,7 +219,7 @@ export default function Home() {
              <div className="container mx-auto px-4">
                 <div className="grid md:grid-cols-2 gap-8 items-center">
                      <div>
-                        <h2 className="text-4xl md:text-5xl font-headline font-black uppercase">
+                        <h2 className="text-4xl md:text-5xl font-headline font-black uppercase text-white">
                             Shop Official Fantom Apparel & Accessories
                         </h2>
                          <p className="mt-4 text-muted-foreground max-w-lg">
