@@ -10,10 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Users, Gamepad2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { format } from "date-fns";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
+
 
 interface BlogPost {
   id: string;
@@ -57,6 +60,23 @@ export default function Home() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [games, setGames] = useState<Game[]>([]);
 
+  const autoplayPlugin = useRef(
+    Autoplay({ delay: 5000, stopOnInteraction: true })
+  );
+
+  const heroImages = [
+      {
+          src: "https://i.pinimg.com/736x/fc/f6/4a/fcf64a71486e246ade88836fb1d60852.jpg",
+          alt: "Fantasy character with sword",
+          hint: "fantasy character art"
+      },
+      {
+          src: "https://i.pinimg.com/736x/20/c1/8c/20c18cfe73bc503ed8a0c5baa362ca2f.jpg",
+          alt: "Fantasy character in armor",
+          hint: "fantasy armor character"
+      }
+  ];
+
   useEffect(() => {
     const fetchBlogPosts = async () => {
         const q = query(collection(db, "blogPosts"), orderBy("date", "desc"), limit(3));
@@ -99,16 +119,28 @@ export default function Home() {
       <main className="flex-grow">
         {/* Hero Section */}
         <section id="hero" className="relative aspect-[3/1] flex items-center justify-center text-center bg-black">
-            <div className="absolute inset-0">
-                <Image
-                    src="https://i.pinimg.com/736x/fc/f6/4a/fcf64a71486e246ade88836fb1d60852.jpg"
-                    alt="Fantasy character"
-                    fill
-                    className="object-cover opacity-30"
-                    data-ai-hint="fantasy character art"
-                    priority
-                />
-            </div>
+             <Carousel 
+                className="absolute inset-0 w-full h-full"
+                plugins={[autoplayPlugin.current]}
+                opts={{
+                    loop: true,
+                }}
+             >
+                <CarouselContent className="m-0 h-full">
+                    {heroImages.map((image, index) => (
+                         <CarouselItem key={index} className="p-0 h-full">
+                             <Image
+                                src={image.src}
+                                alt={image.alt}
+                                fill
+                                className="object-cover opacity-30"
+                                data-ai-hint={image.hint}
+                                priority={index === 0}
+                            />
+                         </CarouselItem>
+                    ))}
+                </CarouselContent>
+             </Carousel>
             <div className="relative z-10 container mx-auto px-4 flex flex-col items-center">
                  <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
                     Fantom
