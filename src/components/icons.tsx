@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import { Gamepad2, type SVGProps } from "react";
 
 export function GhostIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -17,4 +17,8 @@ export function GhostIcon(props: SVGProps<SVGSVGElement>) {
       <path d="M15 12h.01" />
     </svg>
   );
+}
+
+export function AlicaIcon(props: SVGProps<SVGSVGElement>) {
+    return <Gamepad2 {...props} />
 }

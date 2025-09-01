@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { GhostIcon } from "@/components/icons";
+import { Gamepad2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -43,19 +43,20 @@ export function Header() {
 
 
   const navLinks = [
-    { href: "/#servers", label: "Servers Overview" },
-    { href: "/blog", label: "Blog" },
-    { href: "/#roster", label: "Clan Roster" },
-    { href: "/#recruitment", label: "Recruitment" },
+    { href: "/#game", label: "Game" },
+    { href: "/#team", label: "Team" },
+    { href: "/#roadmap", label: "Roadmap" },
+    { href: "/#staking", label: "Staking" },
+    { href: "/#marketplace", label: "Marketplace" },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center px-4">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto flex h-20 items-center px-4">
         <Link href="/" className="flex items-center gap-2 mr-6">
-          <GhostIcon className="w-8 h-8 text-primary" />
+          <Gamepad2 className="w-8 h-8 text-primary" />
           <span className="text-2xl font-bold font-headline uppercase">
-            Fantom eSport
+            Alica
           </span>
         </Link>
         <nav className="hidden lg:flex items-center gap-6 text-sm font-medium uppercase">
@@ -78,22 +79,10 @@ export function Header() {
             </Link>
           )}
         </nav>
-        <div className="flex flex-1 items-center justify-end gap-2">
-          {user ? (
-             <Button variant="ghost" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-          ) : (
-            <>
-              <Button asChild variant="ghost">
-                <Link href="/admin/login">Login</Link>
-              </Button>
-              <Button asChild variant="primary">
-                 <Link href="/signup">Sign Up</Link>
-              </Button>
-            </>
-          )}
+        <div className="flex flex-1 items-center justify-end gap-4">
+           <Button asChild variant="primary" className="hidden sm:inline-flex">
+                 <Link href="#">Play Now</Link>
+           </Button>
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="lg:hidden">
@@ -102,13 +91,13 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
-              <SheetHeader>
-                 <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
-              </SheetHeader>
+                <SheetHeader>
+                  <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
+                </SheetHeader>
               <Link href="/" className="flex items-center gap-2 mb-8">
-                <GhostIcon className="w-8 h-8 text-primary" />
+                <Gamepad2 className="w-8 h-8 text-primary" />
                 <span className="text-2xl font-bold font-headline uppercase">
-                  Fantom eSport
+                  Alica
                 </span>
               </Link>
               <nav className="flex flex-col gap-4">
@@ -130,6 +119,16 @@ export function Header() {
                         Clan Master
                     </Link>
                 )}
+                 {user ? (
+                     <Button variant="ghost" onClick={handleLogout} className="justify-start mt-4">
+                      <LogOut className="mr-2 h-5 w-5" />
+                      Logout
+                    </Button>
+                  ) : (
+                     <Button asChild variant="ghost" className="justify-start mt-4">
+                        <Link href="/admin/login">Login</Link>
+                      </Button>
+                  )}
               </nav>
             </SheetContent>
           </Sheet>
