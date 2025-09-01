@@ -196,8 +196,8 @@ export default function AdminPage() {
                                     <Input id="post-title" placeholder="Enter post title" value={newPost.title} onChange={(e) => setNewPost({...newPost, title: e.target.value})} required />
                                 </div>
                                  <div>
-                                    <Label htmlFor="post-category">Category</Label>
-                                    <Input id="post-category" placeholder="e.g. News, Tutorial" value={newPost.category} onChange={(e) => setNewPost({...newPost, category: e.target.value})} required />
+                                    <Label htmlFor="post-tags">Tags</Label>
+                                    <Input id="post-tags" placeholder="e.g. News, Update, Tutorial" value={newPost.category} onChange={(e) => setNewPost({...newPost, category: e.target.value})} required />
                                 </div>
                                 <div>
                                     <Label htmlFor="post-image-url">Image URL (Pinterest, etc.)</Label>
@@ -205,7 +205,7 @@ export default function AdminPage() {
                                 </div>
                                 <div>
                                     <Label htmlFor="post-content">Content</Label>
-                                    <Textarea id="post-content" placeholder="Write your blog post content here..." value={newPost.content} onChange={(e) => setNewPost({...newPost, content: e.target.value})} required />
+                                    <Textarea id="post-content" placeholder="Write your blog post content here..." value={newPost.content} onChange={(e) => setNewPost({...newPost, content: e.target.value})} required rows={10} />
                                 </div>
                                 <Button type="submit" variant="primary">Add Post</Button>
                              </form>
