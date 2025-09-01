@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
@@ -99,7 +98,6 @@ export default function BlogPage() {
             ))}
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

@@ -1,11 +1,11 @@
 'use client';
 
 import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Play, Users } from "lucide-react";
+import { Play, Users, Linkedin, Twitter, MessageCircle, Send } from "lucide-react";
 
 interface Team {
     id: string;
@@ -40,7 +40,7 @@ export default function Home() {
                     data-ai-hint="cyberpunk city neon"
                     priority
                 />
-                <div className="absolute inset-0 bg-black/60 bg-gradient-to-b from-black/20 via-transparent to-background" />
+                <div className="absolute inset-0 bg-black/60 bg-gradient-to-t from-transparent via-transparent to-background" />
             </div>
             <div className="relative z-10 container mx-auto px-4">
                 <div className="max-w-4xl mx-auto">
@@ -61,7 +61,27 @@ export default function Home() {
                     </div>
                 </div>
             </div>
-             <Footer />
+             <div className="absolute bottom-0 left-0 w-full z-10">
+                <div className="container mx-auto px-4 py-6">
+                    <div className="flex items-center gap-4">
+                    <span className="text-sm font-medium text-white hidden sm:block">FOLLOW ME</span>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10 hover:text-white">
+                        <Linkedin className="h-5 w-5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10 hover:text-white">
+                        <Twitter className="h-5 w-5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10 hover:text-white">
+                        <MessageCircle className="h-5 w-5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10 hover:text-white">
+                        <Send className="h-5 w-5" />
+                        </Button>
+                    </div>
+                    </div>
+                </div>
+            </div>
         </section>
         
         <div className="bg-background">
