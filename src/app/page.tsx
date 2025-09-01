@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
 import { ArrowRight, ChevronRight, Dot } from "lucide-react";
 import Link from "next/link";
-import { DoomIcon } from '@/components/icons';
+import { FantomIcon } from '@/components/icons';
 
 interface BlogPost {
   id: string;
@@ -95,7 +95,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent z-10" />
            <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-transparent z-10" />
           <div className="relative z-20 flex flex-col items-center">
-            <DoomIcon className="w-96 h-auto" />
+            <FantomIcon className="w-96 h-auto" />
              <p className="font-headline text-2xl uppercase tracking-widest text-shadow">Potentia Invicta</p>
           </div>
            <Image
@@ -186,7 +186,7 @@ export default function Home() {
                 <div className="text-center mb-12">
                     <p className="text-primary font-bold uppercase">We are the best of the best, join us!</p>
                     <h2 className="text-4xl md:text-5xl font-headline font-black uppercase">
-                        Our Clan - Doom
+                        Our Clan - Fantom eSport
                     </h2>
                 </div>
                 <div className="grid lg:grid-cols-3 gap-8">

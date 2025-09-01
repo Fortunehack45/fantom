@@ -19,9 +19,9 @@ export function GhostIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-export function DoomIcon(props: SVGProps<SVGSVGElement>) {
+export function FantomIcon(props: SVGProps<SVGSVGElement>) {
     return (
-        <svg viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <svg viewBox="0 0 400 50" xmlns="http://www.w3.org/2000/svg" {...props}>
             <defs>
                 <linearGradient id="goldGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" style={{stopColor: '#FFD700', stopOpacity: 1}} />
@@ -41,14 +41,14 @@ export function DoomIcon(props: SVGProps<SVGSVGElement>) {
                 dy=".35em" 
                 textAnchor="middle" 
                 fontFamily="Cinzel, serif" 
-                fontSize="40" 
+                fontSize="32" 
                 fill="url(#goldGradient)"
                 stroke="#6b4a00"
                 strokeWidth="0.5"
                 style={{filter: 'url(#glow)'}}
                 className="font-black"
             >
-                DOOM
+                Fantom eSport
             </text>
         </svg>
     )
