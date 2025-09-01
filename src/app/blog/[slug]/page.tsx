@@ -14,7 +14,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { useParams } from 'next/navigation';
 import { format, formatDistanceToNow } from 'date-fns';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -56,8 +55,7 @@ interface Comment {
 }
 
 
-export default function BlogPostPage() {
-    const params = useParams();
+export default function BlogPostPage({ params }: { params: { slug: string } }) {
     const { toast } = useToast();
     const [post, setPost] = useState<Post | null>(null);
     const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
@@ -73,7 +71,7 @@ export default function BlogPostPage() {
     const [deletingItem, setDeletingItem] = useState<{commentId: string, replyId?: string} | null>(null);
 
 
-    const slug = params.slug as string;
+    const { slug } = params;
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -593,3 +591,5 @@ export default function BlogPostPage() {
     </>
   );
 }
+
+    
