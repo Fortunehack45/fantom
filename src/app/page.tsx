@@ -30,7 +30,7 @@ export default function Home() {
       <Header />
       <main className="flex-grow">
         {/* Hero Section */}
-        <section id="hero" className="relative h-[60vh] md:h-[75vh] flex items-center justify-center text-center">
+        <section id="hero" className="relative h-[50vh] md:h-[60vh] flex items-center justify-center text-center">
             <div className="absolute inset-0">
                 <Image
                     src="https://picsum.photos/1920/1080?random=cyberpunk"
