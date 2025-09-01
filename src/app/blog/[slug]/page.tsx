@@ -2,12 +2,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, doc, addDoc, serverTimestamp, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, addDoc, serverTimestamp, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ThumbsUp, MessageSquare, Share2 } from "lucide-react";
+import { ArrowLeft, ThumbsUp, MessageSquare, Share2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import { useParams } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
 interface Post {
@@ -67,6 +68,9 @@ export default function BlogPostPage() {
     
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
     const [replyContent, setReplyContent] = useState('');
+    
+    const [deletingItem, setDeletingItem] = useState<{commentId: string, replyId?: string} | null>(null);
+
 
     const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
@@ -169,7 +173,6 @@ export default function BlogPostPage() {
                 content: newComment,
                 timestamp: serverTimestamp(),
                 likes: [],
-                replies: [],
             });
             setNewComment('');
             toast({ title: 'Success', description: 'Comment posted!' });
@@ -203,6 +206,28 @@ export default function BlogPostPage() {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to post reply.' });
         }
     };
+    
+    const handleDeleteItem = async () => {
+        if (!user || !post || !deletingItem) return;
+
+        const { commentId, replyId } = deletingItem;
+
+        try {
+            let itemRef;
+            if (replyId) {
+                itemRef = doc(db, 'blogPosts', post.id, 'comments', commentId, 'replies', replyId);
+            } else {
+                itemRef = doc(db, 'blogPosts', post.id, 'comments', commentId);
+            }
+            await deleteDoc(itemRef);
+            toast({ title: 'Success', description: 'Item deleted.' });
+        } catch (error) {
+            console.error("Error deleting item:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete item.' });
+        } finally {
+            setDeletingItem(null);
+        }
+    };
 
     const handleLikePost = async () => {
         if (!user || !post) {
@@ -211,10 +236,9 @@ export default function BlogPostPage() {
         }
         
         const postRef = doc(db, 'blogPosts', post.id);
-        const hasLiked = post.likes.includes(user.uid);
         
         try {
-            if (hasLiked) {
+            if (post.likes.includes(user.uid)) {
                 await updateDoc(postRef, {
                     likes: arrayRemove(user.uid)
                 });
@@ -234,30 +258,23 @@ export default function BlogPostPage() {
             toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to like.' });
             return;
         }
-    
-        const path = replyId 
-            ? `blogPosts/${post.id}/comments/${commentId}/replies/${replyId}`
-            : `blogPosts/${post.id}/comments/${commentId}`;
         
-        const itemRef = doc(db, path);
+        const itemRef = replyId 
+            ? doc(db, 'blogPosts', post.id, 'comments', commentId, 'replies', replyId)
+            : doc(db, 'blogPosts', post.id, 'comments', commentId);
     
-        // Determine if the user has already liked the item from the local state
-        let hasLikedItem = false;
-        if(replyId) {
+        let currentLikes: string[] = [];
+        if (replyId) {
             const comment = comments.find(c => c.id === commentId);
             const reply = comment?.replies.find(r => r.id === replyId);
-            if(reply) {
-                hasLikedItem = reply.likes.includes(user.uid);
-            }
+            currentLikes = reply?.likes || [];
         } else {
             const comment = comments.find(c => c.id === commentId);
-            if(comment) {
-                hasLikedItem = comment.likes.includes(user.uid);
-            }
+            currentLikes = comment?.likes || [];
         }
-    
+
         try {
-            if (hasLikedItem) {
+            if (currentLikes.includes(user.uid)) {
                 await updateDoc(itemRef, { likes: arrayRemove(user.uid) });
             } else {
                 await updateDoc(itemRef, { likes: arrayUnion(user.uid) });
@@ -299,6 +316,7 @@ export default function BlogPostPage() {
         const itemLikes = item.likes || [];
         const hasLikedItem = user ? itemLikes.includes(user.uid) : false;
         const replyCount = !isReply ? (item as Comment).replies.length : 0;
+        const isAuthor = user?.uid === item.authorId;
 
         const handleLikeClick = () => {
             if (isReply && commentId) {
@@ -325,13 +343,18 @@ export default function BlogPostPage() {
                     <div className="flex items-center gap-4 mt-2 text-xs">
                         <Button variant="ghost" className="h-auto p-0 flex items-center gap-1 text-muted-foreground hover:text-primary" onClick={handleLikeClick} disabled={!user}>
                            <ThumbsUp className={`h-4 w-4 transition-colors ${hasLikedItem ? 'text-primary' : ''}`}/>
-                           <span>{itemLikes.length > 0 ? itemLikes.length : ''}</span>
+                           {itemLikes.length > 0 && <span>{itemLikes.length}</span>}
                         </Button>
 
                          {!isReply && (
                             <Button variant="ghost" className="h-auto p-0 flex items-center gap-1 text-muted-foreground hover:text-primary" onClick={() => setReplyingTo(replyingTo === item.id ? null : item.id)}>
                                 Reply
                                 {replyCount > 0 && <span className="text-xs ml-1">({replyCount})</span>}
+                            </Button>
+                        )}
+                        {isAuthor && (
+                             <Button variant="ghost" className="h-auto p-0 flex items-center gap-1 text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({ commentId: commentId || item.id, replyId: isReply ? item.id : undefined })}>
+                                <Trash2 className="h-4 w-4"/>
                             </Button>
                         )}
                     </div>
@@ -342,6 +365,26 @@ export default function BlogPostPage() {
 
 
   return (
+    <>
+    <AlertDialog open={!!deletingItem} onOpenChange={(open) => !open && setDeletingItem(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete your
+                    item from our servers.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setDeletingItem(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteItem} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
+
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <Header />
       <main className="flex-grow py-12 md:py-24">
@@ -407,7 +450,7 @@ export default function BlogPostPage() {
                                             value={newComment}
                                             onChange={(e) => setNewComment(e.target.value)}
                                         />
-                                        <Button variant="primary" size="sm" onClick={handleAddComment}>Post Comment</Button>
+                                        <Button variant="primary" size="sm" onClick={handleAddComment} disabled={!newComment.trim()}>Post Comment</Button>
                                     </div>
                                 </div>
                             </CardContent>
@@ -444,7 +487,7 @@ export default function BlogPostPage() {
                                                             rows={2}
                                                         />
                                                         <div className="flex gap-2">
-                                                            <Button variant="primary" size="sm" onClick={() => handleAddReply(comment.id)}>Post Reply</Button>
+                                                            <Button variant="primary" size="sm" onClick={() => handleAddReply(comment.id)} disabled={!replyContent.trim()}>Post Reply</Button>
                                                             <Button variant="ghost" size="sm" onClick={() => setReplyingTo(null)}>Cancel</Button>
                                                         </div>
                                                     </div>
@@ -478,5 +521,8 @@ export default function BlogPostPage() {
         </div>
       </main>
     </div>
+    </>
   );
 }
+
+    
