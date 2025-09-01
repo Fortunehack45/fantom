@@ -28,50 +28,46 @@ interface Post {
 export default function BlogPostPage({ params }: { params: { slug: string } }) {
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
+    const { slug } = params;
 
     useEffect(() => {
-        const slug = params.slug;
         if (!slug) return;
 
         const fetchPost = async () => {
             setLoading(true);
-            const postsRef = collection(db, 'blogPosts');
-            const q = query(postsRef, where("slug", "==", slug));
-            const querySnapshot = await getDocs(q);
-            
-            if (!querySnapshot.empty) {
-                const doc = querySnapshot.docs[0];
-                const docData = doc.data();
-                 setPost({
-                    id: doc.id,
-                    slug: slug,
-                    title: docData.title,
-                    content: docData.content,
-                    author: docData.author || "Fantom eSport",
-                    date: docData.date ? new Date(docData.date.seconds * 1000).toLocaleDateString() : new Date().toLocaleDateString(),
-                    category: docData.category || "News",
-                    hint: docData.hint || "gamer portrait",
-                    imageUrl: docData.imageUrl,
-                } as Post);
-            } else {
-                const staticPost = {
-                    id: 'not-found',
-                    slug: slug,
-                    title: "Post Not Found",
-                    author: "System",
-                    date: new Date().toLocaleDateString(),
-                    category: "Error",
-                    hint: "not found",
-                    imageUrl: "https://picsum.photos/1200/600",
-                    content: `<p>The post you are looking for could not be found. It might have been moved or deleted.</p>`
-                };
-                setPost(staticPost);
+            try {
+                const postsRef = collection(db, 'blogPosts');
+                const q = query(postsRef, where("slug", "==", slug));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    const doc = querySnapshot.docs[0];
+                    const docData = doc.data();
+                     setPost({
+                        id: doc.id,
+                        slug: slug,
+                        title: docData.title,
+                        content: docData.content,
+                        author: docData.author || "Fantom eSport",
+                        date: docData.date ? new Date(docData.date.seconds * 1000).toLocaleDateString() : new Date().toLocaleDateString(),
+                        category: docData.category || "News",
+                        hint: docData.hint || "gamer portrait",
+                        imageUrl: docData.imageUrl,
+                    } as Post);
+                } else {
+                    console.warn(`Post with slug "${slug}" not found.`);
+                    setPost(null);
+                }
+            } catch (error) {
+                console.error("Error fetching post:", error);
+                setPost(null);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         fetchPost();
-    }, [params]);
+    }, [slug]);
 
     if (loading) {
         return (
@@ -84,7 +80,8 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     if (!post) {
          return (
              <div className="flex flex-col min-h-screen bg-background text-foreground justify-center items-center">
-                <p>Post not found.</p>
+                <p className="text-2xl font-headline">Post Not Found</p>
+                <p className="text-muted-foreground">The post you are looking for could not be found.</p>
                  <Link href="/blog">
                     <Button variant="ghost" className="mt-4">
                         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -117,14 +114,16 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                         By {post.author} on {post.date}
                     </p>
                 </header>
-                <Image
-                    src={post.imageUrl || `https://picsum.photos/1200/600`}
-                    alt={post.title}
-                    width={1200}
-                    height={600}
-                    className="w-full rounded-lg mb-8"
-                    data-ai-hint={post.hint}
-                />
+                {post.imageUrl && (
+                    <Image
+                        src={post.imageUrl}
+                        alt={post.title}
+                        width={1200}
+                        height={600}
+                        className="w-full rounded-lg mb-8"
+                        data-ai-hint={post.hint}
+                    />
+                )}
                 <div 
                     className="prose prose-invert prose-lg max-w-none mx-auto"
                     dangerouslySetInnerHTML={{ __html: post.content }} 
