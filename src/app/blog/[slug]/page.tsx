@@ -28,9 +28,9 @@ interface Post {
 export default function BlogPostPage({ params }: { params: { slug: string } }) {
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
+    const { slug } = params;
 
     useEffect(() => {
-        const slug = params.slug;
         if (!slug) return;
 
         const fetchPost = async () => {
@@ -67,7 +67,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         };
 
         fetchPost();
-    }, [params]);
+    }, [slug]);
 
     if (loading) {
         return (
@@ -126,7 +126,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                 )}
                 <div 
                     className="prose prose-invert prose-lg max-w-none mx-auto"
-                    dangerouslySetInnerHTML={{ __html: post.content }} 
+                    dangerouslySetInnerHTML={{ __html: post.content.replace(/\\n/g, '<br />') }} 
                 />
             </article>
         </div>
@@ -135,3 +135,4 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     </div>
   );
 }
+
