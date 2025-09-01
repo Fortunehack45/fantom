@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, doc, addDoc, serverTimestamp, onSnapshot, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, addDoc, serverTimestamp, onSnapshot, deleteDoc, getDoc, orderBy } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import Image from "next/image";
@@ -181,7 +181,10 @@ export default function BlogPostPage() {
                 await deleteDoc(likeRef);
             } else {
                 // Like
-                await addDoc(likeRef, {});
+                const docRef = await getDoc(likeRef);
+                if (!docRef.exists()) {
+                    await addDoc(collection(db, 'blogPosts', post.id, 'likes'), { userId: user.uid });
+                }
             }
         } catch(error) {
             console.error("Error liking post: ", error);
@@ -329,5 +332,3 @@ export default function BlogPostPage() {
     </div>
   );
 }
-
-    
