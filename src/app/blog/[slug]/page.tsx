@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, doc, addDoc, serverTimestamp, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, addDoc, serverTimestamp, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy, deleteDoc, limit } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import Image from "next/image";
@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { useParams } from 'next/navigation';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -60,6 +60,7 @@ export default function BlogPostPage() {
     const params = useParams();
     const { toast } = useToast();
     const [post, setPost] = useState<Post | null>(null);
+    const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<User | null>(null);
 
@@ -92,41 +93,39 @@ export default function BlogPostPage() {
         const postsRef = collection(db, 'blogPosts');
         const q = query(postsRef, where("slug", "==", slug));
         
-        getDocs(q).then(querySnapshot => {
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
             if (!querySnapshot.empty) {
                 const postDoc = querySnapshot.docs[0];
-                const unsubscribe = onSnapshot(doc(db, 'blogPosts', postDoc.id), (doc) => {
-                    const docData = doc.data();
-                    if (docData) {
-                        const postDate = docData.date ? new Date(docData.date.seconds * 1000) : new Date();
-                        setPost({
-                            id: doc.id,
-                            slug: slug,
-                            title: docData.title,
-                            content: docData.content,
-                            author: docData.author || "Fantom eSport",
-                            date: postDate,
-                            category: docData.category || "News",
-                            hint: docData.hint || "gamer portrait",
-                            imageUrl: docData.imageUrl,
-                            likes: docData.likes || [],
-                        });
-                    } else {
-                        setPost(null);
-                    }
-                    setLoading(false);
-                });
-                return () => unsubscribe();
+                const docData = postDoc.data();
+                if (docData) {
+                    const postDate = docData.date ? new Date(docData.date.seconds * 1000) : new Date();
+                    setPost({
+                        id: postDoc.id,
+                        slug: slug,
+                        title: docData.title,
+                        content: docData.content,
+                        author: docData.author || "Fantom eSport",
+                        date: postDate,
+                        category: docData.category || "News",
+                        hint: docData.hint || "gamer portrait",
+                        imageUrl: docData.imageUrl,
+                        likes: docData.likes || [],
+                    });
+                } else {
+                    setPost(null);
+                }
             } else {
                 console.warn(`Post with slug "${slug}" not found.`);
                 setPost(null);
-                setLoading(false);
             }
-        }).catch(error => {
+             setLoading(false);
+        }, error => {
             console.error("Error fetching post:", error);
             setPost(null);
             setLoading(false);
         });
+
+        return () => unsubscribe();
 
     }, [slug]);
 
@@ -157,6 +156,34 @@ export default function BlogPostPage() {
 
         return () => unsubscribe();
     }, [post]);
+
+    // Fetch related posts
+    useEffect(() => {
+        if (!post) return;
+        
+        const fetchRelatedPosts = async () => {
+            const postsRef = collection(db, 'blogPosts');
+            const q = query(
+                postsRef, 
+                where("slug", "!=", slug), // Exclude the current post
+                orderBy("date", "desc"), 
+                limit(5) // Fetch 5 to be safe in case one is the current post (though '!=' should handle it)
+            );
+            
+            try {
+                const querySnapshot = await getDocs(q);
+                const postsData: Post[] = querySnapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() } as Post))
+                    .filter(p => p.id !== post.id) // Final check to exclude current post
+                    .slice(0, 4); // Limit to 4
+                setRelatedPosts(postsData);
+            } catch (error) {
+                console.error("Error fetching related posts:", error);
+            }
+        };
+
+        fetchRelatedPosts();
+    }, [post, slug]);
 
 
     const handleAddComment = async () => {
@@ -263,16 +290,20 @@ export default function BlogPostPage() {
             ? doc(db, 'blogPosts', post.id, 'comments', commentId, 'replies', replyId)
             : doc(db, 'blogPosts', post.id, 'comments', commentId);
     
-        let currentLikes: string[] = [];
+        // No need to fetch the document first, just update based on current state
+        const comment = comments.find(c => c.id === commentId);
+        if (!comment) return;
+        
+        let currentItem;
         if (replyId) {
-            const comment = comments.find(c => c.id === commentId);
-            const reply = comment?.replies.find(r => r.id === replyId);
-            currentLikes = reply?.likes || [];
+             currentItem = comment.replies.find(r => r.id === replyId);
         } else {
-            const comment = comments.find(c => c.id === commentId);
-            currentLikes = comment?.likes || [];
+            currentItem = comment;
         }
+        if (!currentItem) return;
 
+        const currentLikes = currentItem.likes || [];
+        
         try {
             if (currentLikes.includes(user.uid)) {
                 await updateDoc(itemRef, { likes: arrayRemove(user.uid) });
@@ -509,6 +540,43 @@ export default function BlogPostPage() {
                     </div>
                 </div>
 
+                <Separator className="my-12 bg-border/20" />
+                
+                {/* Related Posts Section */}
+                {relatedPosts.length > 0 && (
+                    <section className="mt-12">
+                        <h2 className="text-2xl font-headline font-bold mb-6">You Might Also Like</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
+                            {relatedPosts.map((relatedPost) => (
+                                <Link key={relatedPost.id} href={`/blog/${relatedPost.slug}`}>
+                                    <Card className="bg-card border-border overflow-hidden group h-full flex flex-col transform hover:-translate-y-1 transition-transform duration-300">
+                                        <div className="relative aspect-video">
+                                            <Image
+                                                src={relatedPost.imageUrl || `https://picsum.photos/400/250?random=${relatedPost.id}`}
+                                                alt={relatedPost.title}
+                                                fill
+                                                className="object-cover"
+                                                data-ai-hint={relatedPost.hint}
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                            <Badge variant="primary" className="absolute top-2 left-2">{relatedPost.category}</Badge>
+                                        </div>
+                                        <CardContent className="p-4 flex-grow flex flex-col">
+                                            <h3 className="text-md font-headline font-bold uppercase leading-tight mt-1 group-hover:text-primary transition-colors">
+                                                {relatedPost.title}
+                                            </h3>
+                                             <p className="text-xs text-muted-foreground uppercase mt-2">
+                                               {relatedPost.date ? format(new Date(relatedPost.date.seconds ? relatedPost.date.seconds * 1000 : relatedPost.date), 'MMM d, yyyy') : ''}
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+
                  <div className="mt-12 text-center">
                      <Link href="/blog">
                         <Button variant="outline">
@@ -524,5 +592,3 @@ export default function BlogPostPage() {
     </>
   );
 }
-
-    
