@@ -73,7 +73,7 @@ export default function BlogPostPage() {
     const [deletingItem, setDeletingItem] = useState<{commentId: string, replyId?: string} | null>(null);
 
 
-    const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+    const slug = params.slug as string;
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
