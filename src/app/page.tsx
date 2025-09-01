@@ -64,9 +64,27 @@ interface HeroImage {
 const defaultHeroImages: HeroImage[] = [
     {
         id: 'default-1',
-        src: 'https://i.pinimg.com/originals/a1/8a/a5/a18aa5a7850f835567acb1164a3403a3.jpg',
-        alt: 'Cyberpunk warrior looking over a futuristic city',
-        hint: 'cyberpunk warrior city'
+        src: 'https://i.pinimg.com/736x/20/c1/8c/20c18cfe73bc503ed8a0c5baa362ca2f.jpg',
+        alt: 'Futuristic soldier in a neon-lit city',
+        hint: 'futuristic soldier neon'
+    },
+    {
+        id: 'default-2',
+        src: 'https://i.pinimg.com/736x/fc/f6/4a/fcf64a71486e246ade88836fb1d60852.jpg',
+        alt: 'Character with a glowing sword',
+        hint: 'glowing sword character'
+    },
+    {
+        id: 'default-3',
+        src: 'https://i.pinimg.com/736x/12/40/4e/12404e7f34f307f3a910df46ed225ba8.jpg',
+        alt: 'A warrior standing in a mystical forest',
+        hint: 'warrior mystical forest'
+    },
+    {
+        id: 'default-4',
+        src: 'https://i.pinimg.com/736x/57/00/02/570002ab712a71a1c96c81a26a4e1276.jpg',
+        alt: 'Gamer with headphones in a dark room',
+        hint: 'gamer headphones dark'
     }
 ];
 
@@ -388,5 +406,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
