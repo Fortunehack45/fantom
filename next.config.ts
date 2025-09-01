@@ -24,11 +24,6 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https-pinned-from',
-        hostname: 'i.pinimg.com',
-        pathname: '/**',
-      },
-      {
         protocol: 'https',
         hostname: 'i.pinimg.com',
         pathname: '/**',
