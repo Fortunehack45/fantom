@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 
 interface BlogPost { id: string; title: string; content: string; imageUrl?: string; }
-interface RosterMember { id: string; name: string; rank: string; game: string; role: string; server: string; }
+interface RosterMember { id: string; name: string; rank: string; game: string; role: string; server: string; avatarUrl?: string; }
 interface Announcement { id: string; author: string; authorImageUrl?: string; content: string; }
 interface Game { id: string; name: string; imageUrl: string; hint: string; }
 interface HeroImage { id: string; src: string; alt: string; hint: string; }
@@ -39,7 +39,7 @@ export default function AdminPage() {
     const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
 
     const [newPost, setNewPost] = useState({ title: '', content: '', imageUrl: '', category: 'News' });
-    const [newMember, setNewMember] = useState({ name: '', rank: '', game: '', role: '', server: '' });
+    const [newMember, setNewMember] = useState({ name: '', rank: '', game: '', role: '', server: '', avatarUrl: '' });
     const [newAnnouncement, setNewAnnouncement] = useState({ author: '', content: '', authorImageUrl: '' });
     const [newGame, setNewGame] = useState({ name: '', imageUrl: '', hint: '' });
     const [newHeroImage, setNewHeroImage] = useState({ src: '', alt: '', hint: '' });
@@ -73,15 +73,42 @@ export default function AdminPage() {
     // Generic Add Function
     const handleAddItem = async (e: React.FormEvent, collectionName: string, newItem: any, resetter: () => void, callback: () => void) => {
         e.preventDefault();
-        if (Object.values(newItem).every(field => field)) {
-            try {
-                await addDoc(collection(db, collectionName), newItem);
-                resetter();
-                callback();
-                toast({ title: "Success", description: `${collectionName.slice(0, -1)} added.` });
+        if (Object.values(newItem).some(field => typeof field === 'string' && field.trim() === '')) {
+             const requiredFields = Object.keys(newItem).filter(key => key !== 'avatarUrl' && key !== 'imageUrl' && key !== 'authorImageUrl');
+             const emptyFields = requiredFields.filter(key => !newItem[key as keyof typeof newItem]);
+             if (emptyFields.length > 0) {
+                toast({ variant: "destructive", title: "Error", description: `Please fill out all required fields.` });
+                return;
+             }
+        }
+        
+        try {
+            await addDoc(collection(db, collectionName), newItem);
+            resetter();
+            callback();
+            toast({ title: "Success", description: `${collectionName.slice(0, -1)} added.` });
+        } catch (error) {
+            toast({ variant: "destructive", title: "Error", description: `Could not add ${collectionName.slice(0, -1)}.` });
+        }
+    };
+    
+    const handleAddMember = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const { name, rank, game, role, server, avatarUrl } = newMember;
+        if (name && rank && game && role && server) {
+             try {
+                await addDoc(collection(db, 'roster'), {
+                    ...newMember,
+                    avatarUrl: avatarUrl || `https://i.pravatar.cc/150?u=${Date.now()}`
+                });
+                setNewMember({ name: '', rank: '', game: '', role: '', server: '', avatarUrl: '' });
+                fetchData<RosterMember>("roster", setRoster);
+                toast({ title: "Success", description: "Roster member added." });
             } catch (error) {
-                toast({ variant: "destructive", title: "Error", description: `Could not add ${collectionName.slice(0, -1)}.` });
+                toast({ variant: "destructive", title: "Error", description: "Could not add roster member." });
             }
+        } else {
+             toast({ variant: "destructive", title: "Error", description: "Please fill out all required fields for the member." });
         }
     };
 
@@ -202,8 +229,9 @@ export default function AdminPage() {
                     <div className="grid md:grid-cols-2 gap-8">
                          <div>
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Member</h3>
-                             <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'roster', newMember, () => setNewMember({ name: '', rank: '', game: '', role: '', server: '' }), () => fetchData<RosterMember>("roster", setRoster))}>
+                             <form className="space-y-4" onSubmit={handleAddMember}>
                                 <div><Label htmlFor="member-name">Name</Label><Input id="member-name" placeholder="Enter member's name" value={newMember.name} onChange={(e) => setNewMember({...newMember, name: e.target.value})} required/></div>
+                                <div><Label htmlFor="member-avatar">Avatar URL</Label><Input id="member-avatar" placeholder="https://pinterest.com/..." value={newMember.avatarUrl} onChange={(e) => setNewMember({...newMember, avatarUrl: e.target.value})}/></div>
                                 <div><Label htmlFor="member-rank">Rank</Label><Input id="member-rank" placeholder="e.g., Diamond, Grandmaster" value={newMember.rank} onChange={(e) => setNewMember({...newMember, rank: e.target.value})} required/></div>
                                 <div><Label htmlFor="member-game">Game</Label><Input id="member-game" placeholder="e.g., Valorant, League of Legends" value={newMember.game} onChange={(e) => setNewMember({...newMember, game: e.target.value})} required/></div>
                                 <div><Label htmlFor="member-role">Role</Label><Input id="member-role" placeholder="e.g., Legendary, Pro, New Member" value={newMember.role} onChange={(e) => setNewMember({...newMember, role: e.target.value})} required/></div>
@@ -407,3 +435,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

@@ -17,6 +17,7 @@ interface RosterMember {
     game: string;
     role: string;
     server: string;
+    avatarUrl?: string;
 }
 
 const roleIcons: { [key: string]: React.ReactNode } = {
@@ -75,7 +76,7 @@ export default function RosterPage() {
                                 <CardDescription className="text-sm">{member.server}</CardDescription>
                             </div>
                             <div className="relative h-12 w-12">
-                                <Image src={`https://i.pravatar.cc/150?u=${member.id}`} alt={member.name} layout="fill" className="rounded-full object-cover border-2 border-primary/50"/>
+                                <Image src={member.avatarUrl || `https://i.pravatar.cc/150?u=${member.id}`} alt={member.name} width={150} height={150} className="rounded-full object-cover border-2 border-primary/50"/>
                             </div>
                         </CardHeader>
                         <CardContent className="p-4 flex-grow">
@@ -108,3 +109,5 @@ export default function RosterPage() {
     </div>
   );
 }
+
+    
