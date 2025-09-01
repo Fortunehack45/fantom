@@ -44,6 +44,11 @@ export function Header() {
             <Button variant="outline" className="hidden lg:flex">
                 Discord
             </Button>
+             <Link href="/admin/login">
+                <Button variant="secondary" className="hidden lg:flex">
+                    Admin
+                </Button>
+            </Link>
             <Button variant="primary" className="hidden lg:flex">
                 Join Us
             </Button>
@@ -76,6 +81,9 @@ export function Header() {
                         {link.label}
                       </Link>
                     ))}
+                     <Link href="/admin/login" className="text-2xl font-bold uppercase tracking-wider text-white">
+                        Admin
+                    </Link>
                   </nav>
                   <div className="mt-8 flex flex-col gap-4">
                     <Button variant="outline" size="lg" className="w-full">
