@@ -59,7 +59,6 @@ export function Header() {
     { href: "/blog", label: "News" },
     { href: "/roster", label: "Roster" },
     { href: "/about", label: "About" },
-    { href: "/#recruitment", label: "Recruitment" },
   ];
 
   return (

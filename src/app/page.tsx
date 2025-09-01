@@ -53,75 +53,64 @@ interface Game {
   hint: string;
 }
 
+interface HeroImage {
+  id: string;
+  src: string;
+  alt: string;
+  hint: string;
+}
 
 export default function Home() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [roster, setRoster] = useState<RosterMember[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [games, setGames] = useState<Game[]>([]);
+  const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
 
   const autoplayPlugin = useRef(
     Autoplay({ delay: 5000, stopOnInteraction: true })
   );
 
-  const heroImages = [
-      {
-          src: "https://i.pinimg.com/736x/fc/f6/4a/fcf64a71486e246ade88836fb1d60852.jpg",
-          alt: "Fantasy character with sword",
-          hint: "fantasy character art"
-      },
-      {
-          src: "https://i.pinimg.com/736x/20/c1/8c/20c18cfe73bc503ed8a0c5baa362ca2f.jpg",
-          alt: "Fantasy character in armor",
-          hint: "fantasy armor character"
-      },
-      {
-          src: "https://i.pinimg.com/736x/12/40/4e/12404e7f34f307f3a910df46ed225ba8.jpg",
-          alt: "Sci-fi character in futuristic city",
-          hint: "sci-fi character city"
-      },
-      {
-        src: "https://i.pinimg.com/736x/57/00/02/570002ab712a71a1c96c81a26a4e1276.jpg",
-        alt: "Female knight in silver armor",
-        hint: "female knight armor"
-      }
-  ];
-
   useEffect(() => {
-    const fetchBlogPosts = async () => {
-        const q = query(collection(db, "blogPosts"), orderBy("date", "desc"), limit(3));
-        const querySnapshot = await getDocs(q);
-        const postsData: BlogPost[] = querySnapshot.docs.map(doc => ({
-             id: doc.id,
-             ...doc.data(),
-        } as BlogPost));
-        setBlogPosts(postsData);
+    const fetchAllData = async () => {
+        try {
+            const blogQuery = query(collection(db, "blogPosts"), orderBy("date", "desc"), limit(3));
+            const rosterQuery = query(collection(db, "roster"), limit(5));
+            const announcementsQuery = query(collection(db, "announcements"), orderBy("date", "desc"), limit(3));
+            const gamesQuery = collection(db, "games");
+            const heroImagesQuery = collection(db, "heroImages");
+
+            const [
+                blogSnapshot,
+                rosterSnapshot,
+                announcementsSnapshot,
+                gamesSnapshot,
+                heroImagesSnapshot
+            ] = await Promise.all([
+                getDocs(blogQuery),
+                getDocs(rosterQuery),
+                getDocs(announcementsQuery),
+                getDocs(gamesQuery),
+                getDocs(heroImagesQuery)
+            ]);
+
+            const postsData: BlogPost[] = blogSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
+            const rosterData: RosterMember[] = rosterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RosterMember));
+            const announcementsData: Announcement[] = announcementsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
+            const gamesData: Game[] = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
+            const heroImagesData: HeroImage[] = heroImagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HeroImage));
+
+            setBlogPosts(postsData);
+            setRoster(rosterData);
+            setAnnouncements(announcementsData);
+            setGames(gamesData);
+            setHeroImages(heroImagesData);
+        } catch (error) {
+            console.error("Error fetching homepage data:", error);
+        }
     };
 
-    const fetchRoster = async () => {
-        const q = query(collection(db, "roster"), limit(5));
-        const querySnapshot = await getDocs(q);
-        const rosterData: RosterMember[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RosterMember));
-        setRoster(rosterData);
-    };
-    
-    const fetchAnnouncements = async () => {
-        const q = query(collection(db, "announcements"), orderBy("date", "desc"), limit(3));
-        const querySnapshot = await getDocs(q);
-        const announcementsData: Announcement[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
-        setAnnouncements(announcementsData);
-    };
-
-    const fetchGames = async () => {
-        const querySnapshot = await getDocs(collection(db, "games"));
-        const gamesData: Game[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
-        setGames(gamesData);
-    };
-
-    fetchBlogPosts();
-    fetchRoster();
-    fetchAnnouncements();
-    fetchGames();
+    fetchAllData();
   }, []);
 
   return (
@@ -139,7 +128,7 @@ export default function Home() {
              >
                 <CarouselContent className="m-0 h-full">
                     {heroImages.map((image, index) => (
-                         <CarouselItem key={index} className="p-0 h-full">
+                         <CarouselItem key={image.id} className="p-0 h-full">
                             <div className="relative w-full h-full">
                                 <Image
                                     src={image.src}
@@ -148,9 +137,9 @@ export default function Home() {
                                     height={900}
                                     className="object-cover w-full h-full"
                                     data-ai-hint={image.hint}
-                                    priority={true}
+                                    priority={index === 0}
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-70" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                             </div>
                          </CarouselItem>
                     ))}

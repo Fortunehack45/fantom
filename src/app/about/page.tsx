@@ -5,31 +5,68 @@ import { Header } from "@/components/header";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
+interface TimelineEvent {
+    id: string;
+    year: string;
+    title: string;
+    description: string;
+}
 
-const timelineEvents = [
-    { year: "2018", title: "The Spark", description: "Fantom eSport was born from a small group of friends with a shared passion for competitive gaming and a drive to dominate the leaderboards." },
-    { year: "2019", title: "First Tournament Win", description: "Our first major victory in a regional Valorant tournament, putting the Fantom name on the map and proving our potential." },
-    { year: "2020", title: "Expanding the Roster", description: "We expanded our ranks, recruiting top-tier talent across multiple games and solidifying our presence in the eSports scene." },
-    { year: "2022", title: "Community Growth", description: "Our Discord community surpassed 10,000 members, becoming a vibrant hub for fans, players, and friends." },
-    { year: "Present", title: "A New Era", description: "With a new brand identity and this website, we are poised for a new era of growth, competition, and community engagement." },
-]
+interface CoreValue {
+    id: string;
+    title: string;
+    description: string;
+}
 
-const values = [
-    { title: "Excellence", description: "We strive for the highest level of performance in every game we play." },
-    { title: "Teamwork", description: "Collaboration and communication are the cornerstones of our success." },
-    { title: "Respect", description: "We foster a positive and inclusive environment for all members and our community." },
-    { title: "Dedication", description: "Our members are committed to continuous improvement and practice." }
-]
-
-const galleryImages = [
-    { src: "https://i.pinimg.com/originals/a1/8a/a0/a18aa045f284915ca0e38a2c744f6534.jpg", alt: "Team celebrating a win", hint: "gaming team celebration" },
-    { src: "https://i.pinimg.com/originals/e8/5a/33/e85a331a9809a3994337a7a19992569e.jpg", alt: "Gaming setup with neon lights", hint: "neon gaming setup" },
-    { src: "https://i.pinimg.com/originals/52/f8/f5/52f8f533479a918452535036127cb099.jpg", alt: "Close-up of a gaming mouse and keyboard", hint: "gaming mouse keyboard" },
-    { src: "https://i.pinimg.com/originals/38/54/4e/38544e37d5ab89d19f864117b07d5757.jpg", alt: "eSports arena with a large crowd", hint: "esports arena crowd" },
-]
+interface GalleryImage {
+    id: string;
+    src: string;
+    alt: string;
+    hint: string;
+}
 
 export default function AboutPage() {
+    const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
+    const [values, setValues] = useState<CoreValue[]>([]);
+    const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const timelineQuery = query(collection(db, "timelineEvents"), orderBy("year", "asc"));
+                const valuesQuery = query(collection(db, "coreValues"));
+                const galleryQuery = query(collection(db, "galleryImages"));
+
+                const [timelineSnapshot, valuesSnapshot, gallerySnapshot] = await Promise.all([
+                    getDocs(timelineQuery),
+                    getDocs(valuesQuery),
+                    getDocs(galleryQuery),
+                ]);
+
+                const timelineData: TimelineEvent[] = timelineSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TimelineEvent));
+                const valuesData: CoreValue[] = valuesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CoreValue));
+                const galleryData: GalleryImage[] = gallerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
+                
+                setTimelineEvents(timelineData);
+                setValues(valuesData);
+                setGalleryImages(galleryData);
+
+            } catch (error) {
+                console.error("Failed to fetch about page data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -90,6 +127,9 @@ export default function AboutPage() {
                             Milestones & Achievements
                         </h2>
                     </div>
+                     {loading ? (
+                        <div className="text-center"><p>Loading timeline...</p></div>
+                    ) : (
                     <div className="relative">
                         <div className="absolute left-1/2 h-full w-0.5 bg-primary/20 -translate-x-1/2"></div>
                         {timelineEvents.map((event, index) => (
@@ -110,6 +150,7 @@ export default function AboutPage() {
                            </div>
                         ))}
                     </div>
+                    )}
                 </div>
             </section>
 
@@ -122,9 +163,12 @@ export default function AboutPage() {
                             Our Core Values
                         </h2>
                     </div>
+                     {loading ? (
+                        <div className="text-center"><p>Loading values...</p></div>
+                     ) : (
                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                         {values.map(value => (
-                            <Card key={value.title} className="bg-card/80 text-center">
+                            <Card key={value.id} className="bg-card/80 text-center">
                                 <CardContent className="p-6">
                                     <div className="mx-auto bg-primary/10 rounded-full h-16 w-16 flex items-center justify-center">
                                         <CheckCircle className="h-8 w-8 text-primary" />
@@ -135,6 +179,7 @@ export default function AboutPage() {
                             </Card>
                         ))}
                     </div>
+                     )}
                 </div>
             </section>
             
@@ -147,9 +192,12 @@ export default function AboutPage() {
                             Gallery
                         </h2>
                     </div>
+                     {loading ? (
+                        <div className="text-center"><p>Loading gallery...</p></div>
+                     ) : (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {galleryImages.map((image, index) => (
-                          <div key={index} className="relative aspect-square group overflow-hidden rounded-lg">
+                        {galleryImages.map((image) => (
+                          <div key={image.id} className="relative aspect-square group overflow-hidden rounded-lg">
                                 <Image
                                     src={image.src}
                                     alt={image.alt}
@@ -161,6 +209,7 @@ export default function AboutPage() {
                           </div>
                         ))}
                     </div>
+                     )}
                 </div>
             </section>
         </div>
