@@ -34,6 +34,7 @@ interface RosterMember {
 interface Announcement {
     id: string;
     author: string;
+    authorImageUrl?: string;
     content: string;
 }
 
@@ -45,7 +46,7 @@ export default function AdminPage() {
 
     const [newPost, setNewPost] = useState({ title: '', imageUrl: '', content: '' });
     const [newMember, setNewMember] = useState({ name: '', role: '', server: '' });
-    const [newAnnouncement, setNewAnnouncement] = useState({ author: '', content: '' });
+    const [newAnnouncement, setNewAnnouncement] = useState({ author: '', content: '', authorImageUrl: '' });
 
     const fetchBlogPosts = async () => {
         const querySnapshot = await getDocs(collection(db, "blogPosts"));
@@ -127,8 +128,11 @@ export default function AdminPage() {
         e.preventDefault();
         if (newAnnouncement.author && newAnnouncement.content) {
             try {
-                await addDoc(collection(db, "announcements"), newAnnouncement);
-                setNewAnnouncement({ author: '', content: '' });
+                await addDoc(collection(db, "announcements"), {
+                    ...newAnnouncement,
+                    authorImageUrl: newAnnouncement.authorImageUrl || `https://picsum.photos/40/40?random=${Date.now()}`
+                });
+                setNewAnnouncement({ author: '', content: '', authorImageUrl: '' });
                 fetchAnnouncements();
                 toast({ title: "Success", description: "Announcement added." });
             } catch (error) {
@@ -175,8 +179,8 @@ export default function AdminPage() {
                                     <Input id="post-title" placeholder="Enter post title" value={newPost.title} onChange={(e) => setNewPost({...newPost, title: e.target.value})} />
                                 </div>
                                 <div>
-                                    <Label htmlFor="post-image">Image URL</Label>
-                                    <Input id="post-image" placeholder="https://picsum.photos/400/250" value={newPost.imageUrl} onChange={(e) => setNewPost({...newPost, imageUrl: e.target.value})} />
+                                    <Label htmlFor="post-image">Image URL (e.g., from Pinterest)</Label>
+                                    <Input id="post-image" placeholder="https://i.pinimg.com/..." value={newPost.imageUrl} onChange={(e) => setNewPost({...newPost, imageUrl: e.target.value})} />
                                 </div>
                                 <div>
                                     <Label htmlFor="post-content">Content</Label>
@@ -276,6 +280,10 @@ export default function AdminPage() {
                                     <Input id="ann-author" placeholder="@YourDiscordHandle" value={newAnnouncement.author} onChange={(e) => setNewAnnouncement({...newAnnouncement, author: e.target.value})} />
                                 </div>
                                 <div>
+                                    <Label htmlFor="ann-author-image">Author Image URL (e.g., from Pinterest)</Label>
+                                    <Input id="ann-author-image" placeholder="https://i.pinimg.com/..." value={newAnnouncement.authorImageUrl} onChange={(e) => setNewAnnouncement({...newAnnouncement, authorImageUrl: e.target.value})} />
+                                </div>
+                                <div>
                                     <Label htmlFor="ann-content">Content</Label>
                                     <Textarea id="ann-content" placeholder="Write your announcement here..." value={newAnnouncement.content} onChange={(e) => setNewAnnouncement({...newAnnouncement, content: e.target.value})} />
                                 </div>
@@ -306,5 +314,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -22,6 +23,7 @@ interface BlogPost {
   content: string;
   hint: string;
   category: string;
+  imageUrl?: string;
 }
 
 interface RosterMember {
@@ -36,6 +38,7 @@ interface Announcement {
     author: string;
     content: string;
     date: string;
+    authorImageUrl?: string;
 }
 
 const games = [
@@ -57,18 +60,15 @@ export default function Home() {
             const postsData: BlogPost[] = querySnapshot.docs.map(doc => ({
                  id: doc.id,
                  slug: doc.data().title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''),
-                 title: doc.data().title,
-                 content: doc.data().content,
-                 hint: "fantasy character art",
-                 category: "News"
-            }));
+                 ...doc.data()
+            } as BlogPost));
             if (postsData.length > 0) {
                 setBlogPosts(postsData);
             } else {
                  setBlogPosts([
-                    { id: 'static-1', slug: "the-ultimate-guide-to-winning", title: "The Ultimate Guide to Winning", content: "Discover the strategies and tips from our pro players to dominate the competition...", hint: "fantasy character art", category: "Tutorial" },
-                    { id: 'static-2', slug: "new-season-new-goals", title: "New Season, New Goals", content: "The new season is upon us! Here's what we're aiming for as a clan...", hint: "esports team strategy", category: "News" },
-                    { id: 'static-3', slug: "community-spotlight-ernestodks412", title: "Community Spotlight: ErnestoDKS412", content: "An interview with one of our most legendary members...", hint: "gamer portrait", category: "Interview" },
+                    { id: 'static-1', slug: "the-ultimate-guide-to-winning", title: "The Ultimate Guide to Winning", content: "Discover the strategies and tips from our pro players to dominate the competition...", hint: "fantasy character art", category: "Tutorial", imageUrl: "https://picsum.photos/400/250?q=static-1" },
+                    { id: 'static-2', slug: "new-season-new-goals", title: "New Season, New Goals", content: "The new season is upon us! Here's what we're aiming for as a clan...", hint: "esports team strategy", category: "News", imageUrl: "https://picsum.photos/400/250?q=static-2" },
+                    { id: 'static-3', slug: "community-spotlight-ernestodks412", title: "Community Spotlight: ErnestoDKS412", content: "An interview with one of our most legendary members...", hint: "gamer portrait", category: "Interview", imageUrl: "https://picsum.photos/400/250?q=static-3" },
                 ]);
             }
         };
@@ -100,9 +100,9 @@ export default function Home() {
                 setAnnouncements(announcementsData);
             } else {
                 setAnnouncements([
-                     { id: '1', author: 'ClanMaster', content: 'Big clan meeting this Friday! Be there!', date: new Date().toLocaleDateString() },
-                     { id: '2', author: 'ViceMaster', content: 'New raid strategy is up on the forums. Make sure to read it.', date: new Date().toLocaleDateString() },
-                     { id: '3', author: 'RecruitmentOfficer', content: 'We are officially opening recruitment for two new spots. Spread the word!', date: new Date().toLocaleDateString() },
+                     { id: '1', author: 'ClanMaster', content: 'Big clan meeting this Friday! Be there!', date: new Date().toLocaleDateString(), authorImageUrl: "https://picsum.photos/40/40?random=1" },
+                     { id: '2', author: 'ViceMaster', content: 'New raid strategy is up on the forums. Make sure to read it.', date: new Date().toLocaleDateString(), authorImageUrl: "https://picsum.photos/40/40?random=2" },
+                     { id: '3', author: 'RecruitmentOfficer', content: 'We are officially opening recruitment for two new spots. Spread the word!', date: new Date().toLocaleDateString(), authorImageUrl: "https://picsum.photos/40/40?random=3" },
                 ]);
             }
         };
@@ -218,7 +218,7 @@ export default function Home() {
                         <Card className="bg-card border-border overflow-hidden flex flex-col h-full hover:border-primary transition-colors group">
                             <div className="relative">
                                 <Image
-                                src={`https://picsum.photos/400/250?q=${post.id}`}
+                                src={post.imageUrl || `https://picsum.photos/400/250?q=${post.id}`}
                                 alt="Blog Post Image"
                                 width={400}
                                 height={250}
@@ -312,7 +312,7 @@ export default function Home() {
                         {announcements.map(ann => (
                             <div key={ann.id} className="border-b border-border pb-4 last:border-b-0">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <Image src="https://picsum.photos/40/40" width={40} height={40} alt="avatar" className="rounded-full" data-ai-hint="discord avatar" />
+                                    <Image src={ann.authorImageUrl || "https://picsum.photos/40/40"} width={40} height={40} alt="avatar" className="rounded-full" data-ai-hint="discord avatar" />
                                     <div>
                                         <span className="font-bold">{ann.author}</span>
                                         <span className="text-xs text-muted-foreground ml-2">{ann.date}</span>

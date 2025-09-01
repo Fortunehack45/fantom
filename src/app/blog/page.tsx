@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -18,6 +19,7 @@ interface BlogPost {
   content: string;
   hint: string;
   category: string;
+  imageUrl?: string;
 }
 
 export default function BlogPage() {
@@ -29,23 +31,22 @@ export default function BlogPage() {
         const postsData: BlogPost[] = querySnapshot.docs.map(doc => ({
              id: doc.id,
              slug: doc.data().title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''),
-             title: doc.data().title,
-             content: doc.data().content,
-             imageUrl: doc.data().imageUrl,
-             hint: "gamer portrait",
-             category: "News"
-        }));
+             ...doc.data(),
+        } as BlogPost));
         
-        const staticPosts = [
-            { id: 'static-1', slug: "the-ultimate-guide-to-winning", title: "The Ultimate Guide to Winning", content: "Discover the strategies and tips from our pro players to dominate the competition and climb the ranks...", hint: "fantasy character art", category: "Tutorial" },
-            { id: 'static-2', slug: "new-season-new-goals", title: "New Season, New Goals", content: "The new season is upon us! Here's what we're aiming for as a clan and how you can get involved.", hint: "esports team strategy", category: "News" },
-            { id: 'static-3', slug: "community-spotlight-ernestodks412", title: "Community Spotlight: ErnestoDKS412", content: "An interview with one of our most legendary members. Learn about their journey in Fantom eSport.", hint: "gamer portrait", category: "Interview" },
-            { id: 'static-4', slug: "top-5-strategies-for-the-new-map", title: "Top 5 Strategies for the New Map", content: "Master the latest battlefield with these proven strategies from our top players.", hint: "fantasy map", category: "Tutorial" },
-            { id: 'static-5', slug: "clan-wars-recap-a-victorious-week", title: "Clan Wars Recap: A Victorious Week", content: "We crushed it this week in Clan Wars! Read all about our epic wins and top performers.", hint: "battle scene", category: "Recap" },
-            { id: 'static-6', slug: "meet-the-new-recruits", title: "Meet the New Recruits", content: "Welcome the newest members of the Fantom eSport family. Let's give them a warm welcome!", hint: "team photo", category: "Community" },
-        ];
-        
-        setBlogPosts([...staticPosts, ...postsData]);
+        if (postsData.length > 0) {
+            setBlogPosts(postsData);
+        } else {
+            const staticPosts = [
+                { id: 'static-1', slug: "the-ultimate-guide-to-winning", title: "The Ultimate Guide to Winning", content: "Discover the strategies and tips from our pro players to dominate the competition and climb the ranks...", hint: "fantasy character art", category: "Tutorial", imageUrl: "https://picsum.photos/400/250?random=1" },
+                { id: 'static-2', slug: "new-season-new-goals", title: "New Season, New Goals", content: "The new season is upon us! Here's what we're aiming for as a clan and how you can get involved.", hint: "esports team strategy", category: "News", imageUrl: "https://picsum.photos/400/250?random=2" },
+                { id: 'static-3', slug: "community-spotlight-ernestodks412", title: "Community Spotlight: ErnestoDKS412", content: "An interview with one of our most legendary members. Learn about their journey in Fantom eSport.", hint: "gamer portrait", category: "Interview", imageUrl: "https://picsum.photos/400/250?random=3" },
+                { id: 'static-4', slug: "top-5-strategies-for-the-new-map", title: "Top 5 Strategies for the New Map", content: "Master the latest battlefield with these proven strategies from our top players.", hint: "fantasy map", category: "Tutorial", imageUrl: "https://picsum.photos/400/250?random=4" },
+                { id: 'static-5', slug: "clan-wars-recap-a-victorious-week", title: "Clan Wars Recap: A Victorious Week", content: "We crushed it this week in Clan Wars! Read all about our epic wins and top performers.", hint: "battle scene", category: "Recap", imageUrl: "https://picsum.photos/400/250?random=5" },
+                { id: 'static-6', slug: "meet-the-new-recruits", title: "Meet the New Recruits", content: "Welcome the newest members of the Fantom eSport family. Let's give them a warm welcome!", hint: "team photo", category: "Community", imageUrl: "https://picsum.photos/400/250?random=6" },
+            ];
+            setBlogPosts(staticPosts);
+        }
     };
 
     fetchBlogPosts();
@@ -63,12 +64,12 @@ export default function BlogPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {blogPosts.map((post, i) => (
+            {blogPosts.map((post) => (
             <Link key={post.id} href={`/blog/${post.slug}`}>
                 <Card className="overflow-hidden flex flex-col h-full hover:border-primary transition-colors">
                     <CardHeader className="p-0 relative">
                         <Image
-                        src={`https://picsum.photos/400/${250 + i}`}
+                        src={post.imageUrl || `https://picsum.photos/400/250?random=${post.id}`}
                         alt="Blog Post Image"
                         width={400}
                         height={250}
