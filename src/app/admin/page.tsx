@@ -26,6 +26,8 @@ interface BlogPost {
 interface RosterMember {
     id: string;
     name: string;
+    rank: string;
+    game: string;
     role: string;
     server: string;
 }
@@ -44,7 +46,7 @@ export default function AdminPage() {
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
     const [newPost, setNewPost] = useState({ title: '', content: '', imageUrl: '', category: 'News' });
-    const [newMember, setNewMember] = useState({ name: '', role: '', server: '' });
+    const [newMember, setNewMember] = useState({ name: '', rank: '', game: '', role: '', server: '' });
     const [newAnnouncement, setNewAnnouncement] = useState({ author: '', content: '', authorImageUrl: '' });
     
     const fetchBlogPosts = async () => {
@@ -111,10 +113,10 @@ export default function AdminPage() {
     // Roster Handlers
     const handleAddMember = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newMember.name && newMember.role && newMember.server) {
+        if (newMember.name && newMember.role && newMember.server && newMember.rank && newMember.game) {
             try {
                 await addDoc(collection(db, "roster"), newMember);
-                setNewMember({ name: '', role: '', server: '' });
+                setNewMember({ name: '', rank: '', game: '', role: '', server: '' });
                 fetchRoster();
                 toast({ title: "Success", description: "Roster member added." });
             } catch (error) {
@@ -245,6 +247,14 @@ export default function AdminPage() {
                                     <Input id="member-name" placeholder="Enter member's name" value={newMember.name} onChange={(e) => setNewMember({...newMember, name: e.target.value})} required/>
                                 </div>
                                 <div>
+                                    <Label htmlFor="member-rank">Rank</Label>
+                                    <Input id="member-rank" placeholder="e.g., Diamond, Grandmaster" value={newMember.rank} onChange={(e) => setNewMember({...newMember, rank: e.target.value})} required/>
+                                </div>
+                                 <div>
+                                    <Label htmlFor="member-game">Game</Label>
+                                    <Input id="member-game" placeholder="e.g., Valorant, League of Legends" value={newMember.game} onChange={(e) => setNewMember({...newMember, game: e.target.value})} required/>
+                                </div>
+                                <div>
                                     <Label htmlFor="member-role">Role</Label>
                                     <Input id="member-role" placeholder="e.g., Legendary, Pro, New Member" value={newMember.role} onChange={(e) => setNewMember({...newMember, role: e.target.value})} required/>
                                 </div>
@@ -262,6 +272,8 @@ export default function AdminPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Name</TableHead>
+                                            <TableHead>Rank</TableHead>
+                                            <TableHead>Game</TableHead>
                                             <TableHead>Role</TableHead>
                                             <TableHead>Server</TableHead>
                                             <TableHead className="text-right">Actions</TableHead>
@@ -271,6 +283,8 @@ export default function AdminPage() {
                                         {roster.map((member) => (
                                             <TableRow key={member.id}>
                                                 <TableCell>{member.name}</TableCell>
+                                                <TableCell>{member.rank}</TableCell>
+                                                <TableCell>{member.game}</TableCell>
                                                 <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
                                                 <TableCell>{member.server}</TableCell>
                                                 <TableCell className="text-right">

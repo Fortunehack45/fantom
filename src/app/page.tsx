@@ -29,6 +29,8 @@ interface BlogPost {
 interface RosterMember {
     id: string;
     name: string;
+    rank: string;
+    game: string;
     role: string;
     server: string;
 }
@@ -179,6 +181,8 @@ export default function Home() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Name</TableHead>
+                                            <TableHead>Rank</TableHead>
+                                            <TableHead>Game</TableHead>
                                             <TableHead>Role</TableHead>
                                             <TableHead>Server</TableHead>
                                         </TableRow>
@@ -187,6 +191,8 @@ export default function Home() {
                                         {roster.map((member) => (
                                             <TableRow key={member.id}>
                                                 <TableCell className="font-medium">{member.name}</TableCell>
+                                                <TableCell>{member.rank}</TableCell>
+                                                <TableCell>{member.game}</TableCell>
                                                 <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
                                                 <TableCell>{member.server}</TableCell>
                                             </TableRow>
