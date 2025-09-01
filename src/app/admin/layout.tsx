@@ -32,14 +32,19 @@ export default function AdminLayout({
   useEffect(() => {
     if (loading) return;
 
+    const isProtectedAdminPage = pathname === '/admin';
+    const isLoginPage = pathname === '/admin/login';
+    
     if (isAuthorized) {
       // Authorized admin is logged in
-      if (pathname === '/admin/login' || pathname === '/signup') {
+      if (isLoginPage) {
         router.push('/admin');
       }
     } else {
-      // User is not the authorized admin (or is not logged in)
-      if (pathname !== '/admin/login' && pathname !== '/signup') {
+      // User is not the authorized admin (could be another logged in user, or logged out)
+      if (isProtectedAdminPage) {
+        // If a non-admin tries to access the main admin page, send them to login.
+        // This also handles the case where the admin logs out and should be sent to the login page.
         router.push('/admin/login');
       }
     }
@@ -52,19 +57,23 @@ export default function AdminLayout({
       </div>
     );
   }
-
-  // If authorized, show the admin content.
-  if (isAuthorized) {
-    return <>{children}</>;
+  
+  // The login and signup pages are accessible to everyone, so we always render them.
+  if (pathname === '/admin/login' || pathname === '/signup') {
+    return <>{children}</>
+  }
+  
+  // If the user is the authorized admin, show them the protected admin content.
+  if(isAuthorized && pathname.startsWith('/admin')) {
+      return <>{children}</>;
   }
 
-  // If not authorized, only show login/signup pages.
-  // This allows the correct admin to log in.
-  if (!isAuthorized && (pathname === '/admin/login' || pathname === '/signup')) {
-    return <>{children}</>;
+  // If the user is not authorized and trying to access a protected admin page, 
+  // the useEffect above is already handling the redirect. We return null to avoid rendering anything.
+  if (!isAuthorized && pathname.startsWith('/admin')) {
+      return null;
   }
-
-  // In all other unauthorized cases, we are redirecting, so nothing needs to be rendered.
-  // A null return is appropriate as the redirect in useEffect will handle navigation.
-  return null;
+  
+  // For any other case (which should be rare), we don't want to interfere with rendering.
+  return <>{children}</>;
 }

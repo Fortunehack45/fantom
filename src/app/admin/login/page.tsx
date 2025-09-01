@@ -23,7 +23,20 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/admin');
+      // Let the AdminLayout handle redirection.
+      // If it's an admin, they go to /admin.
+      // If it's a regular user, they are logged in but stay here.
+      // A better UX would be to redirect them to the homepage.
+      if (email !== 'fortunedomination@gmail.com') {
+         router.push('/');
+         toast({
+            title: 'Login Successful',
+            description: "Welcome! You can now comment and like posts.",
+        });
+      } else {
+        router.push('/admin');
+      }
+
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -40,8 +53,8 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <GhostIcon className="w-12 h-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-headline">Admin Login</CardTitle>
-          <CardDescription>Enter your credentials to access the management panel.</CardDescription>
+          <CardTitle className="text-2xl font-headline">Login</CardTitle>
+          <CardDescription>Login to your account or access the admin panel.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">

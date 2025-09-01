@@ -35,9 +35,10 @@ export default function SignupPage() {
       await createUserWithEmailAndPassword(auth, email, password);
       toast({
         title: 'Signup Successful',
-        description: 'You have successfully created an account.',
+        description: 'You can now log in and participate in the community!',
       });
-      router.push('/admin');
+      // Redirect all new signups to the login page.
+      router.push('/admin/login'); 
     } catch (error: any) {
       toast({
         variant: 'destructive',
