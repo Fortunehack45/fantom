@@ -74,6 +74,11 @@ export default function Home() {
           src: "https://i.pinimg.com/736x/20/c1/8c/20c18cfe73bc503ed8a0c5baa362ca2f.jpg",
           alt: "Fantasy character in armor",
           hint: "fantasy armor character"
+      },
+      {
+          src: "https://i.pinimg.com/736x/12/40/4e/12404e7f34f307f3a910df46ed225ba8.jpg",
+          alt: "Sci-fi character in futuristic city",
+          hint: "sci-fi character city"
       }
   ];
 
