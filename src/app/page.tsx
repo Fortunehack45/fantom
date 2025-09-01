@@ -101,7 +101,7 @@ export default function Home() {
         <section id="hero" className="relative aspect-[3/1] flex items-center justify-center text-center bg-black">
             <div className="absolute inset-0">
                 <Image
-                    src="https://picsum.photos/1600/900?random=fantasy-character"
+                    src="https://i.pinimg.com/736x/fc/f6/4a/fcf64a71486e246ade88836fb1d60852.jpg"
                     alt="Fantasy character"
                     fill
                     className="object-cover opacity-30"
