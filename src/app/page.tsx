@@ -61,44 +61,12 @@ interface HeroImage {
   hint: string;
 }
 
-const defaultHeroImages: HeroImage[] = [
-    {
-        id: 'default-1',
-        src: 'https://i.pinimg.com/736x/20/c1/8c/20c18cfe73bc503ed8a0c5baa362ca2f.jpg',
-        alt: 'Futuristic soldier in a neon-lit city',
-        hint: 'futuristic soldier neon'
-    },
-    {
-        id: 'default-2',
-        src: 'https://i.pinimg.com/736x/fc/f6/4a/fcf64a71486e246ade88836fb1d60852.jpg',
-        alt: 'Character with a glowing sword',
-        hint: 'glowing sword character'
-    },
-    {
-        id: 'default-3',
-        src: 'https://i.pinimg.com/736x/12/40/4e/12404e7f34f307f3a910df46ed225ba8.jpg',
-        alt: 'A warrior standing in a mystical forest',
-        hint: 'warrior mystical forest'
-    },
-    {
-        id: 'default-4',
-        src: 'https://i.pinimg.com/736x/57/00/02/570002ab712a71a1c96c81a26a4e1276.jpg',
-        alt: 'Gamer with headphones in a dark room',
-        hint: 'gamer headphones dark'
-    }
-];
-
 export default function Home() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [roster, setRoster] = useState<RosterMember[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [games, setGames] = useState<Game[]>([]);
-  const [heroImages, setHeroImages] = useState<HeroImage[]>(defaultHeroImages);
   const [loading, setLoading] = useState(true);
-
-  const autoplayPlugin = useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: true })
-  );
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -108,38 +76,30 @@ export default function Home() {
             const rosterQuery = query(collection(db, "roster"), limit(5));
             const announcementsQuery = query(collection(db, "announcements"), orderBy("date", "desc"), limit(3));
             const gamesQuery = collection(db, "games");
-            const heroImagesQuery = collection(db, "heroImages");
 
             const [
                 blogSnapshot,
                 rosterSnapshot,
                 announcementsSnapshot,
                 gamesSnapshot,
-                heroImagesSnapshot
             ] = await Promise.all([
                 getDocs(blogQuery),
                 getDocs(rosterQuery),
                 getDocs(announcementsQuery),
                 getDocs(gamesQuery),
-                getDocs(heroImagesQuery)
             ]);
 
             const postsData: BlogPost[] = blogSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
             const rosterData: RosterMember[] = rosterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RosterMember));
             const announcementsData: Announcement[] = announcementsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
             const gamesData: Game[] = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
-            const heroImagesData: HeroImage[] = heroImagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HeroImage));
 
             setBlogPosts(postsData);
             setRoster(rosterData);
             setAnnouncements(announcementsData);
             setGames(gamesData);
-            if (heroImagesData.length > 0) {
-              setHeroImages(heroImagesData);
-            }
         } catch (error) {
             console.error("Error fetching homepage data:", error);
-            // Defaults are already set, so we don't need to set them again in case of error.
         } finally {
             setLoading(false);
         }
@@ -154,36 +114,16 @@ export default function Home() {
       <main className="flex-grow">
         {/* Hero Section */}
         <section id="hero" className="relative aspect-[16/9] flex items-center justify-center text-center bg-black">
-            {loading && heroImages.length === 0 ? (
-                <Skeleton className="absolute inset-0 w-full h-full" />
-            ) : (
-                <Carousel 
-                    className="absolute inset-0 w-full h-full"
-                    plugins={[autoplayPlugin.current]}
-                    opts={{
-                        loop: true,
-                    }}
-                >
-                    <CarouselContent className="m-0 h-full">
-                        {heroImages.map((image, index) => (
-                            <CarouselItem key={image.id} className="p-0 h-full">
-                                <div className="relative w-full h-full">
-                                    <Image
-                                        src={image.src}
-                                        alt={image.alt}
-                                        fill
-                                        sizes="100vw"
-                                        className="object-cover w-full h-full"
-                                        data-ai-hint={image.hint}
-                                        priority={index === 0}
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                                </div>
-                            </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                </Carousel>
-            )}
+            <Image
+                src="https://i.pinimg.com/736x/57/00/02/570002ab712a71a1c96c81a26a4e1276.jpg"
+                alt="Gamer with headphones in a dark room"
+                fill
+                sizes="100vw"
+                className="object-cover w-full h-full"
+                data-ai-hint="gamer headphones dark"
+                priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
             <div className="relative z-10 container mx-auto px-4 flex flex-col items-center">
                  <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
                     Fantom
@@ -408,5 +348,3 @@ export default function Home() {
     </div>
   );
 }
-
-  
