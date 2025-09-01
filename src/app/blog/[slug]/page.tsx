@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
@@ -144,7 +143,6 @@ export default function BlogPostPage() {
             </article>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }
