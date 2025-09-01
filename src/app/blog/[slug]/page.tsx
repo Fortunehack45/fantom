@@ -163,19 +163,20 @@ export default function BlogPostPage() {
         
         const fetchRelatedPosts = async () => {
             const postsRef = collection(db, 'blogPosts');
+            // Simplified query: fetch the 5 most recent posts
             const q = query(
                 postsRef, 
-                where("slug", "!=", slug), // Exclude the current post
                 orderBy("date", "desc"), 
-                limit(5) // Fetch 5 to be safe in case one is the current post (though '!=' should handle it)
+                limit(5)
             );
             
             try {
                 const querySnapshot = await getDocs(q);
                 const postsData: Post[] = querySnapshot.docs
+                    // Filter out the current post on the client side
                     .map(doc => ({ id: doc.id, ...doc.data() } as Post))
-                    .filter(p => p.id !== post.id) // Final check to exclude current post
-                    .slice(0, 4); // Limit to 4
+                    .filter(p => p.id !== post.id) 
+                    .slice(0, 4); // Then limit to 4
                 setRelatedPosts(postsData);
             } catch (error) {
                 console.error("Error fetching related posts:", error);
@@ -183,7 +184,7 @@ export default function BlogPostPage() {
         };
 
         fetchRelatedPosts();
-    }, [post, slug]);
+    }, [post]);
 
 
     const handleAddComment = async () => {
