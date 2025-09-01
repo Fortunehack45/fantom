@@ -62,58 +62,55 @@ export default function BlogPage() {
       <Header />
       <main className="flex-grow">
         {featuredPost && (
-          <section className="relative w-full h-96 text-white flex items-center justify-center text-center">
-             <Image
-                src={featuredPost.imageUrl || `https://picsum.photos/1200/400?random=${featuredPost.id}`}
-                alt={featuredPost.title}
-                fill
-                className="object-cover opacity-30"
-                data-ai-hint={featuredPost.hint}
-                priority
-             />
-             <div className="relative z-10 container mx-auto px-4 flex flex-col items-center">
-                <Badge variant="primary" className="mb-4">{featuredPost.category}</Badge>
-                <h1 className="text-4xl md:text-6xl font-headline font-bold uppercase text-shadow-lg">
-                    {featuredPost.title}
-                </h1>
-                <p className="mt-4 max-w-2xl text-muted-foreground">
-                    {featuredPost.content.substring(0, 150)}...
-                </p>
-                <Link href={`/blog/${featuredPost.slug}`} className="mt-6">
-                    <Button variant="primary" size="lg">
-                        Read More <ArrowRight className="ml-2" />
-                    </Button>
-                </Link>
-             </div>
+          <section className="container mx-auto px-4 pt-12 pb-8">
+             <Link href={`/blog/${featuredPost.slug}`}>
+                <div className="relative w-full h-[500px] rounded-2xl overflow-hidden group">
+                    <Image
+                        src={featuredPost.imageUrl || `https://picsum.photos/1200/400?random=${featuredPost.id}`}
+                        alt={featuredPost.title}
+                        fill
+                        className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-500"
+                        data-ai-hint={featuredPost.hint}
+                        priority
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                    <div className="absolute bottom-0 left-0 p-8 md:p-12 text-white">
+                        <Badge variant="primary" className="mb-4">{featuredPost.category}</Badge>
+                        <h1 className="text-4xl md:text-6xl font-headline font-bold uppercase text-shadow-lg max-w-4xl">
+                            {featuredPost.title}
+                        </h1>
+                        <p className="mt-4 max-w-2xl text-lg text-white/80 hidden md:block">
+                            {featuredPost.content.substring(0, 150)}...
+                        </p>
+                    </div>
+                </div>
+             </Link>
           </section>
         )}
         
-        <div className="container mx-auto px-4 py-16">
-            <h2 className="text-3xl md:text-4xl font-headline font-bold uppercase mb-12 text-center">
+        <div className="container mx-auto px-4 py-8">
+            <h2 className="text-3xl md:text-4xl font-headline font-bold uppercase mb-12 text-center text-white">
                 More Articles
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 {otherPosts.map((post) => (
                 <Link key={post.id} href={`/blog/${post.slug}`}>
-                    <Card className="bg-card border-border overflow-hidden group h-full flex flex-col transform hover:-translate-y-2 transition-transform duration-300">
+                    <Card className="bg-card border-border overflow-hidden group h-full flex flex-col transform hover:-translate-y-2 transition-transform duration-300 shadow-lg hover:shadow-primary/20">
                         <div className="relative aspect-video">
                             <Image
                             src={post.imageUrl || `https://picsum.photos/400/250?random=${post.id}`}
                             alt={post.title}
                             fill
-                            className="object-cover"
+                            className="object-cover transform group-hover:scale-110 transition-transform duration-300"
                             data-ai-hint={post.hint}
                             />
                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                             <Badge variant="primary" className="absolute top-2 left-2">{post.category}</Badge>
+                             <Badge variant="primary" className="absolute top-3 left-3">{post.category}</Badge>
                         </div>
-                        <CardContent className="p-4 flex-grow flex flex-col">
-                            <h3 className="text-lg font-headline font-bold uppercase leading-tight mt-1 group-hover:text-primary transition-colors">
+                        <CardContent className="p-5 flex-grow flex flex-col">
+                            <h3 className="text-lg font-headline font-bold uppercase leading-tight mt-1 group-hover:text-primary transition-colors flex-grow">
                                 {post.title}
                             </h3>
-                             <p className="text-sm text-muted-foreground mt-2 flex-grow">
-                                {post.content.substring(0, 100)}...
-                            </p>
                             <p className="text-xs text-muted-foreground uppercase mt-4">
                                {post.date ? format(new Date(post.date.seconds ? post.date.seconds * 1000 : post.date), 'MMM d, yyyy') : ''}
                             </p>
