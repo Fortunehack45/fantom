@@ -8,7 +8,7 @@ export function Footer() {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
            <p className="text-xs text-muted-foreground">
-             &copy;{new Date().getFullYear()} Fantom eSport - Fantasy Game Webdesign All rights reserved.
+             &copy;{new Date().getFullYear()} Fantom eSport - All rights reserved.
            </p>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>Design & Animation by</span>

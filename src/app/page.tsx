@@ -97,7 +97,7 @@ export default function Home() {
            <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-transparent z-10" />
           <div className="relative z-20 flex flex-col items-center">
             <FantomIcon className="w-96 h-auto" />
-             <p className="font-headline text-2xl uppercase tracking-widest text-shadow">Potentia Invicta</p>
+             <p className="font-headline text-2xl uppercase tracking-widest text-shadow">Strength and Victory</p>
           </div>
            <Image
             src="https://picsum.photos/800/1000"
@@ -116,7 +116,7 @@ export default function Home() {
                      <Dot className="text-green-500 w-12 h-12" />
                      <div>
                          <h3 className="font-headline text-lg">L2Eve x1 Interlude Retail Like - [48/32/2091]</h3>
-                         <p className="text-sm text-muted-foreground">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt...</p>
+                         <p className="text-sm text-muted-foreground">Join our main server for an epic retail-like experience with balanced progression.</p>
                          <div className="flex items-center gap-4 mt-2">
                              <Button variant="secondary" size="sm">Discord</Button>
                              <span className="text-xs text-muted-foreground">https://private-server.com/l2eve-x1</span>
@@ -128,7 +128,7 @@ export default function Home() {
                      <Dot className="text-green-500 w-12 h-12" />
                      <div>
                          <h3 className="font-headline text-lg">Moon-Land Interlude Remastered - 04/11</h3>
-                         <p className="text-sm text-muted-foreground">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt...</p>
+                         <p className="text-sm text-muted-foreground">Experience a remastered world with unique features and challenging gameplay.</p>
                          <div className="flex items-center gap-4 mt-2">
                              <Button variant="secondary" size="sm">Discord</Button>
                              <span className="text-xs text-muted-foreground">https://private-server.com/moon-land</span>
@@ -192,9 +192,9 @@ export default function Home() {
                 </div>
                 <div className="grid lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-1 bg-card border border-border rounded-lg p-6 flex flex-col items-center text-center">
-                        <h3 className="font-headline text-2xl uppercase mb-4">Lorem Ipsum Dolor</h3>
+                        <h3 className="font-headline text-2xl uppercase mb-4">Join Our Ranks</h3>
                         <p className="text-muted-foreground mb-6">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                            Become a part of our legendary team. We are always looking for skilled and dedicated players to conquer new challenges.
                         </p>
                          <Button variant="primary" size="lg">Recruitment</Button>
                     </div>
@@ -232,7 +232,7 @@ export default function Home() {
         <section id="discord" className="py-16 md:py-24">
              <div className="container mx-auto px-4">
                 <div className="text-center mb-12">
-                    <p className="text-primary font-bold uppercase">Join to our discord server</p>
+                    <p className="text-primary font-bold uppercase">Join our discord server</p>
                     <h2 className="text-4xl md:text-5xl font-headline font-black uppercase">
                         Discord Server
                     </h2>
@@ -269,7 +269,7 @@ export default function Home() {
                     About Our Clan
                 </h2>
                 <p className="max-w-3xl mx-auto text-muted-foreground mt-4">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis. 
+                    Founded on the principles of skill, strategy, and community, Fantom eSport has grown into a dominant force. We are a dedicated group of players who strive for excellence in every match and support each other to reach new heights.
                 </p>
             </div>
         </section>
