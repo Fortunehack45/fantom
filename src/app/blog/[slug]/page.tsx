@@ -77,62 +77,52 @@ export default function BlogPostPage() {
         return () => unsubscribe();
     }, []);
     
-    // Fetch Post Data and listen for updates on likes
+    // Fetch Post Data and listen for updates
     useEffect(() => {
         if (!slug) {
             setLoading(false);
             return;
         }
 
-        const fetchPost = async () => {
-            setLoading(true);
-            try {
-                const postsRef = collection(db, 'blogPosts');
-                const q = query(postsRef, where("slug", "==", slug));
-                const querySnapshot = await getDocs(q);
-                
-                if (!querySnapshot.empty) {
-                    const postDoc = querySnapshot.docs[0];
-                    // Set up a real-time listener for the post
-                    const unsubscribe = onSnapshot(doc(db, 'blogPosts', postDoc.id), (doc) => {
-                         const docData = doc.data();
-                         if (docData) {
-                            const postDate = docData.date ? new Date(docData.date.seconds * 1000) : new Date();
-                            setPost({
-                                id: doc.id,
-                                slug: slug,
-                                title: docData.title,
-                                content: docData.content,
-                                author: docData.author || "Fantom eSport",
-                                date: postDate,
-                                category: docData.category || "News",
-                                hint: docData.hint || "gamer portrait",
-                                imageUrl: docData.imageUrl,
-                                likes: docData.likes || [],
-                            } as Post);
-                         } else {
-                            setPost(null);
-                         }
-                    });
+        setLoading(true);
+        const postsRef = collection(db, 'blogPosts');
+        const q = query(postsRef, where("slug", "==", slug));
+        
+        getDocs(q).then(querySnapshot => {
+            if (!querySnapshot.empty) {
+                const postDoc = querySnapshot.docs[0];
+                const unsubscribe = onSnapshot(doc(db, 'blogPosts', postDoc.id), (doc) => {
+                    const docData = doc.data();
+                    if (docData) {
+                        const postDate = docData.date ? new Date(docData.date.seconds * 1000) : new Date();
+                        setPost({
+                            id: doc.id,
+                            slug: slug,
+                            title: docData.title,
+                            content: docData.content,
+                            author: docData.author || "Fantom eSport",
+                            date: postDate,
+                            category: docData.category || "News",
+                            hint: docData.hint || "gamer portrait",
+                            imageUrl: docData.imageUrl,
+                            likes: docData.likes || [],
+                        });
+                    } else {
+                        setPost(null);
+                    }
                     setLoading(false);
-                    return unsubscribe; 
-                } else {
-                    console.warn(`Post with slug "${slug}" not found.`);
-                    setPost(null);
-                    setLoading(false);
-                }
-            } catch (error) {
-                console.error("Error fetching post:", error);
+                });
+                return () => unsubscribe();
+            } else {
+                console.warn(`Post with slug "${slug}" not found.`);
                 setPost(null);
                 setLoading(false);
             }
-        };
-
-        const unsubscribePost = fetchPost();
-        
-        return () => {
-            unsubscribePost.then(unsub => unsub && unsub());
-        };
+        }).catch(error => {
+            console.error("Error fetching post:", error);
+            setPost(null);
+            setLoading(false);
+        });
 
     }, [slug]);
 
@@ -244,37 +234,39 @@ export default function BlogPostPage() {
             toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to like.' });
             return;
         }
-
+    
         const path = replyId 
             ? `blogPosts/${post.id}/comments/${commentId}/replies/${replyId}`
             : `blogPosts/${post.id}/comments/${commentId}`;
         
         const itemRef = doc(db, path);
-
-        try {
-            // Find the correct item in the local state to check if it's liked
-            let currentLikes: string[] = [];
-            if(replyId){
-                const comment = comments.find(c => c.id === commentId);
-                const reply = comment?.replies.find(r => r.id === replyId);
-                currentLikes = reply?.likes || [];
-            } else {
-                const comment = comments.find(c => c.id === commentId);
-                currentLikes = comment?.likes || [];
+    
+        // Determine if the user has already liked the item from the local state
+        let hasLikedItem = false;
+        if(replyId) {
+            const comment = comments.find(c => c.id === commentId);
+            const reply = comment?.replies.find(r => r.id === replyId);
+            if(reply) {
+                hasLikedItem = reply.likes.includes(user.uid);
             }
-        
-            const hasLikedItem = currentLikes.includes(user.uid);
-
+        } else {
+            const comment = comments.find(c => c.id === commentId);
+            if(comment) {
+                hasLikedItem = comment.likes.includes(user.uid);
+            }
+        }
+    
+        try {
             if (hasLikedItem) {
                 await updateDoc(itemRef, { likes: arrayRemove(user.uid) });
             } else {
                 await updateDoc(itemRef, { likes: arrayUnion(user.uid) });
             }
         } catch(error) {
-             console.error("Error liking item: ", error);
+            console.error("Error liking item: ", error);
             toast({ variant: 'destructive', title: 'Error', description: 'Could not process your like.'});
         }
-    }
+    };
 
 
     if (loading) {
@@ -488,6 +480,3 @@ export default function BlogPostPage() {
     </div>
   );
 }
-
-
-    
