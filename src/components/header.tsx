@@ -86,7 +86,7 @@ export function Header() {
                 </SheetTrigger>
                 <SheetContent side="right">
                     <SheetHeader>
-                      <SheetTitle>Menu</SheetTitle>
+                      <SheetTitle className="sr-only">Menu</SheetTitle>
                     </SheetHeader>
                   <Link href="/" className="flex items-center gap-2 mb-8">
                      <FantomIcon className="w-36 h-auto" />

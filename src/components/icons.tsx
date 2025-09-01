@@ -1,3 +1,4 @@
+
 import { type SVGProps } from "react";
 
 export function GhostIcon(props: SVGProps<SVGSVGElement>) {
