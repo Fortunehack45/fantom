@@ -20,6 +20,7 @@ interface Post {
     category: string;
     hint: string;
     content: string;
+    imageUrl?: string;
 }
 
 
@@ -28,6 +29,8 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!params.slug) return;
+
         const fetchPost = async () => {
             setLoading(true);
             const postsRef = collection(db, 'blogPosts');
@@ -43,7 +46,8 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                     author: "Fantom eSport",
                     date: new Date().toLocaleDateString(),
                     category: "News",
-                    hint: "gamer portrait"
+                    hint: "gamer portrait",
+                    imageUrl: docData.imageUrl,
                 });
             } else {
                  // Fallback to static post if not found in DB
@@ -54,6 +58,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                     date: "July 26, 2024",
                     category: "Tutorial",
                     hint: "fantasy character art",
+                    imageUrl: "https://picsum.photos/1200/600",
                     content: `
             <p>Welcome to the ultimate guide to winning. In the fast-paced world of competitive gaming, every decision matters. Whether you're a seasoned veteran or a newcomer looking to make your mark, the right strategies can be the difference between victory and defeat. This guide is designed to provide you with the essential tips, tricks, and mindsets required to elevate your game.</p>
             <h3 class="text-2xl font-headline mt-8 mb-4">Mastering the Fundamentals</h3>
@@ -79,7 +84,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         };
 
         fetchPost();
-    }, [params.slug]);
+    }, [params]);
 
     if (loading) {
         return (
@@ -126,7 +131,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                     </p>
                 </header>
                 <Image
-                    src={`https://picsum.photos/1200/600`}
+                    src={post.imageUrl || `https://picsum.photos/1200/600`}
                     alt={post.title}
                     width={1200}
                     height={600}
