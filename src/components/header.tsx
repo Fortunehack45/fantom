@@ -10,7 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut, Shield } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
@@ -25,6 +25,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+
+const ADMIN_EMAIL = 'fortunedomination@gmail.com';
 
 export function Header() {
   const pathname = usePathname();
@@ -84,10 +86,6 @@ export function Header() {
             </Button>
             {user ? (
               <>
-                <Button onClick={handleLogout} variant="secondary" className="hidden lg:flex">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
-                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                      <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -105,6 +103,14 @@ export function Header() {
                           </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
+                       {user.email === ADMIN_EMAIL && (
+                        <DropdownMenuItem asChild>
+                            <Link href="/admin">
+                               <Shield className="mr-2 h-4 w-4" />
+                               <span>Admin</span>
+                            </Link>
+                        </DropdownMenuItem>
+                       )}
                       <DropdownMenuItem onClick={handleLogout}>
                           <LogOut className="mr-2 h-4 w-4" />
                           <span>Log out</span>
@@ -164,9 +170,18 @@ export function Header() {
                         Discord
                     </Button>
                     {user ? (
-                      <Button onClick={handleLogout} variant="secondary" size="lg" className="w-full">
-                          Logout
-                      </Button>
+                      <>
+                        {user.email === ADMIN_EMAIL && (
+                            <Link href="/admin" className="w-full">
+                                <Button variant="secondary" size="lg" className="w-full">
+                                    Admin
+                                </Button>
+                            </Link>
+                        )}
+                        <Button onClick={handleLogout} variant="destructive" size="lg" className="w-full">
+                            Logout
+                        </Button>
+                      </>
                     ) : (
                       <>
                          <Link href="/admin/login" className="w-full">
