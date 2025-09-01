@@ -93,8 +93,8 @@ export default function Home() {
   const [roster, setRoster] = useState<RosterMember[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [games, setGames] = useState<Game[]>([]);
-  const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
-  const [loadingHero, setLoadingHero] = useState(true);
+  const [heroImages, setHeroImages] = useState<HeroImage[]>(defaultHeroImages);
+  const [loading, setLoading] = useState(true);
 
   const autoplayPlugin = useRef(
     Autoplay({ delay: 5000, stopOnInteraction: true })
@@ -102,7 +102,7 @@ export default function Home() {
 
   useEffect(() => {
     const fetchAllData = async () => {
-        setLoadingHero(true);
+        setLoading(true);
         try {
             const blogQuery = query(collection(db, "blogPosts"), orderBy("date", "desc"), limit(3));
             const rosterQuery = query(collection(db, "roster"), limit(5));
@@ -134,12 +134,14 @@ export default function Home() {
             setRoster(rosterData);
             setAnnouncements(announcementsData);
             setGames(gamesData);
-            setHeroImages(heroImagesData.length > 0 ? heroImagesData : defaultHeroImages);
+            if (heroImagesData.length > 0) {
+              setHeroImages(heroImagesData);
+            }
         } catch (error) {
             console.error("Error fetching homepage data:", error);
-            setHeroImages(defaultHeroImages);
+            // Defaults are already set, so we don't need to set them again in case of error.
         } finally {
-            setLoadingHero(false);
+            setLoading(false);
         }
     };
 
@@ -152,7 +154,7 @@ export default function Home() {
       <main className="flex-grow">
         {/* Hero Section */}
         <section id="hero" className="relative aspect-[16/9] flex items-center justify-center text-center bg-black">
-            {loadingHero ? (
+            {loading && heroImages.length === 0 ? (
                 <Skeleton className="absolute inset-0 w-full h-full" />
             ) : (
                 <Carousel 
@@ -406,3 +408,5 @@ export default function Home() {
     </div>
   );
 }
+
+  
