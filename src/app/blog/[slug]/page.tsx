@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { collection, query, where, getDocs, doc, addDoc, serverTimestamp, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy, deleteDoc, limit } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { Header } from "@/components/header";
@@ -55,7 +56,7 @@ interface Comment {
 }
 
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
+export default function BlogPostPage() {
     const { toast } = useToast();
     const [post, setPost] = useState<Post | null>(null);
     const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
@@ -70,7 +71,8 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     
     const [deletingItem, setDeletingItem] = useState<{commentId: string, replyId?: string} | null>(null);
 
-    const { slug } = params;
+    const params = useParams();
+    const slug = params.slug as string;
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -171,9 +173,9 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                 const querySnapshot = await getDocs(q);
                 const postsData: Post[] = querySnapshot.docs
                     // Filter out the current post on the client side
-                    .map(doc => ({ id: doc.id, ...doc.data() } as Post))
+                    .map(doc => ({ id: doc.id, slug: doc.data().slug, ...doc.data() } as Post))
                     .filter(p => p.id !== post.id) 
-                    .slice(0, 4); // Then limit to 4
+                    .slice(0, 4);
                 setRelatedPosts(postsData);
             } catch (error) {
                 console.error("Error fetching related posts:", error);
@@ -590,3 +592,5 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     </>
   );
 }
+
+    

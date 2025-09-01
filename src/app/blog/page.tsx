@@ -8,7 +8,7 @@ import { Header } from "@/components/header";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
-import { format } from 'date-fns';
+import { format } from "date-fns";
 import { Badge } from '@/components/ui/badge';
 
 interface BlogPost {
@@ -33,6 +33,7 @@ export default function BlogPage() {
         const querySnapshot = await getDocs(q);
         const postsData: BlogPost[] = querySnapshot.docs.map(doc => ({
              id: doc.id,
+             slug: doc.data().slug,
              ...doc.data(),
         } as BlogPost));
         
@@ -96,3 +97,5 @@ export default function BlogPage() {
     </div>
   );
 }
+
+    
