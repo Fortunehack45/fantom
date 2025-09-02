@@ -3,48 +3,55 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
+  
+    // Helper function to check if the user is the admin
     function isAdmin() {
-      return request.auth.token.email == 'fortunedomination@gmail.com';
+      return request.auth != null && request.auth.token.email == 'fortunedomination@gmail.com';
+    }
+
+    // Helper function to check if a user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
     }
     
+    // Helper function to check if a user is the owner of a document
     function isOwner(resource) {
       return request.auth.uid == resource.data.authorId;
     }
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Default deny all reads/writes
-    match /{document=**} {
-      allow read, write: if false;
-    }
-    
-    // Allow public read for all main content collections
-    match /(blogPosts|roster|announcements|games|heroImages|timelineEvents|coreValues|galleryImages|siteSettings)/{id} {
+    // Allow public read access to most collections
+    match /{collection}/{docId} 
+      where collection in ['blogPosts', 'roster', 'announcements', 'games', 'heroImages', 'timelineEvents', 'coreValues', 'galleryImages'] {
       allow read: if true;
       allow write: if isAdmin();
     }
     
-    // Blog Post Comments and Replies
-    match /blogPosts/{postId} {
-      // Allow read for the post itself (covered by the rule above)
-      allow read: if true;
+    // Site-wide settings can only be read and written by admin
+    match /siteSettings/{docId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Page content can only be read and written by admin
+    match /pageContent/{docId} {
+        allow read, write: if isAdmin();
+    }
 
-      // Rules for the 'comments' subcollection
-      match /comments/{commentId} {
+    // Rules for blog post subcollections (comments and likes)
+    match /blogPosts/{postId}/{subcollection}/{docId} {
+      
+      // Comments & Replies
+      // Allow anyone to read comments/replies.
+      // Allow any signed-in user to create.
+      // Allow only the original author or an admin to update/delete.
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (isOwner(resource) || isAdmin());
+      
+      // Nested replies
+      match /replies/{replyId} {
         allow read: if true;
         allow create: if isSignedIn();
-        allow update, delete: if isOwner(resource) || isAdmin();
-
-        // Rules for the 'replies' sub-subcollection
-        match /replies/{replyId} {
-          allow read: if true;
-          allow create: if isSignedIn();
-          allow update, delete: if isOwner(resource) || isAdmin();
-        }
+        allow update, delete: if isSignedIn() && (isOwner(resource) || isAdmin());
       }
     }
   }
