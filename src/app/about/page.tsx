@@ -4,7 +4,7 @@
 import { Header } from "@/components/header";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Award } from "lucide-react";
 import { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -38,6 +38,11 @@ interface AboutPageContent {
     missionTitle?: string;
     missionDescription?: string;
     missionTagline?: string;
+    founderImageUrl?: string;
+    founderName?: string;
+    founderTitle?: string;
+    founderQuote?: string;
+    founderTagline?: string;
     timelineTitle?: string;
     timelineTagline?: string;
     valuesTitle?: string;
@@ -54,6 +59,11 @@ const defaultContent: AboutPageContent = {
     missionTitle: "Pushing the Limits of Competitive Gaming",
     missionDescription: "Fantom eSport was founded on the principle of achieving excellence through dedication and teamwork. We are more than just a clan; we are a community of passionate gamers committed to dominating the competitive landscape. We foster an environment where skill is honed, strategies are perfected, and lifelong friendships are forged.",
     missionTagline: "Our Mission",
+    founderImageUrl: "https://i.pinimg.com/originals/af/78/55/af785536324f559a35626d03b7156557.jpg",
+    founderName: "Glorious",
+    founderTitle: "The Visionary Behind the Victory",
+    founderQuote: "'I didn't just want to build a clan. I wanted to build a legacy. A place where talent meets opportunity, and where every member is empowered to reach their ultimate potential.'",
+    founderTagline: "Meet The Founder",
     timelineTitle: "Milestones & Achievements",
     timelineTagline: "Our Journey",
     valuesTitle: "Our Core Values",
@@ -159,8 +169,41 @@ export default function AboutPage() {
                 </div>
             </section>
             
-            {/* Timeline Section */}
+            {/* Founder Section */}
             <section className="py-16 md:py-24 bg-card/50">
+                <div className="container mx-auto px-4">
+                    <div className="text-center mb-12">
+                        <p className="text-primary font-semibold uppercase">{pageContent.founderTagline}</p>
+                        <h2 className="text-4xl md:text-5xl font-headline font-bold text-white">
+                           {pageContent.founderTitle}
+                        </h2>
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-12 items-center">
+                        <div className="md:col-span-1 flex justify-center">
+                             <Image
+                                src={pageContent.founderImageUrl!}
+                                alt={pageContent.founderName!}
+                                width={400}
+                                height={400}
+                                className="rounded-full shadow-2xl shadow-primary/30 border-4 border-primary/50 object-cover aspect-square"
+                                data-ai-hint="clan founder portrait"
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                             <div className="text-center md:text-left">
+                                <Award className="h-12 w-12 text-primary mx-auto md:mx-0" />
+                                <h3 className="text-5xl font-headline font-black text-white mt-4">{pageContent.founderName}</h3>
+                                <p className="text-muted-foreground mt-6 text-lg italic border-l-4 border-primary pl-6">
+                                    {pageContent.founderQuote}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Timeline Section */}
+            <section className="py-16 md:py-24">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-12">
                         <p className="text-primary font-semibold uppercase">{pageContent.timelineTagline}</p>
@@ -196,7 +239,7 @@ export default function AboutPage() {
             </section>
 
              {/* Core Values Section */}
-            <section className="py-16 md:py-24">
+            <section className="py-16 md:py-24 bg-card/50">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-12">
                         <p className="text-primary font-semibold uppercase">{pageContent.valuesTagline}</p>
@@ -225,7 +268,7 @@ export default function AboutPage() {
             </section>
             
             {/* Gallery Section */}
-            <section className="py-16 md:py-24 bg-card/50">
+            <section className="py-16 md:py-24">
                 <div className="container mx-auto px-4">
                      <div className="text-center mb-12">
                         <p className="text-primary font-semibold uppercase">{pageContent.galleryTagline}</p>
@@ -259,3 +302,4 @@ export default function AboutPage() {
     </div>
   );
 }
+

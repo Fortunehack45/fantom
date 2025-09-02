@@ -32,6 +32,7 @@ interface SiteSettings { twitterUrl?: string; discordUrl?: string; youtubeUrl?: 
 interface AboutPageContent { 
     heroImageUrl?: string; heroTitle?: string; heroSubtitle?: string;
     missionImageUrl?: string; missionTitle?: string; missionDescription?: string; missionTagline?: string;
+    founderImageUrl?: string; founderName?: string; founderTitle?: string; founderQuote?: string; founderTagline?: string;
     timelineTitle?: string; timelineTagline?: string;
     valuesTitle?: string; valuesTagline?: string;
     galleryTitle?: string; galleryTagline?: string;
@@ -520,6 +521,17 @@ export default function AdminPage() {
                                 <div className="space-y-2"><Label>Mission Title</Label><Input value={aboutPageContent.missionTitle || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, missionTitle: e.target.value })} /></div>
                                 <div className="space-y-2"><Label>Mission Description</Label><Textarea value={aboutPageContent.missionDescription || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, missionDescription: e.target.value })} /></div>
                                 <div className="space-y-2"><Label>Mission Image URL</Label><Input value={aboutPageContent.missionImageUrl || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, missionImageUrl: e.target.value })} /></div>
+                            </div>
+                        </div>
+                         {/* Founder Section */}
+                        <div className="p-4 border rounded-lg">
+                            <h3 className="text-lg font-semibold border-b pb-2 mb-4">Founder Section</h3>
+                            <div className="space-y-4">
+                                <div className="space-y-2"><Label>Founder Tagline</Label><Input value={aboutPageContent.founderTagline || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, founderTagline: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Founder Title</Label><Input value={aboutPageContent.founderTitle || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, founderTitle: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Founder Name</Label><Input value={aboutPageContent.founderName || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, founderName: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Founder Quote</Label><Textarea value={aboutPageContent.founderQuote || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, founderQuote: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Founder Image URL</Label><Input value={aboutPageContent.founderImageUrl || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, founderImageUrl: e.target.value })} /></div>
                             </div>
                         </div>
                         {/* Section Titles */}
