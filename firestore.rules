@@ -3,89 +3,71 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // HELPER FUNCTIONS
+  
+    // Helper function to check for Admin role
     function isAdmin() {
-      return request.auth.token.email == 'fortunedomination@gmail.com';
+      return request.auth != null && request.auth.token.email == 'fortunedomination@gmail.com';
     }
-
+    
+    // Helper function to check if user is authenticated
     function isSignedIn() {
       return request.auth != null;
     }
-
+    
+    // Helper function to check if a user is the owner of a document
     function isOwner(resource) {
-      return isSignedIn() && request.auth.uid == resource.data.authorId;
-    }
-
-    // SITE SETTINGS (e.g., footer links)
-    match /siteSettings/{setting} {
-      allow read: if true;
-      allow write: if isSignedIn() && isAdmin();
-    }
-
-    // BLOG POSTS
-    match /blogPosts/{postId} {
-      allow read: if true;
-      allow write: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && request.resource.data.keys().hasOnly(['likes']);
-    }
-
-    // ROSTER
-    match /roster/{docId} {
-      allow read: if true;
-      allow write: if isSignedIn() && isAdmin();
+      return request.auth.uid == resource.data.authorId;
     }
     
-    // ANNOUNCEMENTS
-    match /announcements/{docId} {
-        allow read: if true;
-        allow write: if isSignedIn() && isAdmin();
+    // Allow public read access to most collections
+    match /{collection}/{docId} 
+    where collection in ['blogPosts', 'roster', 'announcements', 'games', 'heroImages', 'timelineEvents', 'coreValues', 'galleryImages', 'pageContent', 'siteSettings'] {
+      allow get: if true;
+      allow list: if true;
+      
+      // Allow only admin to write/delete
+      allow write, delete: if isAdmin();
     }
+    
+    // Rules for blog post subcollections (likes, comments, replies)
+    match /blogPosts/{postId} {
+        // Anyone can read a post
+        allow get: if true;
 
-    // GAMES
-    match /games/{docId} {
-        allow read: if true;
-        allow write: if isSignedIn() && isAdmin();
-    }
+        // Liking/Unliking a post
+        allow update: if isSignedIn() && request.resource.data.keys().hasOnly(['likes']);
 
-    // HERO IMAGES
-    match /heroImages/{docId} {
-        allow read: if true;
-        allow write: if isSignedIn() && isAdmin();
-    }
+        // Comments subcollection
+        match /comments/{commentId} {
+            // Anyone can read comments
+            allow get: if true;
+            allow list: if true;
+            
+            // Signed-in users can create comments, ensuring they are the author
+            allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
 
-    // GALLERY IMAGES
-    match /galleryImages/{docId} {
-        allow read: if true;
-        allow write: if isSignedIn() && isAdmin();
-    }
+            // Liking/unliking a comment
+            allow update: if isSignedIn() && request.resource.data.keys().hasOnly(['likes']);
 
-    // TIMELINE EVENTS
-    match /timelineEvents/{docId} {
-        allow read: if true;
-        allow write: if isSignedIn() && isAdmin();
-    }
+            // Only the author of a comment can delete it
+            allow delete: if isSignedIn() && isOwner(get(path));
 
-    // CORE VALUES
-    match /coreValues/{docId} {
-        allow read: if true;
-        allow write: if isSignedIn() && isAdmin();
-    }
-
-    // COMMENTS (Subcollection of blogPosts)
-    match /blogPosts/{postId}/comments/{commentId} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      allow delete: if isOwner(resource) || (isSignedIn() && isAdmin());
-      allow update: if isOwner(resource) || (isSignedIn() && request.resource.data.keys().hasOnly(['likes']));
-    }
-
-    // REPLIES (Subcollection of comments)
-    match /blogPosts/{postId}/comments/{commentId}/replies/{replyId} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      allow delete: if isOwner(resource) || (isSignedIn() && isAdmin());
-      allow update: if isOwner(resource) || (isSignedIn() && request.resource.data.keys().hasOnly(['likes']));
+            // Replies sub-subcollection
+            match /replies/{replyId} {
+                // Anyone can read replies
+                allow get: if true;
+                allow list: if true;
+                
+                // Signed-in users can create replies
+                allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+                
+                // Liking/unliking a reply
+                allow update: if isSignedIn() && request.resource.data.keys().hasOnly(['likes']);
+                
+                // Only the author of a reply can delete it
+                allow delete: if isSignedIn() && isOwner(get(path));
+            }
+        }
     }
   }
 }
