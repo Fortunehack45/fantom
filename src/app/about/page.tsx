@@ -32,12 +32,34 @@ interface GalleryImage {
 
 interface AboutPageContent {
     heroImageUrl?: string;
+    heroTitle?: string;
+    heroSubtitle?: string;
     missionImageUrl?: string;
+    missionTitle?: string;
+    missionDescription?: string;
+    missionTagline?: string;
+    timelineTitle?: string;
+    timelineTagline?: string;
+    valuesTitle?: string;
+    valuesTagline?: string;
+    galleryTitle?: string;
+    galleryTagline?: string;
 }
 
 const defaultContent: AboutPageContent = {
     heroImageUrl: "https://i.pinimg.com/originals/e0/75/a6/e075a6fe883584cf543501dc84d5162b.jpg",
-    missionImageUrl: "https://i.pinimg.com/originals/8c/84/7a/8c847a7578964c8d374a3f124bf2c8a3.jpg"
+    heroTitle: "About Fantom",
+    heroSubtitle: "Forged in competition, united by passion. This is our story.",
+    missionImageUrl: "https://i.pinimg.com/originals/8c/84/7a/8c847a7578964c8d374a3f124bf2c8a3.jpg",
+    missionTitle: "Pushing the Limits of Competitive Gaming",
+    missionDescription: "Fantom eSport was founded on the principle of achieving excellence through dedication and teamwork. We are more than just a clan; we are a community of passionate gamers committed to dominating the competitive landscape. We foster an environment where skill is honed, strategies are perfected, and lifelong friendships are forged.",
+    missionTagline: "Our Mission",
+    timelineTitle: "Milestones & Achievements",
+    timelineTagline: "Our Journey",
+    valuesTitle: "Our Core Values",
+    valuesTagline: "Our Philosophy",
+    galleryTitle: "Gallery",
+    galleryTagline: "Visuals",
 };
 
 export default function AboutPage() {
@@ -68,7 +90,8 @@ export default function AboutPage() {
                 const galleryData: GalleryImage[] = gallerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
                 
                 if (contentDocSnap.exists()) {
-                    setPageContent(contentDocSnap.data() as AboutPageContent);
+                    // Merge fetched data with defaults to avoid missing fields
+                    setPageContent({ ...defaultContent, ...contentDocSnap.data() });
                 }
                 
                 setTimelineEvents(timelineData);
@@ -93,7 +116,7 @@ export default function AboutPage() {
         {/* Hero Section */}
         <section className="relative h-[400px] flex items-center justify-center text-center bg-black">
              <Image
-                src={pageContent.heroImageUrl || defaultContent.heroImageUrl!}
+                src={pageContent.heroImageUrl!}
                 alt="Panoramic view of a futuristic city"
                 fill
                 className="object-cover w-full h-full opacity-40"
@@ -102,10 +125,10 @@ export default function AboutPage() {
             />
             <div className="relative z-10 container mx-auto px-4 flex flex-col items-center">
                  <h1 className="text-6xl md:text-7xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
-                    About Fantom
+                    {pageContent.heroTitle}
                 </h1>
                 <p className="mt-2 text-xl text-muted-foreground uppercase font-bold tracking-widest max-w-2xl">
-                    Forged in competition, united by passion. This is our story.
+                    {pageContent.heroSubtitle}
                 </p>
             </div>
         </section>
@@ -115,17 +138,17 @@ export default function AboutPage() {
             <section className="py-16 md:py-24">
                 <div className="container mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
                     <div className="order-2 md:order-1">
-                        <p className="text-primary font-semibold uppercase">Our Mission</p>
+                        <p className="text-primary font-semibold uppercase">{pageContent.missionTagline}</p>
                         <h2 className="text-4xl md:text-5xl font-headline font-bold text-white mt-2">
-                           Pushing the Limits of Competitive Gaming
+                           {pageContent.missionTitle}
                         </h2>
                         <p className="text-muted-foreground mt-4 text-lg">
-                           Fantom eSport was founded on the principle of achieving excellence through dedication and teamwork. We are more than just a clan; we are a community of passionate gamers committed to dominating the competitive landscape. We foster an environment where skill is honed, strategies are perfected, and lifelong friendships are forged.
+                           {pageContent.missionDescription}
                         </p>
                     </div>
                      <div className="order-1 md:order-2">
                         <Image
-                            src={pageContent.missionImageUrl || defaultContent.missionImageUrl!}
+                            src={pageContent.missionImageUrl!}
                             alt="eSports player focused on the game"
                             width={600}
                             height={400}
@@ -140,9 +163,9 @@ export default function AboutPage() {
             <section className="py-16 md:py-24 bg-card/50">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-12">
-                        <p className="text-primary font-semibold uppercase">Our Journey</p>
+                        <p className="text-primary font-semibold uppercase">{pageContent.timelineTagline}</p>
                         <h2 className="text-4xl md:text-5xl font-headline font-bold text-white">
-                            Milestones & Achievements
+                            {pageContent.timelineTitle}
                         </h2>
                     </div>
                      {loading ? (
@@ -176,9 +199,9 @@ export default function AboutPage() {
             <section className="py-16 md:py-24">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-12">
-                        <p className="text-primary font-semibold uppercase">Our Philosophy</p>
+                        <p className="text-primary font-semibold uppercase">{pageContent.valuesTagline}</p>
                         <h2 className="text-4xl md:text-5xl font-headline font-bold text-white">
-                            Our Core Values
+                            {pageContent.valuesTitle}
                         </h2>
                     </div>
                      {loading ? (
@@ -205,9 +228,9 @@ export default function AboutPage() {
             <section className="py-16 md:py-24 bg-card/50">
                 <div className="container mx-auto px-4">
                      <div className="text-center mb-12">
-                        <p className="text-primary font-semibold uppercase">Visuals</p>
+                        <p className="text-primary font-semibold uppercase">{pageContent.galleryTagline}</p>
                         <h2 className="text-4xl md:text-5xl font-headline font-bold text-white">
-                            Gallery
+                            {pageContent.galleryTitle}
                         </h2>
                     </div>
                      {loading ? (

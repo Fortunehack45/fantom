@@ -16,7 +16,7 @@ import { Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
@@ -29,13 +29,22 @@ interface TimelineEvent { id: string; year: string; title: string; description: 
 interface CoreValue { id: string; title: string; description: string; }
 interface GalleryImage { id: string; src: string; alt: string; hint: string; }
 interface SiteSettings { twitterUrl?: string; discordUrl?: string; youtubeUrl?: string; twitchUrl?: string; developerName?: string; developerUrl?: string; recruitmentUrl?: string; }
-interface AboutPageContent { heroImageUrl?: string; missionImageUrl?: string; }
+interface AboutPageContent { 
+    heroImageUrl?: string; heroTitle?: string; heroSubtitle?: string;
+    missionImageUrl?: string; missionTitle?: string; missionDescription?: string; missionTagline?: string;
+    timelineTitle?: string; timelineTagline?: string;
+    valuesTitle?: string; valuesTagline?: string;
+    galleryTitle?: string; galleryTagline?: string;
+}
 
 // Union type for all editable items
 type EditableItem = BlogPost | RosterMember | Announcement | Game | HeroImage | TimelineEvent | CoreValue | GalleryImage;
+type CollectionName = 'blogPosts' | 'roster' | 'announcements' | 'games' | 'heroImages' | 'timelineEvents' | 'coreValues' | 'galleryImages';
+
 
 export default function AdminPage() {
     const { toast } = useToast();
+    // Data states
     const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
     const [roster, setRoster] = useState<RosterMember[]>([]);
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -44,10 +53,12 @@ export default function AdminPage() {
     const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
     const [coreValues, setCoreValues] = useState<CoreValue[]>([]);
     const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
-    const [siteSettings, setSiteSettings] = useState<SiteSettings>({ twitterUrl: '', discordUrl: '', youtubeUrl: '', twitchUrl: '', developerName: '', developerUrl: '', recruitmentUrl: ''});
-    const [aboutPageContent, setAboutPageContent] = useState<AboutPageContent>({ heroImageUrl: '', missionImageUrl: ''});
+    
+    // Content states
+    const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
+    const [aboutPageContent, setAboutPageContent] = useState<AboutPageContent>({});
 
-
+    // Form states for new items
     const [newPost, setNewPost] = useState({ title: '', content: '', imageUrl: '', category: 'News' });
     const [newMember, setNewMember] = useState({ name: '', rank: '', game: '', role: '', server: '', avatarUrl: '' });
     const [newAnnouncement, setNewAnnouncement] = useState({ author: '', content: '', authorImageUrl: '' });
@@ -57,7 +68,9 @@ export default function AdminPage() {
     const [newCoreValue, setNewCoreValue] = useState({ title: '', description: '' });
     const [newGalleryImage, setNewGalleryImage] = useState({ src: '', alt: '', hint: '' });
 
+    // Modal/Dialog states
     const [editingItem, setEditingItem] = useState<EditableItem | null>(null);
+    const [currentCollection, setCurrentCollection] = useState<CollectionName | null>(null);
     const [deletingItem, setDeletingItem] = useState<{ collectionName: string, id: string } | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -141,7 +154,7 @@ export default function AdminPage() {
         }
     };
     
-    // Blog Post Handlers
+    // Specific Add Handlers for items with extra logic
     const handleAddPost = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newPost.title && newPost.content) {
@@ -164,7 +177,6 @@ export default function AdminPage() {
         }
     };
 
-    // Roster Member Handlers
     const handleAddMember = async (e: React.FormEvent) => {
         e.preventDefault();
         const { name, rank, game, role, server, avatarUrl } = newMember;
@@ -185,7 +197,6 @@ export default function AdminPage() {
         }
     };
 
-    // Announcement Handlers
     const handleAddAnnouncement = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newAnnouncement.author && newAnnouncement.content) {
@@ -232,29 +243,31 @@ export default function AdminPage() {
         try {
             await deleteDoc(doc(db, collectionName, id));
             fetchAllData();
-            toast({ title: "Success", description: `${collectionName.slice(0, -1)} deleted.` });
+            toast({ title: "Success", description: `Item deleted successfully.` });
         } catch (error) {
-            toast({ variant: "destructive", title: "Error", description: `Could not delete ${collectionName.slice(0, -1)}.` });
+            toast({ variant: "destructive", title: "Error", description: `Could not delete item.` });
         } finally {
             setDeletingItem(null);
         }
     };
 
     // Edit functions
-    const openEditModal = (item: EditableItem) => {
+    const openEditModal = (item: EditableItem, collection: CollectionName) => {
         setEditingItem(item);
+        setCurrentCollection(collection);
         setIsEditModalOpen(true);
     };
 
-    const handleUpdateItem = async (collectionName: string) => {
-        if (!editingItem) return;
+    const handleUpdateItem = async () => {
+        if (!editingItem || !currentCollection) return;
         
         try {
             const { id, ...data } = editingItem;
-            await updateDoc(doc(db, collectionName, id), data);
+            await updateDoc(doc(db, currentCollection, id), data);
             toast({ title: 'Success', description: 'Item updated successfully.' });
             setIsEditModalOpen(false);
             setEditingItem(null);
+            setCurrentCollection(null);
             fetchAllData();
         } catch (error) {
             console.error('Error updating item:', error);
@@ -265,18 +278,19 @@ export default function AdminPage() {
   const renderEditForm = () => {
     if (!editingItem) return null;
     
-    // A bit of type guarding to determine what form to render
+    // Type guards to determine the form fields
     if ('title' in editingItem && 'content' in editingItem) { // BlogPost
         return <>
+            <DialogDescription>Make changes to your blog post here. Click save when you're done.</DialogDescription>
             <div className="space-y-2"><Label>Title</Label><Input value={editingItem.title} onChange={e => setEditingItem({ ...editingItem, title: e.target.value })} /></div>
             <div className="space-y-2"><Label>Category</Label><Input value={editingItem.category} onChange={e => setEditingItem({ ...editingItem, category: e.target.value })} /></div>
             <div className="space-y-2"><Label>Image URL</Label><Input value={editingItem.imageUrl} onChange={e => setEditingItem({ ...editingItem, imageUrl: e.target.value })} /></div>
             <div className="space-y-2"><Label>Content</Label><Textarea value={editingItem.content} onChange={e => setEditingItem({ ...editingItem, content: e.target.value })} rows={10} /></div>
-            <DialogFooter><Button onClick={() => handleUpdateItem('blogPosts')}>Save Changes</Button></DialogFooter>
         </>;
     }
     if ('name' in editingItem && 'rank' in editingItem) { // RosterMember
         return <>
+            <DialogDescription>Edit the details for this roster member.</DialogDescription>
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>Name</Label><Input value={editingItem.name} onChange={e => setEditingItem({ ...editingItem, name: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Game</Label><Input value={editingItem.game} onChange={e => setEditingItem({ ...editingItem, game: e.target.value })} /></div>
@@ -285,56 +299,45 @@ export default function AdminPage() {
             </div>
             <div className="space-y-2"><Label>Server</Label><Input value={editingItem.server} onChange={e => setEditingItem({ ...editingItem, server: e.target.value })} /></div>
             <div className="space-y-2"><Label>Avatar URL</Label><Input value={editingItem.avatarUrl} onChange={e => setEditingItem({ ...editingItem, avatarUrl: e.target.value })} /></div>
-            <DialogFooter><Button onClick={() => handleUpdateItem('roster')}>Save Changes</Button></DialogFooter>
         </>;
     }
     if ('author' in editingItem) { // Announcement
         return <>
+            <DialogDescription>Update the announcement content.</DialogDescription>
             <div className="space-y-2"><Label>Author</Label><Input value={editingItem.author} onChange={e => setEditingItem({ ...editingItem, author: e.target.value })} /></div>
             <div className="space-y-2"><Label>Author PFP URL</Label><Input value={editingItem.authorImageUrl} onChange={e => setEditingItem({ ...editingItem, authorImageUrl: e.target.value })} /></div>
             <div className="space-y-2"><Label>Content</Label><Textarea value={editingItem.content} onChange={e => setEditingItem({ ...editingItem, content: e.target.value })} /></div>
-            <DialogFooter><Button onClick={() => handleUpdateItem('announcements')}>Save Changes</Button></DialogFooter>
         </>;
     }
     if ('name' in editingItem && 'imageUrl' in editingItem) { // Game
          return <>
+            <DialogDescription>Edit the game details.</DialogDescription>
             <div className="space-y-2"><Label>Game Name</Label><Input value={editingItem.name} onChange={e => setEditingItem({ ...editingItem, name: e.target.value })} /></div>
             <div className="space-y-2"><Label>Image URL</Label><Input value={editingItem.imageUrl} onChange={e => setEditingItem({ ...editingItem, imageUrl: e.target.value })} /></div>
             <div className="space-y-2"><Label>Image Hint</Label><Input value={editingItem.hint} onChange={e => setEditingItem({ ...editingItem, hint: e.target.value })} /></div>
-            <DialogFooter><Button onClick={() => handleUpdateItem('games')}>Save Changes</Button></DialogFooter>
         </>;
     }
-    if ('src' in editingItem && 'alt' in editingItem && 'hint' in editingItem) { // Could be HeroImage or GalleryImage. We need a way to distinguish.
-        const collectionName = 'alt' in editingItem && editingItem.alt.includes('slide') ? 'heroImages' : 'galleryImages';
-         if ('alt' in editingItem && editingItem.alt.includes('slide')) { // Hero Image
-            return <>
-                <div className="space-y-2"><Label>Image URL</Label><Input value={editingItem.src} onChange={e => setEditingItem({ ...editingItem, src: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Alt Text</Label><Input value={editingItem.alt} onChange={e => setEditingItem({ ...editingItem, alt: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Image Hint</Label><Input value={editingItem.hint} onChange={e => setEditingItem({ ...editingItem, hint: e.target.value })} /></div>
-                <DialogFooter><Button onClick={() => handleUpdateItem('heroImages')}>Save Changes</Button></DialogFooter>
-            </>;
-        } else { // Gallery Image
-             return <>
-                <div className="space-y-2"><Label>Image URL</Label><Input value={editingItem.src} onChange={e => setEditingItem({ ...editingItem, src: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Alt Text</Label><Input value={editingItem.alt} onChange={e => setEditingItem({ ...editingItem, alt: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Image Hint</Label><Input value={editingItem.hint} onChange={e => setEditingItem({ ...editingItem, hint: e.target.value })} /></div>
-                <DialogFooter><Button onClick={() => handleUpdateItem('galleryImages')}>Save Changes</Button></DialogFooter>
-            </>;
-        }
+    if ('src' in editingItem) { // HeroImage or GalleryImage
+        return <>
+            <DialogDescription>Update the image source and alternative text.</DialogDescription>
+            <div className="space-y-2"><Label>Image URL</Label><Input value={editingItem.src} onChange={e => setEditingItem({ ...editingItem, src: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Alt Text</Label><Input value={editingItem.alt} onChange={e => setEditingItem({ ...editingItem, alt: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Image Hint</Label><Input value={editingItem.hint} onChange={e => setEditingItem({ ...editingItem, hint: e.target.value })} /></div>
+        </>;
     }
      if ('year' in editingItem) { // TimelineEvent
         return <>
+            <DialogDescription>Edit the timeline event details.</DialogDescription>
             <div className="space-y-2"><Label>Year</Label><Input value={editingItem.year} onChange={e => setEditingItem({ ...editingItem, year: e.target.value })} /></div>
             <div className="space-y-2"><Label>Title</Label><Input value={editingItem.title} onChange={e => setEditingItem({ ...editingItem, title: e.target.value })} /></div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={editingItem.description} onChange={e => setEditingItem({ ...editingItem, description: e.target.value })} /></div>
-            <DialogFooter><Button onClick={() => handleUpdateItem('timelineEvents')}>Save Changes</Button></DialogFooter>
         </>;
     }
-    if ('title' in editingItem && 'description' in editingItem) { // CoreValue
+    if ('title' in editingItem && 'description' in editingItem && !('year' in editingItem)) { // CoreValue
         return <>
+            <DialogDescription>Edit the core value details.</DialogDescription>
             <div className="space-y-2"><Label>Title</Label><Input value={editingItem.title} onChange={e => setEditingItem({ ...editingItem, title: e.target.value })} /></div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={editingItem.description} onChange={e => setEditingItem({ ...editingItem, description: e.target.value })} /></div>
-            <DialogFooter><Button onClick={() => handleUpdateItem('coreValues')}>Save Changes</Button></DialogFooter>
         </>;
     }
     return <p>This item cannot be edited.</p>;
@@ -358,13 +361,17 @@ export default function AdminPage() {
     </AlertDialog>
 
     <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[625px]">
             <DialogHeader>
                 <DialogTitle>Edit Item</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
                {renderEditForm()}
             </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                <Button onClick={handleUpdateItem}>Save Changes</Button>
+            </DialogFooter>
         </DialogContent>
     </Dialog>
 
@@ -380,17 +387,12 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="blog" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-10 overflow-x-auto">
-            <TabsTrigger value="blog">Blog</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            <TabsTrigger value="blog">Blog Posts</TabsTrigger>
             <TabsTrigger value="roster">Roster</TabsTrigger>
             <TabsTrigger value="announcements">Announcements</TabsTrigger>
-            <TabsTrigger value="games">Games</TabsTrigger>
-            <TabsTrigger value="hero">Hero</TabsTrigger>
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
-            <TabsTrigger value="values">Values</TabsTrigger>
-            <TabsTrigger value="gallery">Gallery</TabsTrigger>
-            <TabsTrigger value="content">Content</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="about">About Page</TabsTrigger>
+            <TabsTrigger value="site">Site Wide</TabsTrigger>
           </TabsList>
           
           <TabsContent value="blog">
@@ -415,7 +417,7 @@ export default function AdminPage() {
                                 <div key={post.id} className="flex justify-between items-center bg-background/50 p-3 rounded-lg">
                                     <p className="font-medium truncate pr-2">{post.title}</p>
                                     <div className="flex gap-2 flex-shrink-0">
-                                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(post)}><Edit className="h-4 w-4"/></Button>
+                                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(post, 'blogPosts')}><Edit className="h-4 w-4"/></Button>
                                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({collectionName: 'blogPosts', id: post.id})}><Trash2 className="h-4 w-4"/></Button>
                                     </div>
                                 </div>
@@ -429,7 +431,7 @@ export default function AdminPage() {
           
           <TabsContent value="roster">
              <Card className="bg-card mt-6">
-                <CardHeader><CardTitle>Manage Clan Roster</CardTitle><CardDescription>Add or remove members from the clan roster.</CardDescription></CardHeader>
+                <CardHeader><CardTitle>Manage Clan Roster</CardTitle><CardDescription>Add, edit, or delete members from the clan roster.</CardDescription></CardHeader>
                 <CardContent>
                     <div className="grid md:grid-cols-2 gap-8">
                          <div>
@@ -450,7 +452,7 @@ export default function AdminPage() {
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Current Roster</h3>
                              <div className="max-h-96 overflow-y-auto"><Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Rank</TableHead><TableHead>Game</TableHead><TableHead>Role</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
                                 {roster.map((member) => (<TableRow key={member.id}><TableCell>{member.name}</TableCell><TableCell>{member.rank}</TableCell><TableCell>{member.game}</TableCell><TableCell><Badge variant="secondary">{member.role}</Badge></TableCell><TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(member)}><Edit className="h-4 w-4"/></Button>
+                                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(member, 'roster')}><Edit className="h-4 w-4"/></Button>
                                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({collectionName: 'roster', id: member.id})}><Trash2 className="h-4 w-4"/></Button>
                                 </TableCell></TableRow>))}
                              </TableBody></Table></div>
@@ -481,7 +483,7 @@ export default function AdminPage() {
                                 <div key={ann.id} className="flex justify-between items-start bg-background/50 p-3 rounded-lg">
                                     <div><p className="font-bold text-sm">{ann.author}</p><p className="text-sm text-muted-foreground">{ann.content}</p></div>
                                     <div className="flex gap-2 flex-shrink-0">
-                                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(ann)}><Edit className="h-4 w-4"/></Button>
+                                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(ann, 'announcements')}><Edit className="h-4 w-4"/></Button>
                                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({collectionName: 'announcements', id: ann.id})}><Trash2 className="h-4 w-4"/></Button>
                                     </div>
                                 </div>
@@ -493,235 +495,237 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="games">
-              <Card className="bg-card mt-6">
-                <CardHeader><CardTitle>Manage Games</CardTitle><CardDescription>Add or remove games from the homepage.</CardDescription></CardHeader>
+          <TabsContent value="about">
+                <Card className="bg-card mt-6">
+                <CardHeader>
+                    <CardTitle>Manage About Page</CardTitle>
+                    <CardDescription>Update all content on the About page. Click "Save All Changes" at the bottom when you're done.</CardDescription>
+                </CardHeader>
                 <CardContent>
-                     <div className="grid md:grid-cols-2 gap-8">
-                        <div>
-                             <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Game</h3>
-                             <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'games', newGame, () => setNewGame({ name: '', imageUrl: '', hint: '' }))}>
-                                <div><Label htmlFor="game-name">Game Name</Label><Input id="game-name" placeholder="e.g., Valorant" value={newGame.name} onChange={(e) => setNewGame({...newGame, name: e.target.value})} required /></div>
-                                <div><Label htmlFor="game-image-url">Image URL</Label><Input id="game-image-url" type="text" placeholder="https://your-image-url.com/image.png" value={newGame.imageUrl} onChange={(e) => setNewGame({...newGame, imageUrl: e.target.value})} required/></div>
-                                <div><Label htmlFor="game-hint">Image Hint</Label><Input id="game-hint" placeholder="e.g., valorant agent" value={newGame.hint} onChange={(e) => setNewGame({...newGame, hint: e.target.value})} required /></div>
-                                <Button variant="primary" type="submit">Add Game</Button>
-                             </form>
+                    <form className="space-y-8" onSubmit={handleUpdatePageContent}>
+                        {/* Hero Section */}
+                        <div className="p-4 border rounded-lg">
+                            <h3 className="text-lg font-semibold border-b pb-2 mb-4">Hero Section</h3>
+                            <div className="space-y-4">
+                                <div className="space-y-2"><Label>Hero Title</Label><Input value={aboutPageContent.heroTitle || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, heroTitle: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Hero Subtitle</Label><Input value={aboutPageContent.heroSubtitle || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, heroSubtitle: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Hero Image URL</Label><Input value={aboutPageContent.heroImageUrl || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, heroImageUrl: e.target.value })} /></div>
+                            </div>
                         </div>
-                        <div>
-                             <h3 className="text-lg font-semibold mb-4 border-b pb-2">Current Games</h3>
-                             <div className="space-y-4 max-h-96 overflow-y-auto pr-4 grid grid-cols-2 gap-4">
-                                {games.map((game) => (
-                                <div key={game.id} className="relative group">
-                                    <Image src={game.imageUrl} alt={game.name} width={200} height={266} className="rounded-lg w-full object-cover aspect-[3/4]" />
-                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-2 text-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <p className="font-bold text-sm text-white mb-2">{game.name}</p>
+                        {/* Mission Section */}
+                        <div className="p-4 border rounded-lg">
+                            <h3 className="text-lg font-semibold border-b pb-2 mb-4">Mission Section</h3>
+                            <div className="space-y-4">
+                                <div className="space-y-2"><Label>Mission Tagline</Label><Input value={aboutPageContent.missionTagline || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, missionTagline: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Mission Title</Label><Input value={aboutPageContent.missionTitle || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, missionTitle: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Mission Description</Label><Textarea value={aboutPageContent.missionDescription || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, missionDescription: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Mission Image URL</Label><Input value={aboutPageContent.missionImageUrl || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, missionImageUrl: e.target.value })} /></div>
+                            </div>
+                        </div>
+                        {/* Section Titles */}
+                        <div className="p-4 border rounded-lg">
+                            <h3 className="text-lg font-semibold border-b pb-2 mb-4">Section Titles & Taglines</h3>
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div className="space-y-2"><Label>Timeline Tagline</Label><Input value={aboutPageContent.timelineTagline || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, timelineTagline: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Timeline Title</Label><Input value={aboutPageContent.timelineTitle || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, timelineTitle: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Values Tagline</Label><Input value={aboutPageContent.valuesTagline || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, valuesTagline: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Values Title</Label><Input value={aboutPageContent.valuesTitle || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, valuesTitle: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Gallery Tagline</Label><Input value={aboutPageContent.galleryTagline || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, galleryTagline: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Gallery Title</Label><Input value={aboutPageContent.galleryTitle || ''} onChange={(e) => setAboutPageContent({ ...aboutPageContent, galleryTitle: e.target.value })} /></div>
+                            </div>
+                        </div>
+                        <Button type="submit" variant="primary">Save All Changes</Button>
+                    </form>
+
+                    <div className="grid md:grid-cols-2 gap-8 mt-8">
+                      {/* Timeline Management */}
+                      <div className="p-4 border rounded-lg">
+                          <h3 className="text-lg font-semibold mb-4 border-b pb-2">Timeline Events</h3>
+                           <form className="space-y-4 mb-6" onSubmit={(e) => handleAddItem(e, 'timelineEvents', newTimelineEvent, () => setNewTimelineEvent({ year: '', title: '', description: '' }))}>
+                                  <div><Label>Year</Label><Input value={newTimelineEvent.year} onChange={(e) => setNewTimelineEvent({ ...newTimelineEvent, year: e.target.value })} required /></div>
+                                  <div><Label>Title</Label><Input value={newTimelineEvent.title} onChange={(e) => setNewTimelineEvent({ ...newTimelineEvent, title: e.target.value })} required /></div>
+                                  <div><Label>Description</Label><Textarea value={newTimelineEvent.description} onChange={(e) => setNewTimelineEvent({ ...newTimelineEvent, description: e.target.value })} required /></div>
+                                  <Button variant="secondary" type="submit" size="sm">Add Event</Button>
+                            </form>
+                           <div className="space-y-2 max-h-60 overflow-y-auto pr-4">
+                                {timelineEvents.map((event) => (
+                                    <div key={event.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg text-sm">
+                                        <span>{event.year} - {event.title}</span>
                                         <div className="flex gap-2">
-                                            <Button variant="outline" size="icon" onClick={() => openEditModal(game)}><Edit className="h-4 w-4"/></Button>
-                                            <Button variant="destructive" size="icon" onClick={() => setDeletingItem({collectionName: 'games', id: game.id})}><Trash2 className="h-4 w-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => openEditModal(event, 'timelineEvents')}><Edit className="h-4 w-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeletingItem({collectionName: 'timelineEvents', id: event.id})}><Trash2 className="h-4 w-4" /></Button>
                                         </div>
                                     </div>
-                                </div>
                                 ))}
-                             </div>
-                        </div>
+                           </div>
+                      </div>
+                      {/* Core Values Management */}
+                      <div className="p-4 border rounded-lg">
+                          <h3 className="text-lg font-semibold mb-4 border-b pb-2">Core Values</h3>
+                          <form className="space-y-4 mb-6" onSubmit={(e) => handleAddItem(e, 'coreValues', newCoreValue, () => setNewCoreValue({ title: '', description: '' }))}>
+                                  <div><Label>Title</Label><Input value={newCoreValue.title} onChange={(e) => setNewCoreValue({ ...newCoreValue, title: e.target.value })} required /></div>
+                                  <div><Label>Description</Label><Textarea value={newCoreValue.description} onChange={(e) => setNewCoreValue({ ...newCoreValue, description: e.target.value })} required /></div>
+                                  <Button variant="secondary" type="submit" size="sm">Add Value</Button>
+                           </form>
+                           <div className="space-y-2 max-h-60 overflow-y-auto pr-4">
+                                {coreValues.map((value) => (
+                                    <div key={value.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg text-sm">
+                                        <span>{value.title}</span>
+                                        <div className="flex gap-2">
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => openEditModal(value, 'coreValues')}><Edit className="h-4 w-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeletingItem({collectionName: 'coreValues', id: value.id})}><Trash2 className="h-4 w-4" /></Button>
+                                        </div>
+                                    </div>
+                                ))}
+                           </div>
+                      </div>
                     </div>
-                </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="hero">
-              <Card className="bg-card mt-6">
-                  <CardHeader><CardTitle>Manage Hero Images</CardTitle><CardDescription>Add or remove images from the homepage slideshow.</CardDescription></CardHeader>
-                  <CardContent>
-                      <div className="grid md:grid-cols-2 gap-8">
-                          <div>
-                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Hero Image</h3>
-                              <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'heroImages', newHeroImage, () => setNewHeroImage({ src: '', alt: '', hint: '' }))}>
-                                  <div><Label htmlFor="hero-src">Image URL</Label><Input id="hero-src" value={newHeroImage.src} onChange={(e) => setNewHeroImage({ ...newHeroImage, src: e.target.value })} required /></div>
-                                  <div><Label htmlFor="hero-alt">Alt Text</Label><Input id="hero-alt" value={newHeroImage.alt} onChange={(e) => setNewHeroImage({ ...newHeroImage, alt: e.target.value })} required /></div>
-                                  <div><Label htmlFor="hero-hint">Image Hint</Label><Input id="hero-hint" value={newHeroImage.hint} onChange={(e) => setNewHeroImage({ ...newHeroImage, hint: e.target.value })} required /></div>
-                                  <Button variant="primary" type="submit">Add Image</Button>
-                              </form>
-                          </div>
-                          <div>
-                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Current Hero Images</h3>
-                              <div className="space-y-2 max-h-96 overflow-y-auto pr-4">
-                                  {heroImages.map((img) => (
-                                      <div key={img.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg">
-                                          <Image src={img.src} alt={img.alt} width={100} height={56} className="rounded-md object-cover" />
-                                          <span className="truncate ml-4 flex-grow">{img.alt}</span>
-                                           <div className="flex gap-2">
-                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(img)}><Edit className="h-4 w-4"/></Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeletingItem({collectionName: 'heroImages', id: img.id})}><Trash2 className="h-4 w-4" /></Button>
-                                          </div>
-                                      </div>
-                                  ))}
-                              </div>
-                          </div>
-                      </div>
-                  </CardContent>
-              </Card>
-          </TabsContent>
-          <TabsContent value="timeline">
-              <Card className="bg-card mt-6">
-                  <CardHeader><CardTitle>Manage Timeline Events</CardTitle><CardDescription>Manage the timeline on the About page.</CardDescription></CardHeader>
-                  <CardContent>
-                      <div className="grid md:grid-cols-2 gap-8">
-                           <div>
-                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Event</h3>
-                              <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'timelineEvents', newTimelineEvent, () => setNewTimelineEvent({ year: '', title: '', description: '' }))}>
-                                  <div><Label htmlFor="event-year">Year</Label><Input id="event-year" value={newTimelineEvent.year} onChange={(e) => setNewTimelineEvent({ ...newTimelineEvent, year: e.target.value })} required /></div>
-                                  <div><Label htmlFor="event-title">Title</Label><Input id="event-title" value={newTimelineEvent.title} onChange={(e) => setNewTimelineEvent({ ...newTimelineEvent, title: e.target.value })} required /></div>
-                                  <div><Label htmlFor="event-desc">Description</Label><Textarea id="event-desc" value={newTimelineEvent.description} onChange={(e) => setNewTimelineEvent({ ...newTimelineEvent, description: e.target.value })} required /></div>
-                                  <Button variant="primary" type="submit">Add Event</Button>
-                              </form>
-                          </div>
-                          <div>
-                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Current Events</h3>
-                              <div className="space-y-2 max-h-96 overflow-y-auto pr-4">
-                                  {timelineEvents.map((event) => (
-                                      <div key={event.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg">
-                                          <span>{event.year} - {event.title}</span>
-                                          <div className="flex gap-2">
-                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(event)}><Edit className="h-4 w-4"/></Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeletingItem({collectionName: 'timelineEvents', id: event.id})}><Trash2 className="h-4 w-4" /></Button>
-                                          </div>
-                                      </div>
-                                  ))}
-                              </div>
-                          </div>
-                      </div>
-                  </CardContent>
-              </Card>
-          </TabsContent>
-          <TabsContent value="values">
-              <Card className="bg-card mt-6">
-                  <CardHeader><CardTitle>Manage Core Values</CardTitle><CardDescription>Manage the core values on the About page.</CardDescription></CardHeader>
-                  <CardContent>
-                      <div className="grid md:grid-cols-2 gap-8">
-                           <div>
-                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Value</h3>
-                              <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'coreValues', newCoreValue, () => setNewCoreValue({ title: '', description: '' }))}>
-                                  <div><Label htmlFor="value-title">Title</Label><Input id="value-title" value={newCoreValue.title} onChange={(e) => setNewCoreValue({ ...newCoreValue, title: e.target.value })} required /></div>
-                                  <div><Label htmlFor="value-desc">Description</Label><Textarea id="value-desc" value={newCoreValue.description} onChange={(e) => setNewCoreValue({ ...newCoreValue, description: e.target.value })} required /></div>
-                                  <Button variant="primary" type="submit">Add Value</Button>
-                              </form>
-                          </div>
-                          <div>
-                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Current Values</h3>
-                              <div className="space-y-2 max-h-96 overflow-y-auto pr-4">
-                                  {coreValues.map((value) => (
-                                      <div key={value.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg">
-                                          <span>{value.title}</span>
-                                           <div className="flex gap-2">
-                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(value)}><Edit className="h-4 w-4"/></Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeletingItem({collectionName: 'coreValues', id: value.id})}><Trash2 className="h-4 w-4" /></Button>
-                                          </div>
-                                      </div>
-                                  ))}
-                              </div>
-                          </div>
-                      </div>
-                  </CardContent>
-              </Card>
-          </TabsContent>
-          <TabsContent value="gallery">
-              <Card className="bg-card mt-6">
-                  <CardHeader><CardTitle>Manage Gallery Images</CardTitle><CardDescription>Manage the gallery on the About page.</CardDescription></CardHeader>
-                  <CardContent>
-                      <div className="grid md:grid-cols-2 gap-8">
-                          <div>
-                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Gallery Image</h3>
-                              <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'galleryImages', newGalleryImage, () => setNewGalleryImage({ src: '', alt: '', hint: '' }))}>
-                                  <div><Label htmlFor="gallery-src">Image URL</Label><Input id="gallery-src" value={newGalleryImage.src} onChange={(e) => setNewGalleryImage({ ...newGalleryImage, src: e.target.value })} required /></div>
-                                  <div><Label htmlFor="gallery-alt">Alt Text</Label><Input id="gallery-alt" value={newGalleryImage.alt} onChange={(e) => setNewGalleryImage({ ...newGalleryImage, alt: e.target.value })} required /></div>
-                                  <div><Label htmlFor="gallery-hint">Image Hint</Label><Input id="gallery-hint" value={newGalleryImage.hint} onChange={(e) => setNewGalleryImage({ ...newGalleryImage, hint: e.target.value })} required /></div>
-                                  <Button variant="primary" type="submit">Add Image</Button>
-                              </form>
-                          </div>
-                          <div>
-                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Current Gallery Images</h3>
-                              <div className="space-y-2 max-h-96 overflow-y-auto pr-4">
+                     {/* Gallery Management */}
+                     <div className="p-4 border rounded-lg mt-8">
+                         <h3 className="text-lg font-semibold mb-4 border-b pb-2">Gallery Images</h3>
+                         <div className="grid md:grid-cols-2 gap-8">
+                             <div>
+                                <h4 className="font-semibold mb-2">Add New Gallery Image</h4>
+                                <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'galleryImages', newGalleryImage, () => setNewGalleryImage({ src: '', alt: '', hint: '' }))}>
+                                    <div><Label>Image URL</Label><Input value={newGalleryImage.src} onChange={(e) => setNewGalleryImage({ ...newGalleryImage, src: e.target.value })} required /></div>
+                                    <div><Label>Alt Text</Label><Input value={newGalleryImage.alt} onChange={(e) => setNewGalleryImage({ ...newGalleryImage, alt: e.target.value })} required /></div>
+                                    <div><Label>Image Hint</Label><Input value={newGalleryImage.hint} onChange={(e) => setNewGalleryImage({ ...newGalleryImage, hint: e.target.value })} required /></div>
+                                    <Button variant="secondary" size="sm" type="submit">Add Image</Button>
+                                </form>
+                             </div>
+                              <div>
+                                <h4 className="font-semibold mb-2">Current Gallery Images</h4>
+                                <div className="space-y-2 max-h-96 overflow-y-auto pr-4">
                                   {galleryImages.map((img) => (
                                       <div key={img.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg">
                                           <Image src={img.src} alt={img.alt} width={80} height={80} className="rounded-md object-cover aspect-square" />
-                                          <span className="truncate ml-4 flex-grow">{img.alt}</span>
+                                          <span className="truncate ml-4 flex-grow text-sm">{img.alt}</span>
                                           <div className="flex gap-2">
-                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(img)}><Edit className="h-4 w-4"/></Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeletingItem({collectionName: 'galleryImages', id: img.id})}><Trash2 className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => openEditModal(img, 'galleryImages')}><Edit className="h-4 w-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeletingItem({collectionName: 'galleryImages', id: img.id})}><Trash2 className="h-4 w-4" /></Button>
                                           </div>
                                       </div>
                                   ))}
                               </div>
-                          </div>
-                      </div>
-                  </CardContent>
-              </Card>
-          </TabsContent>
-          <TabsContent value="content">
-              <Card className="bg-card mt-6">
-                <CardHeader><CardTitle>Manage Page Content</CardTitle><CardDescription>Update images and other content on specific pages.</CardDescription></CardHeader>
-                <CardContent>
-                    <form className="space-y-6 max-w-2xl" onSubmit={handleUpdatePageContent}>
-                        <h3 className="text-lg font-semibold border-b pb-2">About Page</h3>
-                         <div className="space-y-2">
-                            <Label htmlFor="about-hero-url">Hero Image URL</Label>
-                            <Input id="about-hero-url" value={aboutPageContent.heroImageUrl} onChange={(e) => setAboutPageContent({ ...aboutPageContent, heroImageUrl: e.target.value })} placeholder="https://your-image-url.com" />
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="about-mission-url">Mission Image URL</Label>
-                            <Input id="about-mission-url" value={aboutPageContent.missionImageUrl} onChange={(e) => setAboutPageContent({ ...aboutPageContent, missionImageUrl: e.target.value })} placeholder="https://your-image-url.com" />
-                        </div>
-                        <Button type="submit" variant="primary">Save Content</Button>
-                    </form>
+                             </div>
+                         </div>
+                     </div>
+
                 </CardContent>
             </Card>
           </TabsContent>
-           <TabsContent value="settings">
+          
+           <TabsContent value="site">
               <Card className="bg-card mt-6">
-                <CardHeader><CardTitle>Manage Site Settings</CardTitle><CardDescription>Update global settings like footer and button links.</CardDescription></CardHeader>
+                <CardHeader><CardTitle>Manage Site-Wide Content</CardTitle><CardDescription>Update content that appears across multiple pages, like the hero slideshow, games list, and footer links.</CardDescription></CardHeader>
                 <CardContent>
-                    <form className="space-y-6 max-w-2xl" onSubmit={handleUpdateSiteSettings}>
-                        <h3 className="text-lg font-semibold border-b pb-2">General Links</h3>
-                         <div className="space-y-2">
-                            <Label htmlFor="recruitment-url">Recruitment Button URL</Label>
-                            <Input id="recruitment-url" value={siteSettings.recruitmentUrl} onChange={(e) => setSiteSettings({ ...siteSettings, recruitmentUrl: e.target.value })} placeholder="https://your-recruitment-link.com" />
-                        </div>
-                        <h3 className="text-lg font-semibold border-b pb-2 pt-4">Footer Settings</h3>
-                         <div className="space-y-2">
-                            <Label htmlFor="developer-name">Developer Name</Label>
-                            <Input id="developer-name" value={siteSettings.developerName} onChange={(e) => setSiteSettings({ ...siteSettings, developerName: e.target.value })} placeholder="e.g., Fourtuna" />
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="developer-url">Developer URL</Label>
-                            <Input id="developer-url" value={siteSettings.developerUrl} onChange={(e) => setSiteSettings({ ...siteSettings, developerUrl: e.target.value })} placeholder="https://..." />
-                        </div>
-                        
-                        <h4 className="text-md font-semibold pt-4">Social Media Links</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="twitter-url">Twitter URL</Label>
-                                <Input id="twitter-url" value={siteSettings.twitterUrl} onChange={(e) => setSiteSettings({ ...siteSettings, twitterUrl: e.target.value })} placeholder="https://twitter.com/..." />
+                    <form className="space-y-8" onSubmit={handleUpdateSiteSettings}>
+                        {/* General Links */}
+                         <div className="p-4 border rounded-lg">
+                            <h3 className="text-lg font-semibold border-b pb-2 mb-4">Button & Footer Links</h3>
+                             <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="recruitment-url">Recruitment Button URL</Label>
+                                    <Input id="recruitment-url" value={siteSettings.recruitmentUrl || ''} onChange={(e) => setSiteSettings({ ...siteSettings, recruitmentUrl: e.target.value })} placeholder="https://your-recruitment-link.com" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="developer-name">Developer Name</Label>
+                                    <Input id="developer-name" value={siteSettings.developerName || ''} onChange={(e) => setSiteSettings({ ...siteSettings, developerName: e.target.value })} placeholder="e.g., Fourtuna" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="developer-url">Developer URL</Label>
+                                    <Input id="developer-url" value={siteSettings.developerUrl || ''} onChange={(e) => setSiteSettings({ ...siteSettings, developerUrl: e.target.value })} placeholder="https://..." />
+                                </div>
+                             </div>
+                            <h4 className="text-md font-semibold pt-6 mt-4 border-t">Social Media Links</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="twitter-url">Twitter URL</Label>
+                                    <Input id="twitter-url" value={siteSettings.twitterUrl || ''} onChange={(e) => setSiteSettings({ ...siteSettings, twitterUrl: e.target.value })} placeholder="https://twitter.com/..." />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="discord-url">Discord URL</Label>
+                                    <Input id="discord-url" value={siteSettings.discordUrl || ''} onChange={(e) => setSiteSettings({ ...siteSettings, discordUrl: e.target.value })} placeholder="https://discord.gg/..." />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="youtube-url">YouTube URL</Label>
+                                    <Input id="youtube-url" value={siteSettings.youtubeUrl || ''} onChange={(e) => setSiteSettings({ ...siteSettings, youtubeUrl: e.target.value })} placeholder="https://youtube.com/..." />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="twitch-url">Twitch URL</Label>
+                                    <Input id="twitch-url" value={siteSettings.twitchUrl || ''} onChange={(e) => setSiteSettings({ ...siteSettings, twitchUrl: e.target.value })} placeholder="https://twitch.tv/..." />
+                                </div>
                             </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="discord-url">Discord URL</Label>
-                                <Input id="discord-url" value={siteSettings.discordUrl} onChange={(e) => setSiteSettings({ ...siteSettings, discordUrl: e.target.value })} placeholder="https://discord.gg/..." />
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="youtube-url">YouTube URL</Label>
-                                <Input id="youtube-url" value={siteSettings.youtubeUrl} onChange={(e) => setSiteSettings({ ...siteSettings, youtubeUrl: e.target.value })} placeholder="https://youtube.com/..." />
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="twitch-url">Twitch URL</Label>
-                                <Input id="twitch-url" value={siteSettings.twitchUrl} onChange={(e) => setSiteSettings({ ...siteSettings, twitchUrl: e.target.value })} placeholder="https://twitch.tv/..." />
-                            </div>
                         </div>
-
-                        <Button type="submit" variant="primary">Save Settings</Button>
+                        <Button type="submit" variant="primary">Save Link Settings</Button>
                     </form>
+
+                     {/* Games Section */}
+                     <div className="p-4 border rounded-lg mt-8">
+                        <h3 className="text-lg font-semibold mb-4 border-b pb-2">Homepage Games</h3>
+                         <div className="grid md:grid-cols-2 gap-8">
+                            <div>
+                                <h4 className="font-semibold mb-2">Add New Game</h4>
+                                <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'games', newGame, () => setNewGame({ name: '', imageUrl: '', hint: '' }))}>
+                                    <div><Label>Game Name</Label><Input value={newGame.name} onChange={(e) => setNewGame({...newGame, name: e.target.value})} required /></div>
+                                    <div><Label>Image URL</Label><Input type="text" value={newGame.imageUrl} onChange={(e) => setNewGame({...newGame, imageUrl: e.target.value})} required/></div>
+                                    <div><Label>Image Hint</Label><Input value={newGame.hint} onChange={(e) => setNewGame({...newGame, hint: e.target.value})} required /></div>
+                                    <Button variant="secondary" size="sm" type="submit">Add Game</Button>
+                                </form>
+                            </div>
+                             <div>
+                                <h4 className="font-semibold mb-2">Current Games</h4>
+                                <div className="space-y-4 max-h-96 overflow-y-auto pr-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                    {games.map((game) => (
+                                    <div key={game.id} className="relative group aspect-[3/4]">
+                                        <Image src={game.imageUrl} alt={game.name} width={200} height={266} className="rounded-lg w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-2 text-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <p className="font-bold text-sm text-white mb-2">{game.name}</p>
+                                            <div className="flex gap-2">
+                                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditModal(game, 'games')}><Edit className="h-4 w-4"/></Button>
+                                                <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => setDeletingItem({collectionName: 'games', id: game.id})}><Trash2 className="h-4 w-4"/></Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    ))}
+                                </div>
+                            </div>
+                         </div>
+                     </div>
+
+                      {/* Hero Images Section */}
+                     <div className="p-4 border rounded-lg mt-8">
+                        <h3 className="text-lg font-semibold mb-4 border-b pb-2">Homepage Hero Slideshow</h3>
+                         <div className="grid md:grid-cols-2 gap-8">
+                             <div>
+                                <h4 className="font-semibold mb-2">Add New Hero Image</h4>
+                                <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'heroImages', newHeroImage, () => setNewHeroImage({ src: '', alt: '', hint: '' }))}>
+                                    <div><Label>Image URL</Label><Input value={newHeroImage.src} onChange={(e) => setNewHeroImage({ ...newHeroImage, src: e.target.value })} required /></div>
+                                    <div><Label>Alt Text</Label><Input value={newHeroImage.alt} onChange={(e) => setNewHeroImage({ ...newHeroImage, alt: e.target.value })} required /></div>
+                                    <div><Label>Image Hint</Label><Input value={newHeroImage.hint} onChange={(e) => setNewHeroImage({ ...newHeroImage, hint: e.target.value })} required /></div>
+                                    <Button variant="secondary" size="sm" type="submit">Add Image</Button>
+                                </form>
+                             </div>
+                             <div>
+                                <h4 className="font-semibold mb-2">Current Hero Images</h4>
+                                <div className="space-y-2 max-h-96 overflow-y-auto pr-4">
+                                  {heroImages.map((img) => (
+                                      <div key={img.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg">
+                                          <Image src={img.src} alt={img.alt} width={100} height={56} className="rounded-md object-cover" />
+                                          <span className="truncate ml-4 flex-grow text-sm">{img.alt}</span>
+                                          <div className="flex gap-2">
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => openEditModal(img, 'heroImages')}><Edit className="h-4 w-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeletingItem({collectionName: 'heroImages', id: img.id})}><Trash2 className="h-4 w-4" /></Button>
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                             </div>
+                         </div>
+                     </div>
                 </CardContent>
             </Card>
           </TabsContent>
-
         </Tabs>
       </main>
     </div>
