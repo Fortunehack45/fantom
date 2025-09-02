@@ -92,7 +92,7 @@ export default function BlogPage() {
                         data-ai-hint={featuredPost.hint}
                         priority
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                     <div className="absolute bottom-0 left-0 p-8 md:p-12 text-white">
                         <Badge variant="primary" className="mb-4">{featuredPost.category}</Badge>
                         <h1 className="text-4xl md:text-6xl font-headline font-bold uppercase text-shadow-lg max-w-4xl">
@@ -115,7 +115,7 @@ export default function BlogPage() {
                 {otherPosts.map((post) => (
                 <Link key={post.id} href={`/blog/${post.slug}`}>
                     <Card className="bg-card border-border overflow-hidden group h-full flex flex-col transform hover:-translate-y-2 transition-transform duration-300 shadow-lg hover:shadow-primary/20">
-                        <div className="relative aspect-video">
+                        <div className="relative aspect-video overflow-hidden">
                             <Image
                             src={post.imageUrl || `https://picsum.photos/400/250?random=${post.id}`}
                             alt={post.title}

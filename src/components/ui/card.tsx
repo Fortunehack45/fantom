@@ -11,6 +11,7 @@ const cardVariants = cva(
       variant: {
         default: "",
         glow: "card-glow",
+        glowOnHover: "hover:card-glow"
       }
     },
     defaultVariants: {
@@ -95,5 +96,3 @@ const CardFooter = React.forwardRef<
 CardFooter.displayName = "CardFooter"
 
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
-
-    

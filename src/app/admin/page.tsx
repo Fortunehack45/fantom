@@ -462,9 +462,9 @@ export default function AdminPage() {
                         </div>
                         <div>
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Existing Posts</h3>
-                             <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
+                             <div className="space-y-2 max-h-[30rem] overflow-y-auto pr-4">
                                 {blogPosts.map((post) => (
-                                <div key={post.id} className="flex justify-between items-center bg-background/50 p-3 rounded-lg">
+                                <div key={post.id} className="flex justify-between items-center bg-background/50 p-3 rounded-lg hover:bg-muted/50 transition-colors">
                                     <p className="font-medium truncate pr-2">{post.title}</p>
                                     <div className="flex gap-2 flex-shrink-0">
                                         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(post, 'blogPosts')}><Edit className="h-4 w-4"/></Button>
@@ -500,8 +500,8 @@ export default function AdminPage() {
                         </div>
                         <div>
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Current Roster</h3>
-                             <div className="max-h-96 overflow-y-auto"><Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Rank</TableHead><TableHead>Game</TableHead><TableHead>Role</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
-                                {roster.map((member) => (<TableRow key={member.id}><TableCell>{member.name}</TableCell><TableCell>{member.rank}</TableCell><TableCell>{member.game}</TableCell><TableCell><Badge variant="secondary">{member.role}</Badge></TableCell><TableCell className="text-right">
+                             <div className="max-h-[30rem] overflow-y-auto"><Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Game</TableHead><TableHead>Role</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
+                                {roster.map((member) => (<TableRow key={member.id} className="hover:bg-muted/50"><TableCell>{member.name}</TableCell><TableCell>{member.game}</TableCell><TableCell><Badge variant="secondary">{member.role}</Badge></TableCell><TableCell className="text-right">
                                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(member, 'roster')}><Edit className="h-4 w-4"/></Button>
                                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({collectionName: 'roster', id: member.id})}><Trash2 className="h-4 w-4"/></Button>
                                 </TableCell></TableRow>))}
@@ -528,9 +528,9 @@ export default function AdminPage() {
                         </div>
                         <div>
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Recent Announcements</h3>
-                             <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
+                             <div className="space-y-2 max-h-[30rem] overflow-y-auto pr-4">
                                 {announcements.map((ann) => (
-                                <div key={ann.id} className="flex justify-between items-start bg-background/50 p-3 rounded-lg">
+                                <div key={ann.id} className="flex justify-between items-start bg-background/50 p-3 rounded-lg hover:bg-muted/50 transition-colors">
                                     <div><p className="font-bold text-sm">{ann.author}</p><p className="text-sm text-muted-foreground">{ann.content}</p></div>
                                     <div className="flex gap-2 flex-shrink-0">
                                         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(ann, 'announcements')}><Edit className="h-4 w-4"/></Button>
@@ -610,7 +610,7 @@ export default function AdminPage() {
                             </form>
                            <div className="space-y-2 max-h-60 overflow-y-auto pr-4">
                                 {timelineEvents.map((event, index) => (
-                                    <div key={event.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg text-sm">
+                                    <div key={event.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg text-sm hover:bg-muted/50 transition-colors">
                                         <span className="truncate pr-2">{event.year} - {event.title}</span>
                                         <div className="flex gap-1">
                                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMoveTimelineEvent(index, 'up')} disabled={index === 0}><ArrowUp className="h-4 w-4"/></Button>
@@ -632,7 +632,7 @@ export default function AdminPage() {
                            </form>
                            <div className="space-y-2 max-h-60 overflow-y-auto pr-4">
                                 {coreValues.map((value) => (
-                                    <div key={value.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg text-sm">
+                                    <div key={value.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg text-sm hover:bg-muted/50 transition-colors">
                                         <span>{value.title}</span>
                                         <div className="flex gap-2">
                                             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => openEditModal(value, 'coreValues')}><Edit className="h-4 w-4"/></Button>
@@ -660,7 +660,7 @@ export default function AdminPage() {
                                 <h4 className="font-semibold mb-2">Current Gallery Images</h4>
                                 <div className="space-y-2 max-h-96 overflow-y-auto pr-4">
                                   {galleryImages.map((img) => (
-                                      <div key={img.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg">
+                                      <div key={img.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                                           <Image src={img.src} alt={img.alt} width={80} height={80} className="rounded-md object-cover aspect-square" />
                                           <span className="truncate ml-4 flex-grow text-sm">{img.alt}</span>
                                           <div className="flex gap-2">
@@ -773,7 +773,7 @@ export default function AdminPage() {
                                 <h4 className="font-semibold mb-2">Current Hero Images</h4>
                                 <div className="space-y-2 max-h-96 overflow-y-auto pr-4">
                                   {heroImages.map((img) => (
-                                      <div key={img.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg">
+                                      <div key={img.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                                           <Image src={img.src} alt={img.alt} width={100} height={56} className="rounded-md object-cover" />
                                           <span className="truncate ml-4 flex-grow text-sm">{img.alt}</span>
                                           <div className="flex gap-2">

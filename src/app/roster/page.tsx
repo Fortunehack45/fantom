@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Gamepad2, Shield, Star, Users } from 'lucide-react';
+import { Gamepad2, Shield, Star, Users, Crown, Swords, BrainCircuit } from 'lucide-react';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Footer } from '@/components/footer';
@@ -23,8 +23,10 @@ interface RosterMember {
 }
 
 const roleIcons: { [key: string]: React.ReactNode } = {
-    'Legendary': <Star className="h-4 w-4 text-yellow-400" />,
-    'Pro': <Shield className="h-4 w-4 text-blue-400" />,
+    'Legendary': <Crown className="h-4 w-4 text-yellow-400" />,
+    'Pro': <Swords className="h-4 w-4 text-red-400" />,
+    'Strategist': <BrainCircuit className="h-4 w-4 text-blue-400" />,
+    'Member': <Users className="h-4 w-4 text-green-400" />,
     'New Member': <Users className="h-4 w-4 text-green-400" />,
 };
 
@@ -91,7 +93,7 @@ export default function RosterPage() {
                 [...Array(8)].map((_, i) => <RosterSkeleton key={i} />)
             ) : (
                 roster.map((member) => (
-                    <Card key={member.id} className="bg-card border-border overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300 shadow-lg hover:shadow-primary/20 flex flex-col">
+                    <Card key={member.id} className="bg-card border-border overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300 shadow-lg hover:shadow-primary/20 flex flex-col" variant="glowOnHover">
                         <CardHeader className="flex flex-row items-center justify-between p-4 bg-primary/5">
                             <div>
                                 <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">{member.name}</CardTitle>
@@ -114,10 +116,10 @@ export default function RosterPage() {
                                     <span className="text-muted-foreground truncate">{member.rank}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Users className="h-4 w-4 text-primary shrink-0" />
+                                    <Star className="h-4 w-4 text-primary shrink-0" />
                                      <span className="font-semibold">Role:</span>
-                                     <Badge variant="secondary" className="flex items-center gap-1">
-                                        {roleIcons[member.role] || null}
+                                     <Badge variant="secondary" className="flex items-center gap-1.5">
+                                        {roleIcons[member.role] || <Users className="h-4 w-4 text-gray-400" />}
                                         {member.role}
                                      </Badge>
                                 </div>

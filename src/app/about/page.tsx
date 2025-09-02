@@ -217,44 +217,45 @@ export default function AboutPage() {
                         <div className="relative max-w-5xl mx-auto mt-12">
                             <div className="absolute left-1/2 -translate-x-1/2 h-full w-0.5 bg-primary/20" aria-hidden="true" />
                             {timelineEvents.map((event, index) => (
-                                <div key={event.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-8 mb-12">
-                                    {index % 2 === 0 ? (
-                                        <>
-                                            <div className="text-right">
-                                                <Card className="transform transition-all duration-300 hover:scale-105 hover:shadow-primary/20">
-                                                    <CardHeader>
-                                                        <p className="text-lg font-headline font-bold text-primary">{event.year}</p>
-                                                        <CardTitle className="text-xl font-bold">{event.title}</CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent>
-                                                        <p className="text-muted-foreground">{event.description}</p>
-                                                    </CardContent>
-                                                </Card>
-                                            </div>
-                                            <div className="z-10 w-8 h-8 rounded-full bg-background border-2 border-primary flex items-center justify-center">
-                                                <Calendar className="h-4 w-4 text-primary" />
-                                            </div>
-                                            <div />
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div />
-                                            <div className="z-10 w-8 h-8 rounded-full bg-background border-2 border-primary flex items-center justify-center">
-                                                <Calendar className="h-4 w-4 text-primary" />
-                                            </div>
-                                            <div className="text-left">
-                                                <Card className="transform transition-all duration-300 hover:scale-105 hover:shadow-primary/20">
-                                                    <CardHeader>
-                                                        <p className="text-lg font-headline font-bold text-primary">{event.year}</p>
-                                                        <CardTitle className="text-xl font-bold">{event.title}</CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent>
-                                                        <p className="text-muted-foreground">{event.description}</p>
-                                                    </CardContent>
-                                                </Card>
-                                            </div>
-                                        </>
-                                    )}
+                                <div key={event.id} className="relative mb-12 group">
+                                    <div className="absolute left-1/2 -translate-x-1/2 z-10 w-8 h-8 mt-1 rounded-full bg-background border-2 border-primary flex items-center justify-center">
+                                        <Calendar className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <div className={`grid items-center gap-x-8 ${index % 2 === 0 ? 'grid-cols-[1fr_auto_1fr]' : 'grid-cols-[1fr_auto_1fr]'}`}>
+                                        {index % 2 === 0 ? (
+                                            <>
+                                                <div className="text-right">
+                                                    <Card className="transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-primary/20">
+                                                        <CardHeader>
+                                                            <p className="text-lg font-headline font-bold text-primary">{event.year}</p>
+                                                            <CardTitle className="text-xl font-bold">{event.title}</CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <p className="text-muted-foreground">{event.description}</p>
+                                                        </CardContent>
+                                                    </Card>
+                                                </div>
+                                                <div className="w-8"></div>
+                                                <div></div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div></div>
+                                                <div className="w-8"></div>
+                                                <div className="text-left">
+                                                    <Card className="transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-primary/20">
+                                                        <CardHeader>
+                                                            <p className="text-lg font-headline font-bold text-primary">{event.year}</p>
+                                                            <CardTitle className="text-xl font-bold">{event.title}</CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <p className="text-muted-foreground">{event.description}</p>
+                                                        </CardContent>
+                                                    </Card>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -276,14 +277,14 @@ export default function AboutPage() {
                      ) : (
                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                         {values.map(value => (
-                            <Card key={value.id} className="bg-card/80 text-center">
+                            <Card key={value.id} className="bg-card/80 text-center transform hover:-translate-y-2 transition-transform duration-300 hover:shadow-2xl hover:shadow-primary/20">
                                 <CardContent className="p-6">
                                     <div className="mx-auto bg-primary/10 rounded-full h-16 w-16 flex items-center justify-center">
                                         <CheckCircle className="h-8 w-8 text-primary" />
                                     </div>
                                     <h3 className="text-xl font-bold mt-6">{value.title}</h3>
                                     <p className="text-muted-foreground mt-2">{value.description}</p>
-                                </CardContent>
+                                 </CardContent>
                             </Card>
                         ))}
                     </div>
