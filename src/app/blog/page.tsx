@@ -9,7 +9,7 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Badge } from '@/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Newspaper } from 'lucide-react';
 import { Footer } from '@/components/footer';
