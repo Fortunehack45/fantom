@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { Footer } from '@/components/footer';
 
 interface BlogPost {
   id: string;
@@ -121,6 +122,7 @@ export default function BlogPage() {
             </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

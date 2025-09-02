@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Footer } from "@/components/footer";
 
 
 interface BlogPost {
@@ -134,20 +135,20 @@ export default function Home() {
       <main className="flex-grow">
         {/* Hero Section */}
         <section id="hero" className="relative w-full bg-black">
-          <div className="relative h-[500px] w-full overflow-hidden aspect-video">
-            {heroLoading ? (
-              <Skeleton className="w-full h-full">
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                <div className="relative z-10 h-full flex flex-col items-center justify-center text-center">
-                  <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
-                    Fantom
-                  </h1>
-                  <p className="mt-2 text-2xl text-muted-foreground uppercase font-bold tracking-widest">
-                    Dominance is our creed
-                  </p>
-                </div>
-              </Skeleton>
-            ) : (
+          <div className="relative h-[500px] w-full overflow-hidden">
+             {heroLoading ? (
+               <Skeleton className="w-full h-full aspect-video">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center">
+                    <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
+                      Fantom
+                    </h1>
+                    <p className="mt-2 text-2xl text-muted-foreground uppercase font-bold tracking-widest">
+                      Dominance is our creed
+                    </p>
+                  </div>
+               </Skeleton>
+             ) : (
               <Carousel
                 className="w-full h-full"
                 plugins={[Autoplay({ delay: 5000, stopOnInteraction: false })]}
@@ -156,7 +157,7 @@ export default function Home() {
                 <CarouselContent className="w-full h-full">
                   {heroImages.map((image, index) => (
                     <CarouselItem key={image.id} className="w-full h-full">
-                      <div className="w-full h-full relative">
+                       <div className="w-full h-full relative">
                         <Image
                           src={image.src}
                           alt={image.alt}
@@ -170,7 +171,7 @@ export default function Home() {
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center">
                   <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
                     Fantom
@@ -390,11 +391,7 @@ export default function Home() {
             </section>
         </div>
       </main>
-       <footer className="py-6 border-t border-primary/20">
-            <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
-                <p>©{new Date().getFullYear()} Fantom eSport - All rights reserved.</p>
-            </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Header } from "@/components/header";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
+import { Footer } from '@/components/footer';
 
 interface Announcement {
     id: string;
@@ -89,6 +90,7 @@ export default function AnnouncementsPage() {
             </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Gamepad2, Shield, Star, Users } from 'lucide-react';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Footer } from '@/components/footer';
 
 interface RosterMember {
     id: string;
@@ -127,6 +128,7 @@ export default function RosterPage() {
             )}
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

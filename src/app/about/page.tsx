@@ -8,6 +8,7 @@ import { CheckCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Footer } from "@/components/footer";
 
 interface TimelineEvent {
     id: string;
@@ -214,6 +215,7 @@ export default function AboutPage() {
             </section>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

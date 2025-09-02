@@ -20,6 +20,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Footer } from '@/components/footer';
 
 
 interface Post {
@@ -73,7 +74,7 @@ export default function BlogPostPage() {
     const [deletingItem, setDeletingItem] = useState<{commentId: string, replyId?: string} | null>(null);
 
     const params = useParams();
-    const slug = params.slug as string;
+    const slug = params?.slug as string;
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -325,15 +326,19 @@ export default function BlogPostPage() {
     
     if (!post) {
          return (
-             <div className="flex flex-col min-h-screen bg-background text-foreground justify-center items-center">
-                <p className="text-2xl font-headline">Post Not Found</p>
-                <p className="text-muted-foreground">The post you are looking for could not be found.</p>
-                 <Link href="/blog">
-                    <Button variant="ghost" className="mt-4">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Blog
-                    </Button>
-                </Link>
+             <div className="flex flex-col min-h-screen bg-background text-foreground">
+                <Header />
+                 <div className="flex-grow flex flex-col justify-center items-center">
+                    <p className="text-2xl font-headline">Post Not Found</p>
+                    <p className="text-muted-foreground">The post you are looking for could not be found.</p>
+                    <Link href="/blog">
+                        <Button variant="ghost" className="mt-4">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back to Blog
+                        </Button>
+                    </Link>
+                </div>
+                <Footer />
             </div>
         );
     }
@@ -589,6 +594,7 @@ export default function BlogPostPage() {
             </article>
         </div>
       </main>
+      <Footer />
     </div>
     </>
   );
