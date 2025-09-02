@@ -315,6 +315,44 @@ export default function BlogPostPage() {
         }
     };
 
+    const handleShare = async () => {
+        if (!post) return;
+
+        const shareData = {
+            title: post.title,
+            text: `Check out this article from Fantom eSport: "${post.title}"`,
+            url: window.location.href,
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (error) {
+                // Silently fail if user cancels share dialog
+                if ((error as DOMException).name !== 'AbortError') {
+                    console.error('Error sharing:', error);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: 'Could not share the post.',
+                    });
+                }
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                toast({ title: 'Link copied to clipboard!' });
+            } catch (error) {
+                console.error('Error copying to clipboard:', error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Could not copy link to clipboard.',
+                });
+            }
+        }
+    };
+
 
     if (loading) {
         return (
@@ -456,7 +494,7 @@ export default function BlogPostPage() {
                             <span>{totalCommentsAndReplies} Comments</span>
                         </div>
                     </div>
-                     <Button variant="outline" size="sm"><Share2 className="mr-2 h-4 w-4" /> Share</Button>
+                     <Button variant="outline" size="sm" onClick={handleShare}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
                 </div>
                  
                  <Separator className="my-8 bg-border/20" />
