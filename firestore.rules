@@ -1,58 +1,58 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check if a user is the admin
+
+    // Helper functions
     function isAdmin() {
       return request.auth != null && request.auth.token.email == 'fortunedomination@gmail.com';
     }
 
-    // Helper function to check if a user is authenticated
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    // Helper function to check if the user is the owner of a document
-    function isOwner(resource) {
-        return request.auth.uid == resource.data.authorId;
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
 
-    // Rules for main content collections
-    // Allow public read, but only admin write.
-    match /{collectionName}/{docId}
-    where collectionName in ['blogPosts', 'roster', 'announcements', 'games', 'heroImages', 'timelineEvents', 'coreValues', 'galleryImages', 'siteSettings', 'pageContent'] {
+    // Default deny all reads/writes unless specified below
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Allow admins to read and write to all these collections
+    match /(blogPosts|roster|announcements|games|heroImages|timelineEvents|coreValues|galleryImages|siteSettings|pageContent)/{document} {
       allow read: if true;
       allow write: if isAdmin();
     }
     
-    // Rules for blog post likes and comments
+    // Blog Post Comments and Replies
     match /blogPosts/{postId} {
-        // Likes on a post can be updated by any signed-in user.
-        // We only check for auth, the logic to add/remove a like is in the client code.
-        allow update: if isSignedIn();
+      // Anyone can read the post itself (covered by the rule above)
+      
+      // Comments subcollection
+      match /comments/{commentId} {
+        allow read: if true;
+        // Any signed-in user can create a comment
+        allow create: if isSignedIn();
+        // Only the user who created the comment or an admin can delete it
+        allow delete: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
+        // Any signed-in user can like/unlike a comment (update the likes array)
+        allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
 
-        // Rules for comments on a specific blog post
-        match /comments/{commentId} {
-            allow read: if true;
-            // Any signed-in user can create a comment.
-            allow create: if isSignedIn();
-            // Likes on comments can be updated by any signed-in user.
-            // A user can delete their own comment, or an admin can delete any comment.
-            allow update: if isSignedIn();
-            allow delete: if isAdmin() || isOwner(resource);
-
-            // Rules for replies to a specific comment
-            match /replies/{replyId} {
-                 allow read: if true;
-                 // Any signed-in user can create a reply.
-                 allow create: if isSignedIn();
-                 // Likes on replies can be updated by any signed-in user.
-                 // A user can delete their own reply, or an admin can delete any reply.
-                 allow update: if isSignedIn();
-                 allow delete: if isAdmin() || isOwner(resource);
-            }
+        // Replies subcollection within a comment
+        match /replies/{replyId} {
+          allow read: if true;
+          // Any signed-in user can create a reply
+          allow create: if isSignedIn();
+          // Only the user who created the reply or an admin can delete it
+          allow delete: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
+           // Any signed-in user can like/unlike a reply (update the likes array)
+          allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
         }
+      }
     }
   }
 }
