@@ -128,10 +128,10 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header />
       <main className="flex-grow">
         {/* Hero Section */}
-        <section id="hero" className="relative h-[60vh] md:h-[80vh] flex items-center justify-center text-center bg-black">
+        <section id="hero" className="relative h-screen flex items-center justify-center text-center bg-black">
+          <Header />
           {heroLoading ? (
             <Skeleton className="w-full h-full" />
           ) : (
@@ -146,8 +146,8 @@ export default function Home() {
             >
                 <CarouselContent>
                     {heroImages.map((image, index) => (
-                        <CarouselItem key={image.id}>
-                            <div className="w-full h-[60vh] md:h-[80vh] relative">
+                        <CarouselItem key={image.id} className="h-screen">
+                            <div className="w-full h-full relative">
                                 <Image
                                     src={image.src}
                                     alt={image.alt}

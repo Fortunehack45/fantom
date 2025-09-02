@@ -61,8 +61,14 @@ export function Header() {
     { href: "/about", label: "About" },
   ];
 
+  const isHomePage = pathname === '/';
+  const headerClasses = isHomePage
+    ? "absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/70 to-transparent"
+    : "sticky top-0 z-50 w-full border-b border-b-primary/20 bg-background/80 backdrop-blur-sm";
+
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-b-primary/20 bg-background/80 backdrop-blur-sm">
+    <header className={headerClasses}>
       <div className="container mx-auto flex h-20 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-3xl font-bold uppercase text-white tracking-widest font-headline">Fantom eSport</span>
