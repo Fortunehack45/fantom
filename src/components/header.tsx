@@ -76,6 +76,7 @@ export function Header() {
     { href: "/", label: "Home" },
     { href: "/blog", label: "News" },
     { href: "/roster", label: "Roster" },
+    { href: "/announcements", label: "Announcements" },
     { href: "/about", label: "About" },
   ];
 

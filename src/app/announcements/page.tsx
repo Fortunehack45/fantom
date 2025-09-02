@@ -9,6 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Footer } from '@/components/footer';
+import { MessageSquare } from 'lucide-react';
 
 interface Announcement {
     id: string;
@@ -63,6 +64,14 @@ export default function AnnouncementsPage() {
                         </div>
                     </Card>
                 ))}
+            </div>
+        ) : announcements.length === 0 ? (
+            <div className="text-center py-16">
+                <div className="mx-auto bg-primary/10 rounded-full h-24 w-24 flex items-center justify-center">
+                    <MessageSquare className="h-12 w-12 text-primary" />
+                </div>
+                <h2 className="mt-6 text-2xl font-headline font-bold">No Announcements Yet</h2>
+                <p className="mt-2 text-muted-foreground">Check back later for the latest updates!</p>
             </div>
         ) : (
              <div className="space-y-6 max-w-3xl mx-auto">

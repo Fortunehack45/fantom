@@ -9,9 +9,9 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { Newspaper } from 'lucide-react';
 import { Footer } from '@/components/footer';
 
 interface BlogPost {
@@ -53,6 +53,24 @@ export default function BlogPage() {
         <p>Loading posts...</p>
       </div>
     );
+  }
+  
+  if (blogPosts.length === 0) {
+      return (
+         <div className="flex flex-col min-h-screen bg-background text-foreground">
+          <Header />
+            <main className="flex-grow flex items-center justify-center">
+                 <div className="text-center py-16">
+                    <div className="mx-auto bg-primary/10 rounded-full h-24 w-24 flex items-center justify-center">
+                        <Newspaper className="h-12 w-12 text-primary" />
+                    </div>
+                    <h2 className="mt-6 text-2xl font-headline font-bold">No Articles Found</h2>
+                    <p className="mt-2 text-muted-foreground">There are no news articles yet. Please check back later!</p>
+                </div>
+            </main>
+          <Footer />
+        </div>
+      )
   }
 
   const featuredPost = blogPosts[0];
