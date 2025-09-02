@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ interface HeroImage { id: string; src: string; alt: string; hint: string; }
 interface TimelineEvent { id: string; year: string; title: string; description: string; }
 interface CoreValue { id: string; title: string; description: string; }
 interface GalleryImage { id: string; src: string; alt: string; hint: string; }
+interface FooterSettings { twitterUrl?: string; discordUrl?: string; youtubeUrl?: string; twitchUrl?: string; developerName?: string; developerUrl?: string;}
 
 // Union type for all editable items
 type EditableItem = BlogPost | RosterMember | Announcement | Game | HeroImage | TimelineEvent | CoreValue | GalleryImage;
@@ -42,6 +43,8 @@ export default function AdminPage() {
     const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
     const [coreValues, setCoreValues] = useState<CoreValue[]>([]);
     const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+    const [footerSettings, setFooterSettings] = useState<FooterSettings>({ twitterUrl: '', discordUrl: '', youtubeUrl: '', twitchUrl: '', developerName: '', developerUrl: ''});
+
 
     const [newPost, setNewPost] = useState({ title: '', content: '', imageUrl: '', category: 'News' });
     const [newMember, setNewMember] = useState({ name: '', rank: '', game: '', role: '', server: '', avatarUrl: '' });
@@ -82,7 +85,21 @@ export default function AdminPage() {
         fetchData<TimelineEvent>("timelineEvents", setTimelineEvents, query(collection(db, "timelineEvents"), orderBy("year", "asc")));
         fetchData<CoreValue>("coreValues", setCoreValues);
         fetchData<GalleryImage>("galleryImages", setGalleryImages);
+        fetchFooterSettings();
     }
+    
+    const fetchFooterSettings = async () => {
+        try {
+            const docRef = doc(db, "siteSettings", "footer");
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                setFooterSettings(docSnap.data() as FooterSettings);
+            }
+        } catch (error) {
+            console.error("Error fetching footer settings:", error);
+            toast({ variant: "destructive", title: "Error", description: "Could not fetch site settings." });
+        }
+    };
     
     // Generic Add Function
     const handleAddItem = async (e: React.FormEvent, collectionName: string, newItem: any, resetter: () => void) => {
@@ -171,6 +188,17 @@ export default function AdminPage() {
         }
     };
 
+    // Site Settings Handler
+    const handleUpdateFooterSettings = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await setDoc(doc(db, "siteSettings", "footer"), footerSettings, { merge: true });
+            toast({ title: "Success", description: "Site settings updated successfully." });
+        } catch (error) {
+            toast({ variant: "destructive", title: "Error", description: "Failed to update site settings." });
+        }
+    };
+
     // Generic Delete Function
     const handleDeleteItem = async () => {
         if (!deletingItem) return;
@@ -250,15 +278,23 @@ export default function AdminPage() {
             <DialogFooter><Button onClick={() => handleUpdateItem('games')}>Save Changes</Button></DialogFooter>
         </>;
     }
-    if ('src' in editingItem) { // HeroImage or GalleryImage
-        return <>
-            <div className="space-y-2"><Label>Image URL</Label><Input value={editingItem.src} onChange={e => setEditingItem({ ...editingItem, src: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Alt Text</Label><Input value={editingItem.alt} onChange={e => setEditingItem({ ...editingItem, alt: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Image Hint</Label><Input value={editingItem.hint} onChange={e => setEditingItem({ ...editingItem, hint: e.target.value })} /></div>
-            <DialogFooter>
-              <Button onClick={() => handleUpdateItem('galleryImages' in editingItem ? 'galleryImages' : 'heroImages')}>Save Changes</Button>
-            </DialogFooter>
-        </>;
+    if ('src' in editingItem && 'alt' in editingItem && 'hint' in editingItem) { // Could be HeroImage or GalleryImage. We need a way to distinguish.
+        const collectionName = 'alt' in editingItem && editingItem.alt.includes('slide') ? 'heroImages' : 'galleryImages';
+         if ('alt' in editingItem && editingItem.alt.includes('slide')) { // Hero Image
+            return <>
+                <div className="space-y-2"><Label>Image URL</Label><Input value={editingItem.src} onChange={e => setEditingItem({ ...editingItem, src: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Alt Text</Label><Input value={editingItem.alt} onChange={e => setEditingItem({ ...editingItem, alt: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Image Hint</Label><Input value={editingItem.hint} onChange={e => setEditingItem({ ...editingItem, hint: e.target.value })} /></div>
+                <DialogFooter><Button onClick={() => handleUpdateItem('heroImages')}>Save Changes</Button></DialogFooter>
+            </>;
+        } else { // Gallery Image
+             return <>
+                <div className="space-y-2"><Label>Image URL</Label><Input value={editingItem.src} onChange={e => setEditingItem({ ...editingItem, src: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Alt Text</Label><Input value={editingItem.alt} onChange={e => setEditingItem({ ...editingItem, alt: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Image Hint</Label><Input value={editingItem.hint} onChange={e => setEditingItem({ ...editingItem, hint: e.target.value })} /></div>
+                <DialogFooter><Button onClick={() => handleUpdateItem('galleryImages')}>Save Changes</Button></DialogFooter>
+            </>;
+        }
     }
      if ('year' in editingItem) { // TimelineEvent
         return <>
@@ -318,15 +354,16 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="blog" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
-            <TabsTrigger value="blog">Blog Posts</TabsTrigger>
-            <TabsTrigger value="roster">Clan Roster</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-9">
+            <TabsTrigger value="blog">Blog</TabsTrigger>
+            <TabsTrigger value="roster">Roster</TabsTrigger>
             <TabsTrigger value="announcements">Announcements</TabsTrigger>
             <TabsTrigger value="games">Games</TabsTrigger>
-            <TabsTrigger value="hero">Hero Images</TabsTrigger>
+            <TabsTrigger value="hero">Hero</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
-            <TabsTrigger value="values">Core Values</TabsTrigger>
+            <TabsTrigger value="values">Values</TabsTrigger>
             <TabsTrigger value="gallery">Gallery</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
           
           <TabsContent value="blog">
@@ -592,6 +629,46 @@ export default function AdminPage() {
                       </div>
                   </CardContent>
               </Card>
+          </TabsContent>
+           <TabsContent value="settings">
+              <Card className="bg-card mt-6">
+                <CardHeader><CardTitle>Manage Site Settings</CardTitle><CardDescription>Update global settings like footer links.</CardDescription></CardHeader>
+                <CardContent>
+                    <form className="space-y-6 max-w-2xl" onSubmit={handleUpdateFooterSettings}>
+                        <h3 className="text-lg font-semibold border-b pb-2">Footer Settings</h3>
+                         <div className="space-y-2">
+                            <Label htmlFor="developer-name">Developer Name</Label>
+                            <Input id="developer-name" value={footerSettings.developerName} onChange={(e) => setFooterSettings({ ...footerSettings, developerName: e.target.value })} placeholder="e.g., Fourtuna" />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="developer-url">Developer URL</Label>
+                            <Input id="developer-url" value={footerSettings.developerUrl} onChange={(e) => setFooterSettings({ ...footerSettings, developerUrl: e.target.value })} placeholder="https://..." />
+                        </div>
+                        
+                        <h4 className="text-md font-semibold pt-4">Social Media Links</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="twitter-url">Twitter URL</Label>
+                                <Input id="twitter-url" value={footerSettings.twitterUrl} onChange={(e) => setFooterSettings({ ...footerSettings, twitterUrl: e.target.value })} placeholder="https://twitter.com/..." />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="discord-url">Discord URL</Label>
+                                <Input id="discord-url" value={footerSettings.discordUrl} onChange={(e) => setFooterSettings({ ...footerSettings, discordUrl: e.target.value })} placeholder="https://discord.gg/..." />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="youtube-url">YouTube URL</Label>
+                                <Input id="youtube-url" value={footerSettings.youtubeUrl} onChange={(e) => setFooterSettings({ ...footerSettings, youtubeUrl: e.target.value })} placeholder="https://youtube.com/..." />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="twitch-url">Twitch URL</Label>
+                                <Input id="twitch-url" value={footerSettings.twitchUrl} onChange={(e) => setFooterSettings({ ...footerSettings, twitchUrl: e.target.value })} placeholder="https://twitch.tv/..." />
+                            </div>
+                        </div>
+
+                        <Button type="submit" variant="primary">Save Settings</Button>
+                    </form>
+                </CardContent>
+            </Card>
           </TabsContent>
 
         </Tabs>

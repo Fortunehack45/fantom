@@ -10,7 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, X, LogOut, Shield } from "lucide-react";
+import { Menu, X, LogOut, Shield, User as UserIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
@@ -109,6 +109,12 @@ export function Header() {
                           </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                            <Link href="/profile">
+                               <UserIcon className="mr-2 h-4 w-4" />
+                               <span>Profile</span>
+                            </Link>
+                        </DropdownMenuItem>
                        {user.email === ADMIN_EMAIL && (
                         <DropdownMenuItem asChild>
                             <Link href="/admin">
@@ -177,6 +183,11 @@ export function Header() {
                     </Button>
                     {user ? (
                       <>
+                        <Link href="/profile" className="w-full">
+                            <Button variant="secondary" size="lg" className="w-full">
+                                Profile
+                            </Button>
+                        </Link>
                         {user.email === ADMIN_EMAIL && (
                             <Link href="/admin" className="w-full">
                                 <Button variant="secondary" size="lg" className="w-full">
