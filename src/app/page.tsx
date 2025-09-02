@@ -61,47 +61,65 @@ interface HeroImage {
   hint: string;
 }
 
+const defaultHeroImages: HeroImage[] = [
+  { id: '1', src: 'https://i.pinimg.com/736x/57/00/02/570002ab712a71a1c96c81a26a4e1276.jpg', alt: 'Gamer with headphones in a dark room', hint: 'gamer headphones dark' },
+  { id: '2', src: 'https://i.pinimg.com/736x/fc/f6/4a/fcf64a71486e246ade88836fb1d60852.jpg', alt: 'Futuristic soldier overlooking a battlefield', hint: 'futuristic soldier battlefield' },
+];
+
+
 export default function Home() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [roster, setRoster] = useState<RosterMember[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [games, setGames] = useState<Game[]>([]);
+  const [heroImages, setHeroImages] = useState<HeroImage[]>(defaultHeroImages);
   const [loading, setLoading] = useState(true);
+  const [heroLoading, setHeroLoading] = useState(true);
 
   useEffect(() => {
     const fetchAllData = async () => {
         setLoading(true);
+        setHeroLoading(true);
+
         try {
             const blogQuery = query(collection(db, "blogPosts"), orderBy("date", "desc"), limit(3));
             const rosterQuery = query(collection(db, "roster"), limit(5));
             const announcementsQuery = query(collection(db, "announcements"), orderBy("date", "desc"), limit(3));
             const gamesQuery = collection(db, "games");
+            const heroImagesQuery = collection(db, "heroImages");
 
             const [
                 blogSnapshot,
                 rosterSnapshot,
                 announcementsSnapshot,
                 gamesSnapshot,
+                heroImagesSnapshot,
             ] = await Promise.all([
                 getDocs(blogQuery),
                 getDocs(rosterQuery),
                 getDocs(announcementsQuery),
                 getDocs(gamesQuery),
+                getDocs(heroImagesQuery),
             ]);
 
             const postsData: BlogPost[] = blogSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
             const rosterData: RosterMember[] = rosterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RosterMember));
             const announcementsData: Announcement[] = announcementsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
             const gamesData: Game[] = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
+            const heroImagesData: HeroImage[] = heroImagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HeroImage));
 
             setBlogPosts(postsData);
             setRoster(rosterData);
             setAnnouncements(announcementsData);
             setGames(gamesData);
+            if (heroImagesData.length > 0) {
+              setHeroImages(heroImagesData);
+            }
         } catch (error) {
             console.error("Error fetching homepage data:", error);
         } finally {
             setLoading(false);
+            setHeroLoading(false);
         }
     };
 
@@ -113,25 +131,47 @@ export default function Home() {
       <Header />
       <main className="flex-grow">
         {/* Hero Section */}
-        <section id="hero" className="relative aspect-[16/9] flex items-center justify-center text-center bg-black">
-            <Image
-                src="https://i.pinimg.com/736x/57/00/02/570002ab712a71a1c96c81a26a4e1276.jpg"
-                alt="Gamer with headphones in a dark room"
-                fill
-                sizes="100vw"
-                className="object-cover w-full h-full"
-                data-ai-hint="gamer headphones dark"
-                priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-            <div className="relative z-10 container mx-auto px-4 flex flex-col items-center">
-                 <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
-                    Fantom
-                </h1>
-                <p className="mt-2 text-2xl text-muted-foreground uppercase font-bold tracking-widest">
-                    Dominance is our creed
-                </p>
-            </div>
+        <section id="hero" className="relative h-[60vh] md:h-[80vh] flex items-center justify-center text-center bg-black">
+          {heroLoading ? (
+            <Skeleton className="w-full h-full" />
+          ) : (
+            <Carousel
+                className="w-full h-full"
+                plugins={[
+                    Autoplay({
+                        delay: 5000,
+                    }),
+                ]}
+                opts={{ loop: true }}
+            >
+                <CarouselContent>
+                    {heroImages.map((image, index) => (
+                        <CarouselItem key={image.id}>
+                            <div className="w-full h-[60vh] md:h-[80vh] relative">
+                                <Image
+                                    src={image.src}
+                                    alt={image.alt}
+                                    fill
+                                    sizes="100vw"
+                                    className="object-cover w-full h-full opacity-70"
+                                    data-ai-hint={image.hint}
+                                    priority={index === 0}
+                                />
+                            </div>
+                        </CarouselItem>
+                    ))}
+                </CarouselContent>
+            </Carousel>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+          <div className="relative z-10 container mx-auto px-4 flex flex-col items-center">
+               <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
+                  Fantom
+              </h1>
+              <p className="mt-2 text-2xl text-muted-foreground uppercase font-bold tracking-widest">
+                  Dominance is our creed
+              </p>
+          </div>
         </section>
         
         <div className="bg-background/80 backdrop-blur-sm">
