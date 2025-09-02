@@ -138,7 +138,7 @@ export default function Home() {
             <Skeleton className="w-full h-full" />
           ) : (
             <Carousel
-                className="w-full h-full"
+                className="absolute inset-0 w-full h-full"
                 plugins={[
                     Autoplay({
                         delay: 5000,
@@ -147,10 +147,10 @@ export default function Home() {
                 ]}
                 opts={{ loop: true }}
             >
-                <CarouselContent>
+                <CarouselContent className="w-full h-full">
                     {heroImages.map((image, index) => (
-                        <CarouselItem key={image.id}>
-                            <div className="w-full h-[75vh] relative">
+                        <CarouselItem key={image.id} className="w-full h-full">
+                            <div className="w-full h-full relative">
                                 <Image
                                     src={image.src}
                                     alt={image.alt}
@@ -391,5 +391,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
