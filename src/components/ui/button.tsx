@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -44,14 +45,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
 
-    const Shine = () => (
-      <div className="pointer-events-none absolute -inset-px rounded-md opacity-0 transition-opacity duration-300 group-hover:opacity-100" 
-           style={{
-              background: 'radial-gradient(400px circle at var(--x) var(--y), hsl(var(--primary) / 0.4), transparent 40%)'
-           }}
-      />
-    );
-
     const onMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
         const rect = e.currentTarget.getBoundingClientRect();
         e.currentTarget.style.setProperty('--x', `${e.clientX - rect.left}px`);
@@ -66,7 +59,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {props.children}
-        {variant === 'primary' && <Shine />}
+        {variant === 'primary' && (
+           <div className="pointer-events-none absolute -inset-px rounded-md opacity-0 transition-opacity duration-300 group-hover:opacity-100" 
+           style={{
+              background: 'radial-gradient(400px circle at var(--x) var(--y), hsl(var(--primary) / 0.4), transparent 40%)'
+           }}
+          />
+        )}
       </Comp>
     )
   }
