@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -8,41 +9,57 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email == 'fortunedomination@gmail.com';
     }
 
-    // Helper function to check if a user is authenticated
-    function isSignedIn() {
+    // Helper function to check if the user is authenticated
+    function isAuthenticated() {
       return request.auth != null;
     }
-    
-    // Site content collections (blog, roster, etc.)
-    // Allow public read for all, but only admin write.
-    match /{collection}/{docId} where collection in ['blogPosts', 'roster', 'announcements', 'games', 'heroImages', 'timelineEvents', 'coreValues', 'galleryImages', 'siteSettings'] {
-      allow read: if true;
-      allow write: if isAdmin();
+
+    // Helper function to check if the user is the owner of a document
+    function isOwner(resource) {
+      return isAuthenticated() && request.auth.uid == resource.data.authorId;
     }
 
-    // Comments on blog posts
-    match /blogPosts/{postId}/comments/{commentId} {
+    // Blog posts are readable by everyone, but only the admin can create, update, or delete them.
+    match /blogPosts/{postId} {
       allow read: if true;
-      
-      // Allow logged-in users to create comments.
-      // Allow the author of the comment or an admin to delete it.
-      // Allow logged-in users to update (e.g., like) a comment.
-      allow create: if isSignedIn();
-      allow delete: if isAdmin() || (isSignedIn() && request.resource.data.authorId == request.auth.uid);
-      allow update: if isSignedIn();
-      
-      // Replies to comments
-      match /replies/{replyId} {
-         allow read: if true;
-         allow create: if isSignedIn();
-         allow delete: if isAdmin() || (isSignedIn() && request.resource.data.authorId == request.auth.uid);
-         allow update: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+
+      // Comments on blog posts
+      match /comments/{commentId} {
+        // Anyone can read comments.
+        allow read: if true;
+        // Only authenticated users can create comments.
+        allow create: if isAuthenticated();
+        // Only the author of the comment or an admin can delete it.
+        allow delete: if isOwner(resource) || isAdmin();
+        // Liking is an update operation. Authenticated users can update likes.
+        allow update: if isAuthenticated();
+
+        // Replies to comments
+        match /replies/{replyId} {
+           // Anyone can read replies.
+          allow read: if true;
+          // Only authenticated users can create replies.
+          allow create: if isAuthenticated();
+          // Only the author of the reply or an admin can delete it.
+          allow delete: if isOwner(resource) || isAdmin();
+          // Liking is an update operation. Authenticated users can update likes.
+          allow update: if isAuthenticated();
+        }
       }
     }
+
+    // All these collections follow the same rule:
+    // Readable by everyone, but writable only by the admin.
+    match /(roster|announcements|games|heroImages|timelineEvents|coreValues|galleryImages)/{docId} {
+       allow read: if true;
+       allow write: if isAdmin();
+    }
     
-    // Default deny for any other collections/paths not specified above.
-    match /{document=**} {
-      allow read, write: if false;
+    // Site settings are also readable by everyone, but only writable by the admin.
+    match /siteSettings/{docId} {
+       allow read: if true;
+       allow write: if isAdmin();
     }
   }
 }
