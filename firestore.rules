@@ -6,51 +6,44 @@ service cloud.firestore {
 
     // Helper functions
     function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'fortunedomination@gmail.com';
+      return request.auth.token.email == 'fortunedomination@gmail.com';
+    }
+    
+    function isOwner(resource) {
+      return request.auth.uid == resource.data.authorId;
     }
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    // Default deny all reads/writes unless specified below
+    // Default deny all reads/writes
     match /{document=**} {
       allow read, write: if false;
     }
-
-    // Allow admins to read and write to all these collections
-    match /(blogPosts|roster|announcements|games|heroImages|timelineEvents|coreValues|galleryImages|siteSettings|pageContent)/{document} {
+    
+    // Allow public read for all main content collections
+    match /(blogPosts|roster|announcements|games|heroImages|timelineEvents|coreValues|galleryImages|siteSettings)/{id} {
       allow read: if true;
       allow write: if isAdmin();
     }
     
     // Blog Post Comments and Replies
     match /blogPosts/{postId} {
-      // Anyone can read the post itself (covered by the rule above)
-      
-      // Comments subcollection
+      // Allow read for the post itself (covered by the rule above)
+      allow read: if true;
+
+      // Rules for the 'comments' subcollection
       match /comments/{commentId} {
         allow read: if true;
-        // Any signed-in user can create a comment
         allow create: if isSignedIn();
-        // Only the user who created the comment or an admin can delete it
-        allow delete: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
-        // Any signed-in user can like/unlike a comment (update the likes array)
-        allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
+        allow update, delete: if isOwner(resource) || isAdmin();
 
-        // Replies subcollection within a comment
+        // Rules for the 'replies' sub-subcollection
         match /replies/{replyId} {
           allow read: if true;
-          // Any signed-in user can create a reply
           allow create: if isSignedIn();
-          // Only the user who created the reply or an admin can delete it
-          allow delete: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
-           // Any signed-in user can like/unlike a reply (update the likes array)
-          allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
+          allow update, delete: if isOwner(resource) || isAdmin();
         }
       }
     }
