@@ -4,7 +4,7 @@
 import { Header } from "@/components/header";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Award } from "lucide-react";
+import { CheckCircle, Award, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -15,6 +15,7 @@ interface TimelineEvent {
     year: string;
     title: string;
     description: string;
+    position: number;
 }
 
 interface CoreValue {
@@ -83,7 +84,7 @@ export default function AboutPage() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const timelineQuery = query(collection(db, "timelineEvents"), orderBy("year", "asc"));
+                const timelineQuery = query(collection(db, "timelineEvents"), orderBy("position", "asc"));
                 const valuesQuery = query(collection(db, "coreValues"));
                 const galleryQuery = query(collection(db, "galleryImages"));
                 const contentDocRef = doc(db, "pageContent", "about");
@@ -100,7 +101,6 @@ export default function AboutPage() {
                 const galleryData: GalleryImage[] = gallerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
                 
                 if (contentDocSnap.exists()) {
-                    // Merge fetched data with defaults to avoid missing fields
                     setPageContent({ ...defaultContent, ...contentDocSnap.data() });
                 }
                 
@@ -214,25 +214,27 @@ export default function AboutPage() {
                      {loading ? (
                         <div className="text-center"><p>Loading timeline...</p></div>
                     ) : (
-                    <div className="relative">
-                        <div className="absolute left-1/2 h-full w-0.5 bg-primary/20 -translate-x-1/2"></div>
+                    <div className="relative max-w-2xl mx-auto">
+                        <div className="absolute left-1/2 h-full w-0.5 bg-primary/20 -translate-x-1/2" />
                         {timelineEvents.map((event, index) => (
-                           <div key={index} className={`flex items-center w-full mb-8 ${index % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
-                                <div className={`w-1/2 ${index % 2 === 0 ? 'pr-8' : 'pl-8'}`}>
+                           <div key={event.id} className="relative mb-12">
+                               <div className={`absolute left-1/2 -translate-x-1/2 w-6 h-6 bg-background border-2 border-primary rounded-full flex items-center justify-center`}>
+                                   <Calendar className="h-3 w-3 text-primary" />
+                               </div>
+                               <div className={`w-[calc(50%-2rem)] ${index % 2 === 0 ? 'float-left text-right' : 'float-right text-left ml-auto'}`}>
                                     <Card className="transform hover:-translate-y-1 transition-transform duration-300">
                                          <CardHeader>
-                                            <div className={`flex items-center ${index % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
-                                               <p className={`text-lg font-headline font-bold text-primary ${index % 2 === 0 ? 'order-2 ml-4' : 'order-1 mr-4'}`}>{event.year}</p>
-                                               <h3 className={`text-xl font-bold ${index % 2 === 0 ? 'order-1 text-right' : 'text-left'}`}>{event.title}</h3>
-                                            </div>
+                                             <p className="text-lg font-headline font-bold text-primary">{event.year}</p>
+                                             <h3 className="text-xl font-bold">{event.title}</h3>
                                          </CardHeader>
-                                         <CardContent className={`${index % 2 === 0 ? 'text-right' : 'text-left'}`}>
+                                         <CardContent>
                                             <p className="text-muted-foreground">{event.description}</p>
                                          </CardContent>
                                     </Card>
-                                </div>
+                               </div>
                            </div>
                         ))}
+                         <div className="clear-both" />
                     </div>
                     )}
                 </div>
@@ -302,4 +304,3 @@ export default function AboutPage() {
     </div>
   );
 }
-

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, setDoc, getDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
@@ -25,7 +25,7 @@ interface RosterMember { id: string; name: string; rank: string; game: string; r
 interface Announcement { id: string; author: string; authorImageUrl?: string; content: string; }
 interface Game { id: string; name: string; imageUrl: string; hint: string; }
 interface HeroImage { id: string; src: string; alt: string; hint: string; }
-interface TimelineEvent { id: string; year: string; title: string; description: string; }
+interface TimelineEvent { id: string; year: string; title: string; description: string; position: number; }
 interface CoreValue { id: string; title: string; description: string; }
 interface GalleryImage { id: string; src: string; alt: string; hint: string; }
 interface SiteSettings { twitterUrl?: string; discordUrl?: string; youtubeUrl?: string; twitchUrl?: string; developerName?: string; developerUrl?: string; recruitmentUrl?: string; }
@@ -98,7 +98,7 @@ export default function AdminPage() {
         fetchData<Announcement>("announcements", setAnnouncements, query(collection(db, "announcements"), orderBy("date", "desc")));
         fetchData<Game>("games", setGames);
         fetchData<HeroImage>("heroImages", setHeroImages);
-        fetchData<TimelineEvent>("timelineEvents", setTimelineEvents, query(collection(db, "timelineEvents"), orderBy("year", "asc")));
+        fetchData<TimelineEvent>("timelineEvents", setTimelineEvents, query(collection(db, "timelineEvents"), orderBy("position", "asc")));
         fetchData<CoreValue>("coreValues", setCoreValues);
         fetchData<GalleryImage>("galleryImages", setGalleryImages);
         fetchSiteSettings();
@@ -213,6 +213,55 @@ export default function AdminPage() {
             } catch (error) {
                 toast({ variant: "destructive", title: "Error", description: "Could not add announcement." });
             }
+        }
+    };
+    
+    const handleAddTimelineEvent = async (e: React.FormEvent) => {
+        e.preventDefault();
+         if (newTimelineEvent.year && newTimelineEvent.title && newTimelineEvent.description) {
+            try {
+                const newPosition = timelineEvents.length > 0 ? Math.max(...timelineEvents.map(e => e.position)) + 1 : 0;
+                await addDoc(collection(db, "timelineEvents"), {
+                    ...newTimelineEvent,
+                    position: newPosition,
+                });
+                setNewTimelineEvent({ year: '', title: '', description: '' });
+                fetchAllData();
+                toast({ title: "Success", description: "Timeline event added." });
+            } catch (error) {
+                 toast({ variant: "destructive", title: "Error", description: "Could not add timeline event." });
+            }
+        }
+    };
+
+    const handleMoveTimelineEvent = async (index: number, direction: 'up' | 'down') => {
+        const events = [...timelineEvents];
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+
+        if (newIndex < 0 || newIndex >= events.length) return;
+
+        // Swap positions in the array first for immediate UI feedback
+        const temp = events[index];
+        events[index] = events[newIndex];
+        events[newIndex] = temp;
+        
+        // Update position numbers
+        const updatedEvents = events.map((event, idx) => ({ ...event, position: idx }));
+        setTimelineEvents(updatedEvents);
+
+        try {
+            const batch = writeBatch(db);
+            updatedEvents.forEach(event => {
+                const docRef = doc(db, 'timelineEvents', event.id);
+                batch.update(docRef, { position: event.position });
+            });
+            await batch.commit();
+            toast({ title: "Success", description: "Timeline order updated." });
+            // No need to fetchAllData() because we updated state locally for instant feedback
+        } catch (error) {
+            console.error("Error reordering timeline:", error);
+            toast({ variant: "destructive", title: "Error", description: "Could not reorder timeline. Reverting changes." });
+            fetchAllData(); // Revert local state on error
         }
     };
 
@@ -553,17 +602,19 @@ export default function AdminPage() {
                       {/* Timeline Management */}
                       <div className="p-4 border rounded-lg">
                           <h3 className="text-lg font-semibold mb-4 border-b pb-2">Timeline Events</h3>
-                           <form className="space-y-4 mb-6" onSubmit={(e) => handleAddItem(e, 'timelineEvents', newTimelineEvent, () => setNewTimelineEvent({ year: '', title: '', description: '' }))}>
+                           <form className="space-y-4 mb-6" onSubmit={handleAddTimelineEvent}>
                                   <div><Label>Year</Label><Input value={newTimelineEvent.year} onChange={(e) => setNewTimelineEvent({ ...newTimelineEvent, year: e.target.value })} required /></div>
                                   <div><Label>Title</Label><Input value={newTimelineEvent.title} onChange={(e) => setNewTimelineEvent({ ...newTimelineEvent, title: e.target.value })} required /></div>
                                   <div><Label>Description</Label><Textarea value={newTimelineEvent.description} onChange={(e) => setNewTimelineEvent({ ...newTimelineEvent, description: e.target.value })} required /></div>
                                   <Button variant="secondary" type="submit" size="sm">Add Event</Button>
                             </form>
                            <div className="space-y-2 max-h-60 overflow-y-auto pr-4">
-                                {timelineEvents.map((event) => (
+                                {timelineEvents.map((event, index) => (
                                     <div key={event.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg text-sm">
-                                        <span>{event.year} - {event.title}</span>
-                                        <div className="flex gap-2">
+                                        <span className="truncate pr-2">{event.year} - {event.title}</span>
+                                        <div className="flex gap-1">
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMoveTimelineEvent(index, 'up')} disabled={index === 0}><ArrowUp className="h-4 w-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMoveTimelineEvent(index, 'down')} disabled={index === timelineEvents.length - 1}><ArrowDown className="h-4 w-4"/></Button>
                                             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => openEditModal(event, 'timelineEvents')}><Edit className="h-4 w-4"/></Button>
                                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeletingItem({collectionName: 'timelineEvents', id: event.id})}><Trash2 className="h-4 w-4" /></Button>
                                         </div>
@@ -744,5 +795,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-    
