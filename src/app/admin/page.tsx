@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,11 @@ import { Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
-interface BlogPost { id: string; title: string; content: string; imageUrl?: string; }
+
+interface BlogPost { id: string; title: string; content: string; imageUrl?: string; category: string; }
 interface RosterMember { id: string; name: string; rank: string; game: string; role: string; server: string; avatarUrl?: string; }
 interface Announcement { id: string; author: string; authorImageUrl?: string; content: string; }
 interface Game { id: string; name: string; imageUrl: string; hint: string; }
@@ -26,6 +29,8 @@ interface TimelineEvent { id: string; year: string; title: string; description: 
 interface CoreValue { id: string; title: string; description: string; }
 interface GalleryImage { id: string; src: string; alt: string; hint: string; }
 
+// Union type for all editable items
+type EditableItem = BlogPost | RosterMember | Announcement | Game | HeroImage | TimelineEvent | CoreValue | GalleryImage;
 
 export default function AdminPage() {
     const { toast } = useToast();
@@ -47,8 +52,12 @@ export default function AdminPage() {
     const [newCoreValue, setNewCoreValue] = useState({ title: '', description: '' });
     const [newGalleryImage, setNewGalleryImage] = useState({ src: '', alt: '', hint: '' });
 
-    // Generic fetch function
-    const fetchData = async <T>(collectionName: string, setData: React.Dispatch<React.SetStateAction<T[]>>, q?: any) => {
+    const [editingItem, setEditingItem] = useState<EditableItem | null>(null);
+    const [deletingItem, setDeletingItem] = useState<{ collectionName: string, id: string } | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+
+    const fetchData = async <T extends {id: string}>(collectionName: string, setData: React.Dispatch<React.SetStateAction<T[]>>, q?: any) => {
         try {
             const querySnapshot = await getDocs(q || collection(db, collectionName));
             const data: T[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
@@ -59,7 +68,12 @@ export default function AdminPage() {
         }
     };
     
+    // Initial data fetch
     useEffect(() => {
+        fetchAllData();
+    }, []);
+
+    const fetchAllData = () => {
         fetchData<BlogPost>("blogPosts", setBlogPosts, query(collection(db, "blogPosts"), orderBy("date", "desc")));
         fetchData<RosterMember>("roster", setRoster);
         fetchData<Announcement>("announcements", setAnnouncements, query(collection(db, "announcements"), orderBy("date", "desc")));
@@ -68,10 +82,10 @@ export default function AdminPage() {
         fetchData<TimelineEvent>("timelineEvents", setTimelineEvents, query(collection(db, "timelineEvents"), orderBy("year", "asc")));
         fetchData<CoreValue>("coreValues", setCoreValues);
         fetchData<GalleryImage>("galleryImages", setGalleryImages);
-    }, [toast]);
-
+    }
+    
     // Generic Add Function
-    const handleAddItem = async (e: React.FormEvent, collectionName: string, newItem: any, resetter: () => void, callback: () => void) => {
+    const handleAddItem = async (e: React.FormEvent, collectionName: string, newItem: any, resetter: () => void) => {
         e.preventDefault();
         const requiredFields = Object.keys(newItem).filter(key => !key.toLowerCase().includes('url'));
         const isMissingFields = requiredFields.some(field => {
@@ -87,44 +101,13 @@ export default function AdminPage() {
         try {
             await addDoc(collection(db, collectionName), newItem);
             resetter();
-            callback();
+            fetchAllData();
             toast({ title: "Success", description: `${collectionName.slice(0, -1)} added.` });
         } catch (error) {
             toast({ variant: "destructive", title: "Error", description: `Could not add ${collectionName.slice(0, -1)}.` });
         }
     };
     
-    const handleAddMember = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const { name, rank, game, role, server, avatarUrl } = newMember;
-        if (name && rank && game && role && server) {
-             try {
-                await addDoc(collection(db, 'roster'), {
-                    ...newMember,
-                    avatarUrl: avatarUrl || `https://i.pravatar.cc/150?u=${Date.now()}`
-                });
-                setNewMember({ name: '', rank: '', game: '', role: '', server: '', avatarUrl: '' });
-                fetchData<RosterMember>("roster", setRoster);
-                toast({ title: "Success", description: "Roster member added." });
-            } catch (error) {
-                toast({ variant: "destructive", title: "Error", description: "Could not add roster member." });
-            }
-        } else {
-             toast({ variant: "destructive", title: "Error", description: "Please fill out all required fields for the member." });
-        }
-    };
-
-    // Generic Delete Function
-    const handleDeleteItem = async (collectionName: string, id: string, callback: () => void) => {
-        try {
-            await deleteDoc(doc(db, collectionName, id));
-            callback();
-            toast({ title: "Success", description: `${collectionName.slice(0, -1)} deleted.` });
-        } catch (error) {
-            toast({ variant: "destructive", title: "Error", description: `Could not delete ${collectionName.slice(0, -1)}.` });
-        }
-    };
-
     // Blog Post Handlers
     const handleAddPost = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -140,11 +123,32 @@ export default function AdminPage() {
                     hint: "gamer portrait"
                 });
                 setNewPost({ title: '', content: '', imageUrl: '', category: 'News' });
-                fetchData<BlogPost>("blogPosts", setBlogPosts, query(collection(db, "blogPosts"), orderBy("date", "desc")));
+                fetchAllData();
                 toast({ title: "Success", description: "Blog post added." });
             } catch (error) {
                 toast({ variant: "destructive", title: "Error", description: "Could not add blog post." });
             }
+        }
+    };
+
+    // Roster Member Handlers
+    const handleAddMember = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const { name, rank, game, role, server, avatarUrl } = newMember;
+        if (name && rank && game && role && server) {
+             try {
+                await addDoc(collection(db, 'roster'), {
+                    ...newMember,
+                    avatarUrl: avatarUrl || `https://i.pravatar.cc/150?u=${Date.now()}`
+                });
+                setNewMember({ name: '', rank: '', game: '', role: '', server: '', avatarUrl: '' });
+                fetchAllData();
+                toast({ title: "Success", description: "Roster member added." });
+            } catch (error) {
+                toast({ variant: "destructive", title: "Error", description: "Could not add roster member." });
+            }
+        } else {
+             toast({ variant: "destructive", title: "Error", description: "Please fill out all required fields for the member." });
         }
     };
 
@@ -159,7 +163,7 @@ export default function AdminPage() {
                     authorImageUrl: newAnnouncement.authorImageUrl || `https://picsum.photos/40/40?random=${Date.now()}`
                 });
                 setNewAnnouncement({ author: '', content: '', authorImageUrl: ''});
-                fetchData<Announcement>("announcements", setAnnouncements, query(collection(db, "announcements"), orderBy("date", "desc")));
+                fetchAllData();
                 toast({ title: "Success", description: "Announcement added." });
             } catch (error) {
                 toast({ variant: "destructive", title: "Error", description: "Could not add announcement." });
@@ -167,8 +171,142 @@ export default function AdminPage() {
         }
     };
 
+    // Generic Delete Function
+    const handleDeleteItem = async () => {
+        if (!deletingItem) return;
+        const { collectionName, id } = deletingItem;
+        try {
+            await deleteDoc(doc(db, collectionName, id));
+            fetchAllData();
+            toast({ title: "Success", description: `${collectionName.slice(0, -1)} deleted.` });
+        } catch (error) {
+            toast({ variant: "destructive", title: "Error", description: `Could not delete ${collectionName.slice(0, -1)}.` });
+        } finally {
+            setDeletingItem(null);
+        }
+    };
+
+    // Edit functions
+    const openEditModal = (item: EditableItem) => {
+        setEditingItem(item);
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdateItem = async (collectionName: string) => {
+        if (!editingItem) return;
+        
+        try {
+            const { id, ...data } = editingItem;
+            await updateDoc(doc(db, collectionName, id), data);
+            toast({ title: 'Success', description: 'Item updated successfully.' });
+            setIsEditModalOpen(false);
+            setEditingItem(null);
+            fetchAllData();
+        } catch (error) {
+            console.error('Error updating item:', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to update item.' });
+        }
+    };
+
+  const renderEditForm = () => {
+    if (!editingItem) return null;
+    
+    // A bit of type guarding to determine what form to render
+    if ('title' in editingItem && 'content' in editingItem) { // BlogPost
+        return <>
+            <div className="space-y-2"><Label>Title</Label><Input value={editingItem.title} onChange={e => setEditingItem({ ...editingItem, title: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Category</Label><Input value={editingItem.category} onChange={e => setEditingItem({ ...editingItem, category: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Image URL</Label><Input value={editingItem.imageUrl} onChange={e => setEditingItem({ ...editingItem, imageUrl: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Content</Label><Textarea value={editingItem.content} onChange={e => setEditingItem({ ...editingItem, content: e.target.value })} rows={10} /></div>
+            <DialogFooter><Button onClick={() => handleUpdateItem('blogPosts')}>Save Changes</Button></DialogFooter>
+        </>;
+    }
+    if ('name' in editingItem && 'rank' in editingItem) { // RosterMember
+        return <>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>Name</Label><Input value={editingItem.name} onChange={e => setEditingItem({ ...editingItem, name: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Game</Label><Input value={editingItem.game} onChange={e => setEditingItem({ ...editingItem, game: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Rank</Label><Input value={editingItem.rank} onChange={e => setEditingItem({ ...editingItem, rank: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Role</Label><Input value={editingItem.role} onChange={e => setEditingItem({ ...editingItem, role: e.target.value })} /></div>
+            </div>
+            <div className="space-y-2"><Label>Server</Label><Input value={editingItem.server} onChange={e => setEditingItem({ ...editingItem, server: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Avatar URL</Label><Input value={editingItem.avatarUrl} onChange={e => setEditingItem({ ...editingItem, avatarUrl: e.target.value })} /></div>
+            <DialogFooter><Button onClick={() => handleUpdateItem('roster')}>Save Changes</Button></DialogFooter>
+        </>;
+    }
+    if ('author' in editingItem) { // Announcement
+        return <>
+            <div className="space-y-2"><Label>Author</Label><Input value={editingItem.author} onChange={e => setEditingItem({ ...editingItem, author: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Author PFP URL</Label><Input value={editingItem.authorImageUrl} onChange={e => setEditingItem({ ...editingItem, authorImageUrl: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Content</Label><Textarea value={editingItem.content} onChange={e => setEditingItem({ ...editingItem, content: e.target.value })} /></div>
+            <DialogFooter><Button onClick={() => handleUpdateItem('announcements')}>Save Changes</Button></DialogFooter>
+        </>;
+    }
+    if ('name' in editingItem && 'imageUrl' in editingItem) { // Game
+         return <>
+            <div className="space-y-2"><Label>Game Name</Label><Input value={editingItem.name} onChange={e => setEditingItem({ ...editingItem, name: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Image URL</Label><Input value={editingItem.imageUrl} onChange={e => setEditingItem({ ...editingItem, imageUrl: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Image Hint</Label><Input value={editingItem.hint} onChange={e => setEditingItem({ ...editingItem, hint: e.target.value })} /></div>
+            <DialogFooter><Button onClick={() => handleUpdateItem('games')}>Save Changes</Button></DialogFooter>
+        </>;
+    }
+    if ('src' in editingItem) { // HeroImage or GalleryImage
+        return <>
+            <div className="space-y-2"><Label>Image URL</Label><Input value={editingItem.src} onChange={e => setEditingItem({ ...editingItem, src: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Alt Text</Label><Input value={editingItem.alt} onChange={e => setEditingItem({ ...editingItem, alt: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Image Hint</Label><Input value={editingItem.hint} onChange={e => setEditingItem({ ...editingItem, hint: e.target.value })} /></div>
+            <DialogFooter>
+              <Button onClick={() => handleUpdateItem('galleryImages' in editingItem ? 'galleryImages' : 'heroImages')}>Save Changes</Button>
+            </DialogFooter>
+        </>;
+    }
+     if ('year' in editingItem) { // TimelineEvent
+        return <>
+            <div className="space-y-2"><Label>Year</Label><Input value={editingItem.year} onChange={e => setEditingItem({ ...editingItem, year: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Title</Label><Input value={editingItem.title} onChange={e => setEditingItem({ ...editingItem, title: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Description</Label><Textarea value={editingItem.description} onChange={e => setEditingItem({ ...editingItem, description: e.target.value })} /></div>
+            <DialogFooter><Button onClick={() => handleUpdateItem('timelineEvents')}>Save Changes</Button></DialogFooter>
+        </>;
+    }
+    if ('title' in editingItem && 'description' in editingItem) { // CoreValue
+        return <>
+            <div className="space-y-2"><Label>Title</Label><Input value={editingItem.title} onChange={e => setEditingItem({ ...editingItem, title: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Description</Label><Textarea value={editingItem.description} onChange={e => setEditingItem({ ...editingItem, description: e.target.value })} /></div>
+            <DialogFooter><Button onClick={() => handleUpdateItem('coreValues')}>Save Changes</Button></DialogFooter>
+        </>;
+    }
+    return <p>This item cannot be edited.</p>;
+  };
 
   return (
+    <>
+    <AlertDialog open={!!deletingItem} onOpenChange={(open) => !open && setDeletingItem(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the item.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setDeletingItem(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteItem} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
+    <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Edit Item</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+               {renderEditForm()}
+            </div>
+        </DialogContent>
+    </Dialog>
+
+
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-16">
@@ -213,7 +351,8 @@ export default function AdminPage() {
                                 <div key={post.id} className="flex justify-between items-center bg-background/50 p-3 rounded-lg">
                                     <p className="font-medium">{post.title}</p>
                                     <div className="flex gap-2">
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteItem('blogPosts', post.id, () => fetchData<BlogPost>("blogPosts", setBlogPosts, query(collection(db, "blogPosts"), orderBy("date", "desc"))))}><Trash2 className="h-4 w-4"/></Button>
+                                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(post)}><Edit className="h-4 w-4"/></Button>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({collectionName: 'blogPosts', id: post.id})}><Trash2 className="h-4 w-4"/></Button>
                                     </div>
                                 </div>
                                 ))}
@@ -245,8 +384,11 @@ export default function AdminPage() {
                         </div>
                         <div>
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Current Roster</h3>
-                             <div className="max-h-96 overflow-y-auto"><Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Rank</TableHead><TableHead>Game</TableHead><TableHead>Role</TableHead><TableHead>Server</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
-                                {roster.map((member) => (<TableRow key={member.id}><TableCell>{member.name}</TableCell><TableCell>{member.rank}</TableCell><TableCell>{member.game}</TableCell><TableCell><Badge variant="secondary">{member.role}</Badge></TableCell><TableCell>{member.server}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteItem('roster', member.id, () => fetchData<RosterMember>("roster", setRoster))}><Trash2 className="h-4 w-4"/></Button></TableCell></TableRow>))}
+                             <div className="max-h-96 overflow-y-auto"><Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Rank</TableHead><TableHead>Game</TableHead><TableHead>Role</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
+                                {roster.map((member) => (<TableRow key={member.id}><TableCell>{member.name}</TableCell><TableCell>{member.rank}</TableCell><TableCell>{member.game}</TableCell><TableCell><Badge variant="secondary">{member.role}</Badge></TableCell><TableCell className="text-right">
+                                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(member)}><Edit className="h-4 w-4"/></Button>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({collectionName: 'roster', id: member.id})}><Trash2 className="h-4 w-4"/></Button>
+                                </TableCell></TableRow>))}
                              </TableBody></Table></div>
                         </div>
                     </div>
@@ -274,7 +416,10 @@ export default function AdminPage() {
                                 {announcements.map((ann) => (
                                 <div key={ann.id} className="flex justify-between items-start bg-background/50 p-3 rounded-lg">
                                     <div><p className="font-bold text-sm">{ann.author}</p><p className="text-sm text-muted-foreground">{ann.content}</p></div>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 flex-shrink-0" onClick={() => handleDeleteItem('announcements', ann.id, () => fetchData<Announcement>("announcements", setAnnouncements, query(collection(db, "announcements"), orderBy("date", "desc"))))}><Trash2 className="h-4 w-4"/></Button>
+                                    <div className="flex gap-2 flex-shrink-0">
+                                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(ann)}><Edit className="h-4 w-4"/></Button>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({collectionName: 'announcements', id: ann.id})}><Trash2 className="h-4 w-4"/></Button>
+                                    </div>
                                 </div>
                                 ))}
                              </div>
@@ -291,7 +436,7 @@ export default function AdminPage() {
                      <div className="grid md:grid-cols-2 gap-8">
                         <div>
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Game</h3>
-                             <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'games', newGame, () => setNewGame({ name: '', imageUrl: '', hint: '' }), () => fetchData<Game>("games", setGames))}>
+                             <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'games', newGame, () => setNewGame({ name: '', imageUrl: '', hint: '' }))}>
                                 <div><Label htmlFor="game-name">Game Name</Label><Input id="game-name" placeholder="e.g., Valorant" value={newGame.name} onChange={(e) => setNewGame({...newGame, name: e.target.value})} required /></div>
                                 <div><Label htmlFor="game-image-url">Image URL</Label><Input id="game-image-url" type="text" placeholder="https://your-image-url.com/image.png" value={newGame.imageUrl} onChange={(e) => setNewGame({...newGame, imageUrl: e.target.value})} required/></div>
                                 <div><Label htmlFor="game-hint">Image Hint</Label><Input id="game-hint" placeholder="e.g., valorant agent" value={newGame.hint} onChange={(e) => setNewGame({...newGame, hint: e.target.value})} required /></div>
@@ -304,9 +449,12 @@ export default function AdminPage() {
                                 {games.map((game) => (
                                 <div key={game.id} className="relative group">
                                     <Image src={game.imageUrl} alt={game.name} width={200} height={266} className="rounded-lg w-full object-cover aspect-[3/4]" />
-                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-end p-2 text-center rounded-lg">
-                                        <p className="font-bold text-sm text-white">{game.name}</p>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 mt-2" onClick={() => handleDeleteItem('games', game.id, () => fetchData<Game>("games", setGames))}><Trash2 className="h-4 w-4"/></Button>
+                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-2 text-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <p className="font-bold text-sm text-white mb-2">{game.name}</p>
+                                        <div className="flex gap-2">
+                                            <Button variant="outline" size="icon" onClick={() => openEditModal(game)}><Edit className="h-4 w-4"/></Button>
+                                            <Button variant="destructive" size="icon" onClick={() => setDeletingItem({collectionName: 'games', id: game.id})}><Trash2 className="h-4 w-4"/></Button>
+                                        </div>
                                     </div>
                                 </div>
                                 ))}
@@ -323,7 +471,7 @@ export default function AdminPage() {
                       <div className="grid md:grid-cols-2 gap-8">
                           <div>
                               <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Hero Image</h3>
-                              <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'heroImages', newHeroImage, () => setNewHeroImage({ src: '', alt: '', hint: '' }), () => fetchData<HeroImage>("heroImages", setHeroImages))}>
+                              <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'heroImages', newHeroImage, () => setNewHeroImage({ src: '', alt: '', hint: '' }))}>
                                   <div><Label htmlFor="hero-src">Image URL</Label><Input id="hero-src" value={newHeroImage.src} onChange={(e) => setNewHeroImage({ ...newHeroImage, src: e.target.value })} required /></div>
                                   <div><Label htmlFor="hero-alt">Alt Text</Label><Input id="hero-alt" value={newHeroImage.alt} onChange={(e) => setNewHeroImage({ ...newHeroImage, alt: e.target.value })} required /></div>
                                   <div><Label htmlFor="hero-hint">Image Hint</Label><Input id="hero-hint" value={newHeroImage.hint} onChange={(e) => setNewHeroImage({ ...newHeroImage, hint: e.target.value })} required /></div>
@@ -337,7 +485,10 @@ export default function AdminPage() {
                                       <div key={img.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg">
                                           <Image src={img.src} alt={img.alt} width={100} height={56} className="rounded-md object-cover" />
                                           <span className="truncate ml-4 flex-grow">{img.alt}</span>
-                                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteItem('heroImages', img.id, () => fetchData<HeroImage>("heroImages", setHeroImages))}><Trash2 className="h-4 w-4" /></Button>
+                                           <div className="flex gap-2">
+                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(img)}><Edit className="h-4 w-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeletingItem({collectionName: 'heroImages', id: img.id})}><Trash2 className="h-4 w-4" /></Button>
+                                          </div>
                                       </div>
                                   ))}
                               </div>
@@ -353,7 +504,7 @@ export default function AdminPage() {
                       <div className="grid md:grid-cols-2 gap-8">
                            <div>
                               <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Event</h3>
-                              <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'timelineEvents', newTimelineEvent, () => setNewTimelineEvent({ year: '', title: '', description: '' }), () => fetchData<TimelineEvent>("timelineEvents", setTimelineEvents, query(collection(db, "timelineEvents"), orderBy("year", "asc"))))}>
+                              <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'timelineEvents', newTimelineEvent, () => setNewTimelineEvent({ year: '', title: '', description: '' }))}>
                                   <div><Label htmlFor="event-year">Year</Label><Input id="event-year" value={newTimelineEvent.year} onChange={(e) => setNewTimelineEvent({ ...newTimelineEvent, year: e.target.value })} required /></div>
                                   <div><Label htmlFor="event-title">Title</Label><Input id="event-title" value={newTimelineEvent.title} onChange={(e) => setNewTimelineEvent({ ...newTimelineEvent, title: e.target.value })} required /></div>
                                   <div><Label htmlFor="event-desc">Description</Label><Textarea id="event-desc" value={newTimelineEvent.description} onChange={(e) => setNewTimelineEvent({ ...newTimelineEvent, description: e.target.value })} required /></div>
@@ -366,7 +517,10 @@ export default function AdminPage() {
                                   {timelineEvents.map((event) => (
                                       <div key={event.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg">
                                           <span>{event.year} - {event.title}</span>
-                                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteItem('timelineEvents', event.id, () => fetchData<TimelineEvent>("timelineEvents", setTimelineEvents, query(collection(db, "timelineEvents"), orderBy("year", "asc"))))}><Trash2 className="h-4 w-4" /></Button>
+                                          <div className="flex gap-2">
+                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(event)}><Edit className="h-4 w-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeletingItem({collectionName: 'timelineEvents', id: event.id})}><Trash2 className="h-4 w-4" /></Button>
+                                          </div>
                                       </div>
                                   ))}
                               </div>
@@ -382,7 +536,7 @@ export default function AdminPage() {
                       <div className="grid md:grid-cols-2 gap-8">
                            <div>
                               <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Value</h3>
-                              <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'coreValues', newCoreValue, () => setNewCoreValue({ title: '', description: '' }), () => fetchData<CoreValue>("coreValues", setCoreValues))}>
+                              <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'coreValues', newCoreValue, () => setNewCoreValue({ title: '', description: '' }))}>
                                   <div><Label htmlFor="value-title">Title</Label><Input id="value-title" value={newCoreValue.title} onChange={(e) => setNewCoreValue({ ...newCoreValue, title: e.target.value })} required /></div>
                                   <div><Label htmlFor="value-desc">Description</Label><Textarea id="value-desc" value={newCoreValue.description} onChange={(e) => setNewCoreValue({ ...newCoreValue, description: e.target.value })} required /></div>
                                   <Button variant="primary" type="submit">Add Value</Button>
@@ -394,7 +548,10 @@ export default function AdminPage() {
                                   {coreValues.map((value) => (
                                       <div key={value.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg">
                                           <span>{value.title}</span>
-                                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteItem('coreValues', value.id, () => fetchData<CoreValue>("coreValues", setCoreValues))}><Trash2 className="h-4 w-4" /></Button>
+                                           <div className="flex gap-2">
+                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(value)}><Edit className="h-4 w-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeletingItem({collectionName: 'coreValues', id: value.id})}><Trash2 className="h-4 w-4" /></Button>
+                                          </div>
                                       </div>
                                   ))}
                               </div>
@@ -410,7 +567,7 @@ export default function AdminPage() {
                       <div className="grid md:grid-cols-2 gap-8">
                           <div>
                               <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Gallery Image</h3>
-                              <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'galleryImages', newGalleryImage, () => setNewGalleryImage({ src: '', alt: '', hint: '' }), () => fetchData<GalleryImage>("galleryImages", setGalleryImages))}>
+                              <form className="space-y-4" onSubmit={(e) => handleAddItem(e, 'galleryImages', newGalleryImage, () => setNewGalleryImage({ src: '', alt: '', hint: '' }))}>
                                   <div><Label htmlFor="gallery-src">Image URL</Label><Input id="gallery-src" value={newGalleryImage.src} onChange={(e) => setNewGalleryImage({ ...newGalleryImage, src: e.target.value })} required /></div>
                                   <div><Label htmlFor="gallery-alt">Alt Text</Label><Input id="gallery-alt" value={newGalleryImage.alt} onChange={(e) => setNewGalleryImage({ ...newGalleryImage, alt: e.target.value })} required /></div>
                                   <div><Label htmlFor="gallery-hint">Image Hint</Label><Input id="gallery-hint" value={newGalleryImage.hint} onChange={(e) => setNewGalleryImage({ ...newGalleryImage, hint: e.target.value })} required /></div>
@@ -424,7 +581,10 @@ export default function AdminPage() {
                                       <div key={img.id} className="flex items-center justify-between bg-background/50 p-2 rounded-lg">
                                           <Image src={img.src} alt={img.alt} width={80} height={80} className="rounded-md object-cover aspect-square" />
                                           <span className="truncate ml-4 flex-grow">{img.alt}</span>
-                                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteItem('galleryImages', img.id, () => fetchData<GalleryImage>("galleryImages", setGalleryImages))}><Trash2 className="h-4 w-4" /></Button>
+                                          <div className="flex gap-2">
+                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(img)}><Edit className="h-4 w-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeletingItem({collectionName: 'galleryImages', id: img.id})}><Trash2 className="h-4 w-4" /></Button>
+                                          </div>
                                       </div>
                                   ))}
                               </div>
@@ -437,5 +597,6 @@ export default function AdminPage() {
         </Tabs>
       </main>
     </div>
+    </>
   );
 }
