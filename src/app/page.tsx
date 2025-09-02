@@ -62,8 +62,10 @@ interface HeroImage {
 }
 
 const defaultHeroImages: HeroImage[] = [
-  { id: '1', src: 'https://i.pinimg.com/736x/57/00/02/570002ab712a71a1c96c81a26a4e1276.jpg', alt: 'Gamer with headphones in a dark room', hint: 'gamer headphones dark' },
-  { id: '2', src: 'https://i.pinimg.com/736x/fc/f6/4a/fcf64a71486e246ade88836fb1d60852.jpg', alt: 'Futuristic soldier overlooking a battlefield', hint: 'futuristic soldier battlefield' },
+  { id: 'default-1', src: 'https://i.pinimg.com/originals/20/c1/8c/20c18cfe73bc503ed8a0c5baa362ca2f.jpg', alt: 'Soldiers in a battlefield', hint: 'soldiers battlefield' },
+  { id: 'default-2', src: 'https://i.pinimg.com/originals/fc/f6/4a/fcf64a71486e246ade88836fb1d60852.jpg', alt: 'Futuristic soldier overlooking a battlefield', hint: 'futuristic soldier' },
+  { id: 'default-3', src: 'https://i.pinimg.com/originals/12/40/4e/12404e7f34f307f3a910df46ed225ba8.jpg', alt: 'Gamer in a neon-lit room', hint: 'gamer neon' },
+  { id: 'default-4', src: 'https://i.pinimg.com/originals/57/00/02/570002ab712a71a1c96c81a26a4e1276.jpg', alt: 'Gamer with headphones in a dark room', hint: 'gamer headphones' },
 ];
 
 
@@ -130,7 +132,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <main className="flex-grow">
         {/* Hero Section */}
-        <section id="hero" className="relative h-screen flex items-center justify-center text-center bg-black">
+        <section id="hero" className="relative h-[75vh] w-full flex items-center justify-center text-center bg-black">
           <Header />
           {heroLoading ? (
             <Skeleton className="w-full h-full" />
@@ -140,20 +142,21 @@ export default function Home() {
                 plugins={[
                     Autoplay({
                         delay: 5000,
+                        stopOnInteraction: false,
                     }),
                 ]}
                 opts={{ loop: true }}
             >
                 <CarouselContent>
                     {heroImages.map((image, index) => (
-                        <CarouselItem key={image.id} className="h-screen">
-                            <div className="w-full h-full relative">
+                        <CarouselItem key={image.id}>
+                            <div className="w-full h-[75vh] relative">
                                 <Image
                                     src={image.src}
                                     alt={image.alt}
                                     fill
                                     sizes="100vw"
-                                    className="object-cover w-full h-full opacity-70"
+                                    className="object-cover w-full h-full opacity-40"
                                     data-ai-hint={image.hint}
                                     priority={index === 0}
                                 />
@@ -163,7 +166,7 @@ export default function Home() {
                 </CarouselContent>
             </Carousel>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
           <div className="relative z-10 container mx-auto px-4 flex flex-col items-center">
                <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
                   Fantom
@@ -388,3 +391,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
