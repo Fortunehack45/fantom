@@ -4,21 +4,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // HELPER FUNCTIONS
+    // HELPER FUNCTIONS to make rules cleaner and more readable
     function isAdmin() {
+      // Checks if the logged-in user's email is the admin email
       return request.auth.token.email == 'fortunedomination@gmail.com';
     }
 
     function isSignedIn() {
+      // Checks if there is a logged-in user
       return request.auth != null;
     }
 
     function isOwner(resource) {
+      // Checks if the logged-in user is the author of the content (comment/reply)
       return isSignedIn() && request.auth.uid == resource.data.authorId;
     }
 
     // SITE SETTINGS (e.g., footer links)
-    // Anyone can read, only admin can write.
+    // Anyone can read, but only the admin can write.
     match /siteSettings/{setting} {
       allow read: if true;
       allow write: if isSignedIn() && isAdmin();
@@ -28,40 +31,42 @@ service cloud.firestore {
     match /blogPosts/{postId} {
       // Anyone can read posts.
       allow read: if true;
-      // Admin can create, update, delete.
+      // Admin can create, update, and delete posts entirely.
       allow write: if isSignedIn() && isAdmin();
-      // Any signed-in user can update the 'likes' field, and only the 'likes' field.
+      // Any signed-in user can update the 'likes' field, but ONLY the 'likes' field.
+      // This is what allows users to like a post without being an admin.
       allow update: if isSignedIn() && request.resource.data.keys().hasOnly(['likes']);
     }
 
-    // ROSTER, ANNOUNCEMENTS, GAMES, IMAGES, TIMELINE, VALUES
-    // Anyone can read, only admin can write.
+    // MAIN CONTENT COLLECTIONS
+    // This single rule covers all other primary content collections.
+    // Anyone can read, but only the admin can write.
     match /(roster|announcements|games|heroImages|galleryImages|timelineEvents|coreValues)/{docId} {
       allow read: if true;
       allow write: if isSignedIn() && isAdmin();
     }
 
-    // COMMENTS
+    // COMMENTS (Subcollection of blogPosts)
     match /blogPosts/{postId}/comments/{commentId} {
       // Anyone can read comments.
       allow read: if true;
       // Any signed-in user can create a comment.
       allow create: if isSignedIn();
-      // Owner or Admin can delete.
+      // The owner or an admin can delete the comment.
       allow delete: if isOwner(resource) || (isSignedIn() && isAdmin());
-      // Owner can edit their comment, or any user can like a comment.
+      // The owner can update their comment, OR any signed-in user can update the 'likes' field.
       allow update: if isOwner(resource) || (isSignedIn() && request.resource.data.keys().hasOnly(['likes']));
     }
 
-    // REPLIES
+    // REPLIES (Subcollection of comments)
     match /blogPosts/{postId}/comments/{commentId}/replies/{replyId} {
       // Anyone can read replies.
       allow read: if true;
       // Any signed-in user can create a reply.
       allow create: if isSignedIn();
-      // Owner or Admin can delete.
+      // The owner or an admin can delete the reply.
       allow delete: if isOwner(resource) || (isSignedIn() && isAdmin());
-      // Owner can edit their reply, or any user can like a reply.
+      // The owner can update their reply, OR any signed-in user can update the 'likes' field.
       allow update: if isOwner(resource) || (isSignedIn() && request.resource.data.keys().hasOnly(['likes']));
     }
   }
