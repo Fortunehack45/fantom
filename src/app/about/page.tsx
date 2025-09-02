@@ -214,28 +214,50 @@ export default function AboutPage() {
                      {loading ? (
                         <div className="text-center"><p>Loading timeline...</p></div>
                     ) : (
-                    <div className="relative max-w-2xl mx-auto">
-                        <div className="absolute left-1/2 h-full w-0.5 bg-primary/20 -translate-x-1/2" />
-                        {timelineEvents.map((event, index) => (
-                           <div key={event.id} className="relative mb-12">
-                               <div className={`absolute left-1/2 -translate-x-1/2 w-6 h-6 bg-background border-2 border-primary rounded-full flex items-center justify-center`}>
-                                   <Calendar className="h-3 w-3 text-primary" />
-                               </div>
-                               <div className={`w-[calc(50%-2rem)] ${index % 2 === 0 ? 'float-left text-right' : 'float-right text-left ml-auto'}`}>
-                                    <Card className="transform hover:-translate-y-1 transition-transform duration-300">
-                                         <CardHeader>
-                                             <p className="text-lg font-headline font-bold text-primary">{event.year}</p>
-                                             <h3 className="text-xl font-bold">{event.title}</h3>
-                                         </CardHeader>
-                                         <CardContent>
-                                            <p className="text-muted-foreground">{event.description}</p>
-                                         </CardContent>
-                                    </Card>
-                               </div>
-                           </div>
-                        ))}
-                         <div className="clear-both" />
-                    </div>
+                        <div className="relative max-w-5xl mx-auto mt-12">
+                            <div className="absolute left-1/2 -translate-x-1/2 h-full w-0.5 bg-primary/20" aria-hidden="true" />
+                            {timelineEvents.map((event, index) => (
+                                <div key={event.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-8 mb-12">
+                                    {index % 2 === 0 ? (
+                                        <>
+                                            <div className="text-right">
+                                                <Card className="transform transition-all duration-300 hover:scale-105 hover:shadow-primary/20">
+                                                    <CardHeader>
+                                                        <p className="text-lg font-headline font-bold text-primary">{event.year}</p>
+                                                        <CardTitle className="text-xl font-bold">{event.title}</CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <p className="text-muted-foreground">{event.description}</p>
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
+                                            <div className="z-10 w-8 h-8 rounded-full bg-background border-2 border-primary flex items-center justify-center">
+                                                <Calendar className="h-4 w-4 text-primary" />
+                                            </div>
+                                            <div />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div />
+                                            <div className="z-10 w-8 h-8 rounded-full bg-background border-2 border-primary flex items-center justify-center">
+                                                <Calendar className="h-4 w-4 text-primary" />
+                                            </div>
+                                            <div className="text-left">
+                                                <Card className="transform transition-all duration-300 hover:scale-105 hover:shadow-primary/20">
+                                                    <CardHeader>
+                                                        <p className="text-lg font-headline font-bold text-primary">{event.year}</p>
+                                                        <CardTitle className="text-xl font-bold">{event.title}</CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <p className="text-muted-foreground">{event.description}</p>
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
             </section>
