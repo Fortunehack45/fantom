@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
@@ -9,6 +10,7 @@ const unicaOne = Unica_One({ subsets: ['latin'], variable: '--font-unica-one', w
 export const metadata: Metadata = {
   title: 'Fantom eSport',
   description: 'Welcome to the official website of Fantom eSport',
+  icons: null,
 };
 
 export default function RootLayout({
@@ -18,7 +20,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <head />
       <body className={`${inter.variable} ${unicaOne.variable} font-body antialiased`}>
         {children}
         <Toaster />

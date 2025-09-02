@@ -59,7 +59,7 @@ export default function AdminLayout({
   }
   
   // The login and signup pages are accessible to everyone, so we always render them.
-  if (pathname === '/admin/login' || pathname === '/signup') {
+  if (pathname === '/admin/login' || pathname === '/signup' || pathname === '/admin/forgot-password') {
     return <>{children}</>
   }
   

@@ -54,7 +54,7 @@ export function Footer() {
                         <GhostIcon className="w-8 h-8 text-primary"/>
                         <span className="text-xl font-bold uppercase text-white tracking-widest font-headline">Fantom eSport</span>
                     </Link>
-                    {!loading && Object.keys(settings).length > 0 && (
+                    {!loading && Object.values(settings).some(val => val) && (
                         <div className="flex items-center gap-2 md:gap-4">
                             {settings.twitterUrl && (
                                 <Link href={settings.twitterUrl} aria-label="Twitter" target="_blank" rel="noopener noreferrer">
@@ -97,5 +97,3 @@ export function Footer() {
         </footer>
     );
 }
-
-    

@@ -84,7 +84,7 @@ export default function Home() {
   const [heroImages, setHeroImages] = useState<HeroImage[]>(defaultHeroImages);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
-  const [heroLoading, setHeroLoading] = useState(true);
+  const [heroLoading, setHeroLoading]_useState(true);
   const autoplay = useRef(Autoplay({ delay: 5000, stopOnInteraction: false }));
 
 
@@ -414,5 +414,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
