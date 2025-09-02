@@ -29,6 +29,7 @@ interface TimelineEvent { id: string; year: string; title: string; description: 
 interface CoreValue { id: string; title: string; description: string; }
 interface GalleryImage { id: string; src: string; alt: string; hint: string; }
 interface SiteSettings { twitterUrl?: string; discordUrl?: string; youtubeUrl?: string; twitchUrl?: string; developerName?: string; developerUrl?: string; recruitmentUrl?: string; }
+interface AboutPageContent { heroImageUrl?: string; missionImageUrl?: string; }
 
 // Union type for all editable items
 type EditableItem = BlogPost | RosterMember | Announcement | Game | HeroImage | TimelineEvent | CoreValue | GalleryImage;
@@ -44,6 +45,7 @@ export default function AdminPage() {
     const [coreValues, setCoreValues] = useState<CoreValue[]>([]);
     const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
     const [siteSettings, setSiteSettings] = useState<SiteSettings>({ twitterUrl: '', discordUrl: '', youtubeUrl: '', twitchUrl: '', developerName: '', developerUrl: '', recruitmentUrl: ''});
+    const [aboutPageContent, setAboutPageContent] = useState<AboutPageContent>({ heroImageUrl: '', missionImageUrl: ''});
 
 
     const [newPost, setNewPost] = useState({ title: '', content: '', imageUrl: '', category: 'News' });
@@ -86,6 +88,7 @@ export default function AdminPage() {
         fetchData<CoreValue>("coreValues", setCoreValues);
         fetchData<GalleryImage>("galleryImages", setGalleryImages);
         fetchSiteSettings();
+        fetchPageContent();
     }
     
     const fetchSiteSettings = async () => {
@@ -98,6 +101,19 @@ export default function AdminPage() {
         } catch (error) {
             console.error("Error fetching site settings:", error);
             toast({ variant: "destructive", title: "Error", description: "Could not fetch site settings." });
+        }
+    };
+
+    const fetchPageContent = async () => {
+        try {
+            const aboutDocRef = doc(db, "pageContent", "about");
+            const aboutDocSnap = await getDoc(aboutDocRef);
+            if (aboutDocSnap.exists()) {
+                setAboutPageContent(aboutDocSnap.data() as AboutPageContent);
+            }
+        } catch (error) {
+            console.error("Error fetching page content:", error);
+            toast({ variant: "destructive", title: "Error", description: "Could not fetch page content." });
         }
     };
     
@@ -196,6 +212,16 @@ export default function AdminPage() {
             toast({ title: "Success", description: "Site settings updated successfully." });
         } catch (error) {
             toast({ variant: "destructive", title: "Error", description: "Failed to update site settings." });
+        }
+    };
+
+    const handleUpdatePageContent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await setDoc(doc(db, "pageContent", "about"), aboutPageContent, { merge: true });
+            toast({ title: "Success", description: "Page content updated successfully." });
+        } catch (error) {
+            toast({ variant: "destructive", title: "Error", description: "Failed to update page content." });
         }
     };
 
@@ -354,7 +380,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="blog" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-9 overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-10 overflow-x-auto">
             <TabsTrigger value="blog">Blog</TabsTrigger>
             <TabsTrigger value="roster">Roster</TabsTrigger>
             <TabsTrigger value="announcements">Announcements</TabsTrigger>
@@ -363,6 +389,7 @@ export default function AdminPage() {
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
             <TabsTrigger value="values">Values</TabsTrigger>
             <TabsTrigger value="gallery">Gallery</TabsTrigger>
+            <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
           
@@ -630,6 +657,25 @@ export default function AdminPage() {
                   </CardContent>
               </Card>
           </TabsContent>
+          <TabsContent value="content">
+              <Card className="bg-card mt-6">
+                <CardHeader><CardTitle>Manage Page Content</CardTitle><CardDescription>Update images and other content on specific pages.</CardDescription></CardHeader>
+                <CardContent>
+                    <form className="space-y-6 max-w-2xl" onSubmit={handleUpdatePageContent}>
+                        <h3 className="text-lg font-semibold border-b pb-2">About Page</h3>
+                         <div className="space-y-2">
+                            <Label htmlFor="about-hero-url">Hero Image URL</Label>
+                            <Input id="about-hero-url" value={aboutPageContent.heroImageUrl} onChange={(e) => setAboutPageContent({ ...aboutPageContent, heroImageUrl: e.target.value })} placeholder="https://your-image-url.com" />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="about-mission-url">Mission Image URL</Label>
+                            <Input id="about-mission-url" value={aboutPageContent.missionImageUrl} onChange={(e) => setAboutPageContent({ ...aboutPageContent, missionImageUrl: e.target.value })} placeholder="https://your-image-url.com" />
+                        </div>
+                        <Button type="submit" variant="primary">Save Content</Button>
+                    </form>
+                </CardContent>
+            </Card>
+          </TabsContent>
            <TabsContent value="settings">
               <Card className="bg-card mt-6">
                 <CardHeader><CardTitle>Manage Site Settings</CardTitle><CardDescription>Update global settings like footer and button links.</CardDescription></CardHeader>
@@ -682,5 +728,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-    

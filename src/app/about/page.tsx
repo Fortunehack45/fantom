@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Footer } from "@/components/footer";
 
@@ -30,10 +30,21 @@ interface GalleryImage {
     hint: string;
 }
 
+interface AboutPageContent {
+    heroImageUrl?: string;
+    missionImageUrl?: string;
+}
+
+const defaultContent: AboutPageContent = {
+    heroImageUrl: "https://i.pinimg.com/originals/e0/75/a6/e075a6fe883584cf543501dc84d5162b.jpg",
+    missionImageUrl: "https://i.pinimg.com/originals/8c/84/7a/8c847a7578964c8d374a3f124bf2c8a3.jpg"
+};
+
 export default function AboutPage() {
     const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
     const [values, setValues] = useState<CoreValue[]>([]);
     const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+    const [pageContent, setPageContent] = useState<AboutPageContent>(defaultContent);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -43,16 +54,22 @@ export default function AboutPage() {
                 const timelineQuery = query(collection(db, "timelineEvents"), orderBy("year", "asc"));
                 const valuesQuery = query(collection(db, "coreValues"));
                 const galleryQuery = query(collection(db, "galleryImages"));
+                const contentDocRef = doc(db, "pageContent", "about");
 
-                const [timelineSnapshot, valuesSnapshot, gallerySnapshot] = await Promise.all([
+                const [timelineSnapshot, valuesSnapshot, gallerySnapshot, contentDocSnap] = await Promise.all([
                     getDocs(timelineQuery),
                     getDocs(valuesQuery),
                     getDocs(galleryQuery),
+                    getDoc(contentDocRef),
                 ]);
 
                 const timelineData: TimelineEvent[] = timelineSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TimelineEvent));
                 const valuesData: CoreValue[] = valuesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CoreValue));
                 const galleryData: GalleryImage[] = gallerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
+                
+                if (contentDocSnap.exists()) {
+                    setPageContent(contentDocSnap.data() as AboutPageContent);
+                }
                 
                 setTimelineEvents(timelineData);
                 setValues(valuesData);
@@ -76,7 +93,7 @@ export default function AboutPage() {
         {/* Hero Section */}
         <section className="relative h-[400px] flex items-center justify-center text-center bg-black">
              <Image
-                src="https://i.pinimg.com/originals/e0/75/a6/e075a6fe883584cf543501dc84d5162b.jpg"
+                src={pageContent.heroImageUrl || defaultContent.heroImageUrl!}
                 alt="Panoramic view of a futuristic city"
                 fill
                 className="object-cover w-full h-full opacity-40"
@@ -108,7 +125,7 @@ export default function AboutPage() {
                     </div>
                      <div className="order-1 md:order-2">
                         <Image
-                            src="https://i.pinimg.com/originals/8c/84/7a/8c847a7578964c8d374a3f124bf2c8a3.jpg"
+                            src={pageContent.missionImageUrl || defaultContent.missionImageUrl!}
                             alt="eSports player focused on the game"
                             width={600}
                             height={400}
