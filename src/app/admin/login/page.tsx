@@ -12,18 +12,18 @@ import { GhostIcon } from '@/components/icons';
 import { signInWithEmailAndPassword, onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import Link from 'next/link';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        // If user is already logged in, redirect them.
-        // Admins go to /admin, others go to homepage.
         if (user.email === 'fortunedomination@gmail.com') {
           router.push('/admin');
         } else {
@@ -39,8 +39,7 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Let the useEffect handle redirection after successful login.
-      // The onAuthStateChanged listener will fire and redirect accordingly.
+      // The onAuthStateChanged listener will handle redirection.
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -57,7 +56,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <GhostIcon className="w-12 h-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-headline">Login</CardTitle>
+          <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
           <CardDescription>Login to your account or access the admin panel.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -71,17 +70,37 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link href="/admin/forgot-password" passHref>
+                  <Button variant="link" className="h-auto p-0 text-xs">
+                    Forgot Password?
+                  </Button>
+                </Link>
+              </div>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
             <Button type="submit" className="w-full" variant="primary">
               Login

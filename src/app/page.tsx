@@ -18,6 +18,7 @@ import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carouse
 import Autoplay from "embla-carousel-autoplay";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Footer } from "@/components/footer";
+import Fade from 'embla-carousel-fade';
 
 
 interface BlogPost {
@@ -78,6 +79,8 @@ export default function Home() {
   const [heroImages, setHeroImages] = useState<HeroImage[]>(defaultHeroImages);
   const [loading, setLoading] = useState(true);
   const [heroLoading, setHeroLoading] = useState(true);
+  const autoplay = useRef(Autoplay({ delay: 5000, stopOnInteraction: false }));
+
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -137,7 +140,7 @@ export default function Home() {
         <section id="hero" className="relative w-full bg-black">
           <div className="relative h-[500px] w-full overflow-hidden">
              {heroLoading ? (
-               <Skeleton className="w-full h-full aspect-video">
+               <Skeleton className="w-full h-full">
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center">
                     <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
@@ -151,12 +154,12 @@ export default function Home() {
              ) : (
               <Carousel
                 className="w-full h-full"
-                plugins={[Autoplay({ delay: 5000, stopOnInteraction: false })]}
+                plugins={[autoplay.current, Fade()]}
                 opts={{ loop: true }}
               >
-                <CarouselContent className="w-full h-full">
+                <CarouselContent className="w-full h-full ml-0">
                   {heroImages.map((image, index) => (
-                    <CarouselItem key={image.id} className="w-full h-full">
+                    <CarouselItem key={image.id} className="w-full h-full pl-0 opacity-0 transition-opacity duration-1000">
                        <div className="w-full h-full relative">
                         <Image
                           src={image.src}
