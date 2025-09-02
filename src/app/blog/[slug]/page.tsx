@@ -8,7 +8,7 @@ import { db, auth } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ThumbsUp, MessageSquare, Share2, Trash2 } from "lucide-react";
+import { ArrowLeft, ThumbsUp, MessageSquare, Share2, Trash2, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,6 +19,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 
 interface Post {
@@ -162,7 +163,6 @@ export default function BlogPostPage() {
         
         const fetchRelatedPosts = async () => {
             const postsRef = collection(db, 'blogPosts');
-            // Simplified query: fetch the 5 most recent posts
             const q = query(
                 postsRef, 
                 orderBy("date", "desc"), 
@@ -172,7 +172,6 @@ export default function BlogPostPage() {
             try {
                 const querySnapshot = await getDocs(q);
                 const postsData: Post[] = querySnapshot.docs
-                    // Filter out the current post on the client side
                     .map(doc => ({ id: doc.id, slug: doc.data().slug, ...doc.data() } as Post))
                     .filter(p => p.id !== post.id) 
                     .slice(0, 4);
@@ -290,7 +289,6 @@ export default function BlogPostPage() {
             ? doc(db, 'blogPosts', post.id, 'comments', commentId, 'replies', replyId)
             : doc(db, 'blogPosts', post.id, 'comments', commentId);
     
-        // No need to fetch the document first, just update based on current state
         const comment = comments.find(c => c.id === commentId);
         if (!comment) return;
         
@@ -343,10 +341,9 @@ export default function BlogPostPage() {
     const totalCommentsAndReplies = comments.reduce((acc, comment) => acc + 1 + comment.replies.length, 0);
     const hasLikedPost = user ? post.likes.includes(user.uid) : false;
 
-    const CommentCard = ({ item, isReply, commentId }: { item: Comment | Reply, isReply: boolean, commentId?: string }) => {
+    const CommentCard = ({ item, isReply = false, commentId }: { item: Comment | Reply, isReply?: boolean, commentId?: string }) => {
         const itemLikes = item.likes || [];
         const hasLikedItem = user ? itemLikes.includes(user.uid) : false;
-        const replyCount = !isReply ? (item as Comment).replies.length : 0;
         const isAuthor = user?.uid === item.authorId;
 
         const handleLikeClick = () => {
@@ -380,7 +377,6 @@ export default function BlogPostPage() {
                          {!isReply && (
                             <Button variant="ghost" className="h-auto p-0 flex items-center gap-1 text-muted-foreground hover:text-primary" onClick={() => setReplyingTo(replyingTo === item.id ? null : item.id)}>
                                 Reply
-                                {replyCount > 0 && <span className="text-xs ml-1">({replyCount})</span>}
                             </Button>
                         )}
                         {isAuthor && (
@@ -402,8 +398,7 @@ export default function BlogPostPage() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your
-                    item from our servers.
+                    This action cannot be undone. This will permanently delete this item from our servers.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -446,23 +441,21 @@ export default function BlogPostPage() {
                 
                 <Separator className="my-8 bg-border/20" />
 
-                {/* Interactions Section */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Button variant={hasLikedPost ? 'primary' : 'outline'} size="sm" onClick={handleLikePost} disabled={!user}>
-                            <ThumbsUp className="mr-2" /> Like ({post.likes.length})
+                            <ThumbsUp className="mr-2 h-4 w-4" /> Like ({post.likes.length})
                         </Button>
                         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <MessageSquare /> 
+                            <MessageSquare className="h-4 w-4"/> 
                             <span>{totalCommentsAndReplies} Comments</span>
                         </div>
                     </div>
-                     <Button variant="outline" size="sm"><Share2 className="mr-2" /> Share</Button>
+                     <Button variant="outline" size="sm"><Share2 className="mr-2 h-4 w-4" /> Share</Button>
                 </div>
                  
                  <Separator className="my-8 bg-border/20" />
 
-                 {/* Comments Section */}
                 <div className="space-y-8">
                     <h2 className="text-2xl font-headline font-bold">Comments ({totalCommentsAndReplies})</h2>
                     
@@ -494,11 +487,10 @@ export default function BlogPostPage() {
                         </Card>
                     )}
 
-                    {/* Existing Comments */}
                     <div className="space-y-6">
                         {comments.map((comment) => (
                            <div key={comment.id} className="group">
-                                <CommentCard item={comment} isReply={false} />
+                                <CommentCard item={comment} />
                                 
                                 {replyingTo === comment.id && user && (
                                     <div className="ml-12 mt-4">
@@ -529,11 +521,21 @@ export default function BlogPostPage() {
                                 )}
 
                                 {comment.replies && comment.replies.length > 0 && (
-                                     <div className="pl-12 mt-4 space-y-4 border-l-2 border-border/10 ml-5">
-                                        {comment.replies.map(reply => (
-                                            <CommentCard key={reply.id} item={reply} isReply={true} commentId={comment.id} />
-                                        ))}
-                                    </div>
+                                    <Collapsible className="ml-8 mt-4">
+                                        <CollapsibleTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="flex items-center gap-2 text-xs text-muted-foreground group-data-[state=open]:text-primary">
+                                                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+                                                {comment.replies.length} {comment.replies.length === 1 ? 'Reply' : 'Replies'}
+                                            </Button>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                            <div className="pl-4 mt-2 space-y-4 border-l-2 border-border/10 ml-4">
+                                                {comment.replies.map(reply => (
+                                                    <CommentCard key={reply.id} item={reply} isReply={true} commentId={comment.id} />
+                                                ))}
+                                            </div>
+                                        </CollapsibleContent>
+                                    </Collapsible>
                                 )}
                            </div>
                         ))}
@@ -542,7 +544,6 @@ export default function BlogPostPage() {
 
                 <Separator className="my-12 bg-border/20" />
                 
-                {/* Related Posts Section */}
                 {relatedPosts.length > 0 && (
                     <section className="mt-12">
                         <h2 className="text-2xl font-headline font-bold mb-6">You Might Also Like</h2>

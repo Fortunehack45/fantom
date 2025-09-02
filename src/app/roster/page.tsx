@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Gamepad2, Shield, Star, Users } from 'lucide-react';
 import Image from 'next/image';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface RosterMember {
     id: string;
@@ -35,12 +36,43 @@ export default function RosterPage() {
         setLoading(true);
         const querySnapshot = await getDocs(collection(db, "roster"));
         const rosterData: RosterMember[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RosterMember));
+        // Sort roster alphabetically by name
+        rosterData.sort((a, b) => a.name.localeCompare(b.name));
         setRoster(rosterData);
         setLoading(false);
     };
 
     fetchRoster();
   }, []);
+
+  const RosterSkeleton = () => (
+    <Card className="bg-card animate-pulse overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between p-4 bg-primary/5">
+            <div className="space-y-1.5">
+                <Skeleton className="h-6 w-32 rounded-md" />
+                <Skeleton className="h-4 w-24 rounded-md" />
+            </div>
+            <Skeleton className="h-14 w-14 rounded-full" />
+        </CardHeader>
+        <CardContent className="p-4 space-y-3">
+            <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-4 rounded" />
+                <Skeleton className="h-4 w-20 rounded-md" />
+                <Skeleton className="h-4 w-24 rounded-md" />
+            </div>
+            <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-4 rounded" />
+                <Skeleton className="h-4 w-20 rounded-md" />
+                <Skeleton className="h-4 w-24 rounded-md" />
+            </div>
+            <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-4 rounded" />
+                <Skeleton className="h-4 w-20 rounded-md" />
+                <Skeleton className="h-6 w-28 rounded-md" />
+            </div>
+        </CardContent>
+    </Card>
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -55,18 +87,7 @@ export default function RosterPage() {
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {loading ? (
-                [...Array(8)].map((_, i) => (
-                    <Card key={i} className="bg-card animate-pulse">
-                        <CardHeader className="p-4">
-                            <div className="h-8 w-3/4 bg-muted rounded"></div>
-                            <div className="h-4 w-1/2 bg-muted rounded mt-1"></div>
-                        </CardHeader>
-                        <CardContent className="p-4 space-y-2">
-                             <div className="h-4 w-full bg-muted rounded"></div>
-                             <div className="h-4 w-full bg-muted rounded"></div>
-                        </CardContent>
-                    </Card>
-                ))
+                [...Array(8)].map((_, i) => <RosterSkeleton key={i} />)
             ) : (
                 roster.map((member) => (
                     <Card key={member.id} className="bg-card border-border overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300 shadow-lg hover:shadow-primary/20 flex flex-col">
@@ -75,24 +96,24 @@ export default function RosterPage() {
                                 <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">{member.name}</CardTitle>
                                 <CardDescription className="text-sm">{member.server}</CardDescription>
                             </div>
-                            <div className="relative h-12 w-12">
-                                <Image src={member.avatarUrl || `https://i.pravatar.cc/150?u=${member.id}`} alt={member.name} width={150} height={150} className="rounded-full object-cover border-2 border-primary/50"/>
+                            <div className="relative h-14 w-14 shrink-0">
+                                <Image src={member.avatarUrl || `https://i.pravatar.cc/150?u=${member.id}`} alt={member.name} fill sizes="56px" className="rounded-full object-cover border-2 border-primary/50"/>
                             </div>
                         </CardHeader>
                         <CardContent className="p-4 flex-grow">
                             <div className="space-y-3 text-sm">
                                 <div className="flex items-center gap-2">
-                                    <Gamepad2 className="h-4 w-4 text-primary" />
+                                    <Gamepad2 className="h-4 w-4 text-primary shrink-0" />
                                     <span className="font-semibold">Game:</span>
-                                    <span className="text-muted-foreground">{member.game}</span>
+                                    <span className="text-muted-foreground truncate">{member.game}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Shield className="h-4 w-4 text-primary" />
+                                    <Shield className="h-4 w-4 text-primary shrink-0" />
                                     <span className="font-semibold">Rank:</span>
-                                    <span className="text-muted-foreground">{member.rank}</span>
+                                    <span className="text-muted-foreground truncate">{member.rank}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Users className="h-4 w-4 text-primary" />
+                                    <Users className="h-4 w-4 text-primary shrink-0" />
                                      <span className="font-semibold">Role:</span>
                                      <Badge variant="secondary" className="flex items-center gap-1">
                                         {roleIcons[member.role] || null}
@@ -109,5 +130,3 @@ export default function RosterPage() {
     </div>
   );
 }
-
-    

@@ -68,18 +68,20 @@ export default function AdminPage() {
         fetchData<TimelineEvent>("timelineEvents", setTimelineEvents, query(collection(db, "timelineEvents"), orderBy("year", "asc")));
         fetchData<CoreValue>("coreValues", setCoreValues);
         fetchData<GalleryImage>("galleryImages", setGalleryImages);
-    }, []);
+    }, [toast]);
 
     // Generic Add Function
     const handleAddItem = async (e: React.FormEvent, collectionName: string, newItem: any, resetter: () => void, callback: () => void) => {
         e.preventDefault();
-        if (Object.values(newItem).some(field => typeof field === 'string' && field.trim() === '')) {
-             const requiredFields = Object.keys(newItem).filter(key => key !== 'avatarUrl' && key !== 'imageUrl' && key !== 'authorImageUrl');
-             const emptyFields = requiredFields.filter(key => !newItem[key as keyof typeof newItem]);
-             if (emptyFields.length > 0) {
-                toast({ variant: "destructive", title: "Error", description: `Please fill out all required fields.` });
-                return;
-             }
+        const requiredFields = Object.keys(newItem).filter(key => !key.toLowerCase().includes('url'));
+        const isMissingFields = requiredFields.some(field => {
+            const value = newItem[field as keyof typeof newItem];
+            return typeof value === 'string' && value.trim() === '';
+        });
+
+        if (isMissingFields) {
+             toast({ variant: "destructive", title: "Error", description: `Please fill out all required fields.` });
+             return;
         }
         
         try {
@@ -178,7 +180,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="blog" className="w-full">
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-4 lg:grid-cols-8">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
             <TabsTrigger value="blog">Blog Posts</TabsTrigger>
             <TabsTrigger value="roster">Clan Roster</TabsTrigger>
             <TabsTrigger value="announcements">Announcements</TabsTrigger>
@@ -199,7 +201,7 @@ export default function AdminPage() {
                              <form className="space-y-4" onSubmit={handleAddPost}>
                                 <div><Label htmlFor="post-title">Title</Label><Input id="post-title" placeholder="Enter post title" value={newPost.title} onChange={(e) => setNewPost({...newPost, title: e.target.value})} required /></div>
                                 <div><Label htmlFor="post-tags">Category</Label><Input id="post-tags" placeholder="e.g. News, Update, Tutorial" value={newPost.category} onChange={(e) => setNewPost({...newPost, category: e.target.value})} required /></div>
-                                <div><Label htmlFor="post-image-url">Image URL</Label><Input id="post-image-url" type="text" placeholder="https://your-image-url.com/image.png" value={newPost.imageUrl} onChange={(e) => setNewPost({...newPost, imageUrl: e.target.value})} /></div>
+                                <div><Label htmlFor="post-image-url">Image URL (Optional)</Label><Input id="post-image-url" type="text" placeholder="https://your-image-url.com/image.png" value={newPost.imageUrl} onChange={(e) => setNewPost({...newPost, imageUrl: e.target.value})} /></div>
                                 <div><Label htmlFor="post-content">Content</Label><Textarea id="post-content" placeholder="Write your blog post content here..." value={newPost.content} onChange={(e) => setNewPost({...newPost, content: e.target.value})} required rows={10} /></div>
                                 <Button type="submit" variant="primary">Add Post</Button>
                              </form>
@@ -230,12 +232,14 @@ export default function AdminPage() {
                          <div>
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Member</h3>
                              <form className="space-y-4" onSubmit={handleAddMember}>
-                                <div><Label htmlFor="member-name">Name</Label><Input id="member-name" placeholder="Enter member's name" value={newMember.name} onChange={(e) => setNewMember({...newMember, name: e.target.value})} required/></div>
-                                <div><Label htmlFor="member-avatar">Avatar URL</Label><Input id="member-avatar" placeholder="https://pinterest.com/..." value={newMember.avatarUrl} onChange={(e) => setNewMember({...newMember, avatarUrl: e.target.value})}/></div>
-                                <div><Label htmlFor="member-rank">Rank</Label><Input id="member-rank" placeholder="e.g., Diamond, Grandmaster" value={newMember.rank} onChange={(e) => setNewMember({...newMember, rank: e.target.value})} required/></div>
-                                <div><Label htmlFor="member-game">Game</Label><Input id="member-game" placeholder="e.g., Valorant, League of Legends" value={newMember.game} onChange={(e) => setNewMember({...newMember, game: e.target.value})} required/></div>
-                                <div><Label htmlFor="member-role">Role</Label><Input id="member-role" placeholder="e.g., Legendary, Pro, New Member" value={newMember.role} onChange={(e) => setNewMember({...newMember, role: e.target.value})} required/></div>
-                                <div><Label htmlFor="member-server">Server</Label><Input id="member-server" placeholder="Enter server ID" value={newMember.server} onChange={(e) => setNewMember({...newMember, server: e.target.value})} required/></div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2"><Label htmlFor="member-name">Name</Label><Input id="member-name" placeholder="Member's name" value={newMember.name} onChange={(e) => setNewMember({...newMember, name: e.target.value})} required/></div>
+                                    <div className="space-y-2"><Label htmlFor="member-game">Game</Label><Input id="member-game" placeholder="e.g., Valorant" value={newMember.game} onChange={(e) => setNewMember({...newMember, game: e.target.value})} required/></div>
+                                    <div className="space-y-2"><Label htmlFor="member-rank">Rank</Label><Input id="member-rank" placeholder="e.g., Diamond" value={newMember.rank} onChange={(e) => setNewMember({...newMember, rank: e.target.value})} required/></div>
+                                    <div className="space-y-2"><Label htmlFor="member-role">Role</Label><Input id="member-role" placeholder="e.g., Pro" value={newMember.role} onChange={(e) => setNewMember({...newMember, role: e.target.value})} required/></div>
+                                </div>
+                                <div className="space-y-2"><Label htmlFor="member-server">Server</Label><Input id="member-server" placeholder="Enter server ID" value={newMember.server} onChange={(e) => setNewMember({...newMember, server: e.target.value})} required/></div>
+                                <div className="space-y-2"><Label htmlFor="member-avatar">Avatar URL (Optional)</Label><Input id="member-avatar" placeholder="https://pinterest.com/..." value={newMember.avatarUrl} onChange={(e) => setNewMember({...newMember, avatarUrl: e.target.value})}/></div>
                                 <Button variant="primary" type="submit">Add Member</Button>
                              </form>
                         </div>
@@ -259,7 +263,7 @@ export default function AdminPage() {
                              <h3 className="text-lg font-semibold mb-4 border-b pb-2">New Announcement</h3>
                              <form className="space-y-4" onSubmit={handleAddAnnouncement}>
                                 <div><Label htmlFor="ann-author">Author</Label><Input id="ann-author" placeholder="@YourDiscordHandle" value={newAnnouncement.author} onChange={(e) => setNewAnnouncement({...newAnnouncement, author: e.target.value})} required /></div>
-                                <div><Label htmlFor="ann-author-image-url">Author Profile Picture URL</Label><Input id="ann-author-image-url" type="text" placeholder="https://your-image-url.com/profile.png" value={newAnnouncement.authorImageUrl} onChange={(e) => setNewAnnouncement({...newAnnouncement, authorImageUrl: e.target.value})} /></div>
+                                <div><Label htmlFor="ann-author-image-url">Author PFP URL (Optional)</Label><Input id="ann-author-image-url" type="text" placeholder="https://your-image-url.com/profile.png" value={newAnnouncement.authorImageUrl} onChange={(e) => setNewAnnouncement({...newAnnouncement, authorImageUrl: e.target.value})} /></div>
                                 <div><Label htmlFor="ann-content">Content</Label><Textarea id="ann-content" placeholder="Write your announcement here..." value={newAnnouncement.content} onChange={(e) => setNewAnnouncement({...newAnnouncement, content: e.target.value})} required /></div>
                                 <Button variant="primary" type="submit">Add Announcement</Button>
                              </form>
@@ -435,5 +439,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
