@@ -28,7 +28,7 @@ interface HeroImage { id: string; src: string; alt: string; hint: string; }
 interface TimelineEvent { id: string; year: string; title: string; description: string; }
 interface CoreValue { id: string; title: string; description: string; }
 interface GalleryImage { id: string; src: string; alt: string; hint: string; }
-interface FooterSettings { twitterUrl?: string; discordUrl?: string; youtubeUrl?: string; twitchUrl?: string; developerName?: string; developerUrl?: string;}
+interface SiteSettings { twitterUrl?: string; discordUrl?: string; youtubeUrl?: string; twitchUrl?: string; developerName?: string; developerUrl?: string; recruitmentUrl?: string; }
 
 // Union type for all editable items
 type EditableItem = BlogPost | RosterMember | Announcement | Game | HeroImage | TimelineEvent | CoreValue | GalleryImage;
@@ -43,7 +43,7 @@ export default function AdminPage() {
     const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
     const [coreValues, setCoreValues] = useState<CoreValue[]>([]);
     const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
-    const [footerSettings, setFooterSettings] = useState<FooterSettings>({ twitterUrl: '', discordUrl: '', youtubeUrl: '', twitchUrl: '', developerName: '', developerUrl: ''});
+    const [siteSettings, setSiteSettings] = useState<SiteSettings>({ twitterUrl: '', discordUrl: '', youtubeUrl: '', twitchUrl: '', developerName: '', developerUrl: '', recruitmentUrl: ''});
 
 
     const [newPost, setNewPost] = useState({ title: '', content: '', imageUrl: '', category: 'News' });
@@ -85,18 +85,18 @@ export default function AdminPage() {
         fetchData<TimelineEvent>("timelineEvents", setTimelineEvents, query(collection(db, "timelineEvents"), orderBy("year", "asc")));
         fetchData<CoreValue>("coreValues", setCoreValues);
         fetchData<GalleryImage>("galleryImages", setGalleryImages);
-        fetchFooterSettings();
+        fetchSiteSettings();
     }
     
-    const fetchFooterSettings = async () => {
+    const fetchSiteSettings = async () => {
         try {
             const docRef = doc(db, "siteSettings", "footer");
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
-                setFooterSettings(docSnap.data() as FooterSettings);
+                setSiteSettings(docSnap.data() as SiteSettings);
             }
         } catch (error) {
-            console.error("Error fetching footer settings:", error);
+            console.error("Error fetching site settings:", error);
             toast({ variant: "destructive", title: "Error", description: "Could not fetch site settings." });
         }
     };
@@ -189,10 +189,10 @@ export default function AdminPage() {
     };
 
     // Site Settings Handler
-    const handleUpdateFooterSettings = async (e: React.FormEvent) => {
+    const handleUpdateSiteSettings = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await setDoc(doc(db, "siteSettings", "footer"), footerSettings, { merge: true });
+            await setDoc(doc(db, "siteSettings", "footer"), siteSettings, { merge: true });
             toast({ title: "Success", description: "Site settings updated successfully." });
         } catch (error) {
             toast({ variant: "destructive", title: "Error", description: "Failed to update site settings." });
@@ -345,7 +345,7 @@ export default function AdminPage() {
 
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-16">
+      <main className="flex-grow container mx-auto px-4 py-8 md:py-16">
         <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-headline font-bold">
                 Admin Panel
@@ -354,7 +354,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="blog" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-9">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-9 overflow-x-auto">
             <TabsTrigger value="blog">Blog</TabsTrigger>
             <TabsTrigger value="roster">Roster</TabsTrigger>
             <TabsTrigger value="announcements">Announcements</TabsTrigger>
@@ -386,8 +386,8 @@ export default function AdminPage() {
                              <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
                                 {blogPosts.map((post) => (
                                 <div key={post.id} className="flex justify-between items-center bg-background/50 p-3 rounded-lg">
-                                    <p className="font-medium">{post.title}</p>
-                                    <div className="flex gap-2">
+                                    <p className="font-medium truncate pr-2">{post.title}</p>
+                                    <div className="flex gap-2 flex-shrink-0">
                                         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(post)}><Edit className="h-4 w-4"/></Button>
                                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({collectionName: 'blogPosts', id: post.id})}><Trash2 className="h-4 w-4"/></Button>
                                     </div>
@@ -632,36 +632,41 @@ export default function AdminPage() {
           </TabsContent>
            <TabsContent value="settings">
               <Card className="bg-card mt-6">
-                <CardHeader><CardTitle>Manage Site Settings</CardTitle><CardDescription>Update global settings like footer links.</CardDescription></CardHeader>
+                <CardHeader><CardTitle>Manage Site Settings</CardTitle><CardDescription>Update global settings like footer and button links.</CardDescription></CardHeader>
                 <CardContent>
-                    <form className="space-y-6 max-w-2xl" onSubmit={handleUpdateFooterSettings}>
-                        <h3 className="text-lg font-semibold border-b pb-2">Footer Settings</h3>
+                    <form className="space-y-6 max-w-2xl" onSubmit={handleUpdateSiteSettings}>
+                        <h3 className="text-lg font-semibold border-b pb-2">General Links</h3>
+                         <div className="space-y-2">
+                            <Label htmlFor="recruitment-url">Recruitment Button URL</Label>
+                            <Input id="recruitment-url" value={siteSettings.recruitmentUrl} onChange={(e) => setSiteSettings({ ...siteSettings, recruitmentUrl: e.target.value })} placeholder="https://your-recruitment-link.com" />
+                        </div>
+                        <h3 className="text-lg font-semibold border-b pb-2 pt-4">Footer Settings</h3>
                          <div className="space-y-2">
                             <Label htmlFor="developer-name">Developer Name</Label>
-                            <Input id="developer-name" value={footerSettings.developerName} onChange={(e) => setFooterSettings({ ...footerSettings, developerName: e.target.value })} placeholder="e.g., Fourtuna" />
+                            <Input id="developer-name" value={siteSettings.developerName} onChange={(e) => setSiteSettings({ ...siteSettings, developerName: e.target.value })} placeholder="e.g., Fourtuna" />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="developer-url">Developer URL</Label>
-                            <Input id="developer-url" value={footerSettings.developerUrl} onChange={(e) => setFooterSettings({ ...footerSettings, developerUrl: e.target.value })} placeholder="https://..." />
+                            <Input id="developer-url" value={siteSettings.developerUrl} onChange={(e) => setSiteSettings({ ...siteSettings, developerUrl: e.target.value })} placeholder="https://..." />
                         </div>
                         
                         <h4 className="text-md font-semibold pt-4">Social Media Links</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="twitter-url">Twitter URL</Label>
-                                <Input id="twitter-url" value={footerSettings.twitterUrl} onChange={(e) => setFooterSettings({ ...footerSettings, twitterUrl: e.target.value })} placeholder="https://twitter.com/..." />
+                                <Input id="twitter-url" value={siteSettings.twitterUrl} onChange={(e) => setSiteSettings({ ...siteSettings, twitterUrl: e.target.value })} placeholder="https://twitter.com/..." />
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="discord-url">Discord URL</Label>
-                                <Input id="discord-url" value={footerSettings.discordUrl} onChange={(e) => setFooterSettings({ ...footerSettings, discordUrl: e.target.value })} placeholder="https://discord.gg/..." />
+                                <Input id="discord-url" value={siteSettings.discordUrl} onChange={(e) => setSiteSettings({ ...siteSettings, discordUrl: e.target.value })} placeholder="https://discord.gg/..." />
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="youtube-url">YouTube URL</Label>
-                                <Input id="youtube-url" value={footerSettings.youtubeUrl} onChange={(e) => setFooterSettings({ ...footerSettings, youtubeUrl: e.target.value })} placeholder="https://youtube.com/..." />
+                                <Input id="youtube-url" value={siteSettings.youtubeUrl} onChange={(e) => setSiteSettings({ ...siteSettings, youtubeUrl: e.target.value })} placeholder="https://youtube.com/..." />
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="twitch-url">Twitch URL</Label>
-                                <Input id="twitch-url" value={footerSettings.twitchUrl} onChange={(e) => setFooterSettings({ ...footerSettings, twitchUrl: e.target.value })} placeholder="https://twitch.tv/..." />
+                                <Input id="twitch-url" value={siteSettings.twitchUrl} onChange={(e) => setSiteSettings({ ...siteSettings, twitchUrl: e.target.value })} placeholder="https://twitch.tv/..." />
                             </div>
                         </div>
 
@@ -677,3 +682,5 @@ export default function AdminPage() {
     </>
   );
 }
+
+    

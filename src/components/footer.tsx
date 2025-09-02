@@ -15,7 +15,7 @@ const DiscordIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-interface FooterSettings {
+interface SiteSettings {
     twitterUrl?: string;
     discordUrl?: string;
     youtubeUrl?: string;
@@ -25,7 +25,7 @@ interface FooterSettings {
 }
 
 export function Footer() {
-    const [settings, setSettings] = useState<FooterSettings>({});
+    const [settings, setSettings] = useState<SiteSettings>({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -34,7 +34,7 @@ export function Footer() {
                 const docRef = doc(db, "siteSettings", "footer");
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
-                    setSettings(docSnap.data() as FooterSettings);
+                    setSettings(docSnap.data() as SiteSettings);
                 }
             } catch (error) {
                 console.error("Error fetching footer settings:", error);
@@ -55,7 +55,7 @@ export function Footer() {
                         <span className="text-xl font-bold uppercase text-white tracking-widest font-headline">Fantom eSport</span>
                     </Link>
                     {!loading && Object.keys(settings).length > 0 && (
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 md:gap-4">
                             {settings.twitterUrl && (
                                 <Link href={settings.twitterUrl} aria-label="Twitter" target="_blank" rel="noopener noreferrer">
                                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
@@ -97,3 +97,5 @@ export function Footer() {
         </footer>
     );
 }
+
+    

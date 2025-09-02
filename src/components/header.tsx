@@ -14,7 +14,7 @@ import { Menu, X, LogOut, Shield, User as UserIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -25,18 +25,36 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { doc, getDoc } from "firebase/firestore";
 
 const ADMIN_EMAIL = 'fortunedomination@gmail.com';
+
+interface SiteSettings {
+    discordUrl?: string;
+}
 
 export function Header() {
   const pathname = usePathname();
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
+  const [settings, setSettings] = useState<SiteSettings>({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
+     const fetchSettings = async () => {
+        try {
+            const docRef = doc(db, "siteSettings", "footer");
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                setSettings(docSnap.data() as SiteSettings);
+            }
+        } catch (error) {
+            console.error("Error fetching header settings:", error);
+        }
+    };
+    fetchSettings();
     return () => unsubscribe();
   }, []);
 
@@ -87,9 +105,11 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-            <Button variant="outline" className="hidden lg:flex">
-                Discord
-            </Button>
+             <Link href={settings.discordUrl || '#'} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" className="hidden lg:flex">
+                    Discord
+                </Button>
+            </Link>
             {user ? (
               <>
                 <DropdownMenu>
@@ -178,9 +198,11 @@ export function Header() {
                     ))}
                   </nav>
                   <div className="mt-8 flex flex-col gap-4">
-                    <Button variant="outline" size="lg" className="w-full">
-                        Discord
-                    </Button>
+                     <Link href={settings.discordUrl || '#'} target="_blank" rel="noopener noreferrer" className="w-full">
+                        <Button variant="outline" size="lg" className="w-full">
+                            Discord
+                        </Button>
+                     </Link>
                     {user ? (
                       <>
                         <Link href="/profile" className="w-full">
@@ -221,3 +243,5 @@ export function Header() {
     </header>
   );
 }
+
+    

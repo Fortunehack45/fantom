@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Users, Gamepad2, ArrowRight } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
-import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, limit, orderBy, query, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { format } from "date-fns";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
@@ -63,6 +63,11 @@ interface HeroImage {
   hint: string;
 }
 
+interface SiteSettings {
+    discordUrl?: string;
+    recruitmentUrl?: string;
+}
+
 const defaultHeroImages: HeroImage[] = [
     { id: 'default-1', src: 'https://i.pinimg.com/originals/20/c1/8c/20c18cfe73bc503ed8a0c5baa362ca2f.jpg', alt: 'Soldiers in a battlefield', hint: 'soldiers battlefield' },
     { id: 'default-2', src: 'https://i.pinimg.com/originals/fc/f6/4a/fcf64a71486e246ade88836fb1d60852.jpg', alt: 'Futuristic soldier overlooking a battlefield', hint: 'futuristic soldier' },
@@ -77,6 +82,7 @@ export default function Home() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [heroImages, setHeroImages] = useState<HeroImage[]>(defaultHeroImages);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
   const [heroLoading, setHeroLoading] = useState(true);
   const autoplay = useRef(Autoplay({ delay: 5000, stopOnInteraction: false }));
@@ -93,6 +99,7 @@ export default function Home() {
             const announcementsQuery = query(collection(db, "announcements"), orderBy("date", "desc"), limit(3));
             const gamesQuery = collection(db, "games");
             const heroImagesQuery = collection(db, "heroImages");
+            const settingsDocRef = doc(db, "siteSettings", "footer");
 
             const [
                 blogSnapshot,
@@ -100,12 +107,14 @@ export default function Home() {
                 announcementsSnapshot,
                 gamesSnapshot,
                 heroImagesSnapshot,
+                settingsDocSnap,
             ] = await Promise.all([
                 getDocs(blogQuery),
                 getDocs(rosterQuery),
                 getDocs(announcementsQuery),
                 getDocs(gamesQuery),
                 getDocs(heroImagesQuery),
+                getDoc(settingsDocRef),
             ]);
 
             const postsData: BlogPost[] = blogSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
@@ -120,6 +129,9 @@ export default function Home() {
             setGames(gamesData);
             if (heroImagesData.length > 0) {
               setHeroImages(heroImagesData);
+            }
+             if (settingsDocSnap.exists()) {
+                setSiteSettings(settingsDocSnap.data() as SiteSettings);
             }
         } catch (error) {
             console.error("Error fetching homepage data:", error);
@@ -175,11 +187,11 @@ export default function Home() {
                   ))}
                 </CarouselContent>
                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center">
-                  <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center p-4">
+                  <h1 className="text-7xl sm:text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
                     Fantom
                   </h1>
-                  <p className="mt-2 text-2xl text-muted-foreground uppercase font-bold tracking-widest">
+                  <p className="mt-2 text-lg sm:text-2xl text-muted-foreground uppercase font-bold tracking-widest">
                     Dominance is our creed
                   </p>
                 </div>
@@ -285,11 +297,13 @@ export default function Home() {
                              </CardHeader>
                              <CardContent>
                                 <p className="text-muted-foreground">Ready to compete with the best? We are always looking for skilled and dedicated players to join our cause. Apply now and become a part of the Fantom legacy.</p>
-                                <Button variant="primary" className="mt-6">Recruitment</Button>
+                                <Link href={siteSettings.recruitmentUrl || '#'} target="_blank" rel="noopener noreferrer">
+                                  <Button variant="primary" className="mt-6">Recruitment</Button>
+                                </Link>
                              </CardContent>
                         </Card>
                         <Card className="bg-card md:col-span-2">
-                             <CardHeader className="flex flex-row justify-between items-center">
+                             <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                 <div>
                                     <CardTitle className="flex items-center gap-2"><Users /> Active Roster</CardTitle>
                                     <CardDescription>The core of our strength. Meet the players who represent Fantom.</CardDescription>
@@ -336,7 +350,7 @@ export default function Home() {
                     </div>
                     <div className="grid md:grid-cols-3 gap-8 items-start">
                         <Card className="md:col-span-2 bg-card">
-                            <CardHeader className="flex flex-row justify-between items-center">
+                            <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                 <div>
                                     <CardTitle>Latest Announcements</CardTitle>
                                     <CardDescription>Stay updated with the latest news from our official Discord server.</CardDescription>
@@ -355,7 +369,7 @@ export default function Home() {
                                                 <AvatarFallback>{ann.author.substring(0, 2)}</AvatarFallback>
                                             </Avatar>
                                             <div>
-                                                <div className="flex items-baseline gap-2">
+                                                <div className="flex items-baseline gap-2 flex-wrap">
                                                     <p className="font-bold text-primary">{ann.author}</p>
                                                     <p className="text-xs text-muted-foreground">
                                                          {ann.date ? format(new Date(ann.date.seconds * 1000), 'dd/MM/yyyy - hh:mm a') : ''}
@@ -371,7 +385,9 @@ export default function Home() {
                         <Card variant="glow" className="relative h-full min-h-[300px] flex flex-col items-center justify-center bg-card rounded-lg p-8 text-center">
                              <h3 className="text-2xl font-headline font-bold uppercase">Join the Conversation</h3>
                              <p className="text-muted-foreground mt-2 mb-6">Connect with members, get real-time updates, and be part of our thriving community.</p>
-                             <Button variant="primary" size="lg">Join Our Discord</Button>
+                              <Link href={siteSettings.discordUrl || '#'} target="_blank" rel="noopener noreferrer">
+                                <Button variant="primary" size="lg">Join Our Discord</Button>
+                              </Link>
                         </Card>
                     </div>
                 </div>
@@ -398,3 +414,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
