@@ -18,79 +18,80 @@ service cloud.firestore {
       return request.auth.uid == resource.data.authorId;
     }
 
-    // --- Admin-managed Collections ---
-    // These collections can be read by anyone, but only written to by an admin.
-    match /roster/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /announcements/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /games/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /heroImages/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /timelineEvents/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /coreValues/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /galleryImages/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /siteSettings/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /pageContent/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    // Default deny all reads and writes
+    match /{document=**} {
+      allow read, write: if false;
     }
 
-    // --- Blog Posts with User Interactions ---
+    // Public read access for most collections, write access for admin only
     match /blogPosts/{postId} {
       allow read: if true;
-      // Admin can create/delete posts. Only admin can update post content.
-      // Any signed in user can update the 'likes' array.
-      allow create, delete: if isAdmin();
-      allow update: if (isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])));
+      allow write: if isAdmin();
+    }
+    match /roster/{memberId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /games/{gameId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /heroImages/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /timelineEvents/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /coreValues/{valueId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /galleryImages/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /siteSettings/{settingId} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+    match /pageContent/{pageId} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+    
+    // Rules for comments and replies subcollections
+    match /blogPosts/{postId}/comments/{commentId} {
+      allow read: if true;
+      
+      // Anyone signed in can create a comment
+      allow create: if isSignedIn();
+      
+      // Allow authenticated users to update only the 'likes' array on a comment.
+      // Admins can update anything.
+      allow update: if (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) || isAdmin();
+      
+      // Only the author or an admin can delete a comment
+      allow delete: if isSignedIn() && (isOwner(resource) || isAdmin());
 
-      // --- Comments and Replies Logic ---
-      match /comments/{commentId} {
+      // Rules for replies subcollection
+      match /replies/{replyId} {
         allow read: if true;
         
-        // Anyone signed in can create a comment
+        // Anyone signed in can create a reply
         allow create: if isSignedIn();
         
-        // Admin can update any field. Signed-in users can only update 'likes'.
-        allow update: if (isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])));
+        // Allow authenticated users to update only the 'likes' array on a reply.
+        // Admins can update anything.
+        allow update: if (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) || isAdmin();
 
-        // Only the author or an admin can delete a comment
+        // Only the author or an admin can delete a reply
         allow delete: if isSignedIn() && (isOwner(resource) || isAdmin());
-
-        // --- Replies subcollection ---
-        match /replies/{replyId} {
-          allow read: if true;
-          
-          // Anyone signed in can create a reply
-          allow create: if isSignedIn();
-          
-          // Admin can update any field. Signed-in users can only update 'likes'.
-          allow update: if (isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])));
-
-          // Only the author or an admin can delete a reply
-          allow delete: if isSignedIn() && (isOwner(resource) || isAdmin());
-        }
       }
     }
   }
