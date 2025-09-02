@@ -145,14 +145,14 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
+    <div className="flex flex-col min-h-screen bg-transparent text-foreground">
       <Header />
       <main className="flex-grow">
         {/* Hero Section */}
         <section id="hero" className="relative w-full bg-black">
           <div className="relative h-[500px] w-full overflow-hidden">
              {heroLoading ? (
-               <Skeleton className="w-full h-full">
+               <Skeleton className="w-full h-full bg-black/20">
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center">
                     <h1 className="text-8xl md:text-9xl font-headline font-black text-white tracking-wider uppercase" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '0 0 25px hsl(var(--primary))' }}>
@@ -200,7 +200,7 @@ export default function Home() {
           </div>
         </section>
         
-        <div className="bg-background/80 backdrop-blur-sm">
+        <div className="bg-transparent backdrop-blur-sm">
             {/* Recent Articles Section */}
             <section id="blog" className="py-16 md:py-24">
                  <div className="container mx-auto px-4">
@@ -211,34 +211,48 @@ export default function Home() {
                         </h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {blogPosts.map((post) => (
-                          <Link key={post.id} href={`/blog/${post.slug}`}>
-                            <Card className="bg-card border-border overflow-hidden group h-full flex flex-col transform hover:-translate-y-2 transition-transform duration-300">
-                                <div className="relative aspect-video">
-                                    <Image
-                                    src={post.imageUrl || `https://picsum.photos/400/250?random=${post.id}`}
-                                    alt={post.title}
-                                    fill
-                                    className="object-cover"
-                                    data-ai-hint={post.hint}
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                                    <Badge variant="primary" className="absolute top-2 left-2">{post.category}</Badge>
-                                </div>
-                                <CardContent className="p-4 flex-grow flex flex-col">
-                                    <h3 className="text-lg font-headline font-bold uppercase leading-tight mt-1 group-hover:text-primary transition-colors">
-                                        {post.title}
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground mt-2 flex-grow">
-                                        {post.content.substring(0, 100)}...
-                                    </p>
-                                    <p className="text-xs text-muted-foreground uppercase mt-4">
-                                       {post.date ? format(new Date(post.date.seconds ? post.date.seconds * 1000 : post.date), 'MMM d, yyyy') : ''}
-                                    </p>
-                                </CardContent>
+                        {loading ? (
+                          [...Array(3)].map((_, i) => (
+                            <Card key={i} className="bg-card border-border overflow-hidden">
+                              <Skeleton className="w-full aspect-video bg-muted" />
+                              <CardContent className="p-4 space-y-3">
+                                <Skeleton className="h-5 w-3/4" />
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-2/3" />
+                                <Skeleton className="h-4 w-1/2 mt-2" />
+                              </CardContent>
                             </Card>
-                          </Link>
-                        ))}
+                          ))
+                        ) : (
+                          blogPosts.map((post) => (
+                            <Link key={post.id} href={`/blog/${post.slug}`} className="group">
+                              <Card className="bg-card border-border overflow-hidden h-full flex flex-col transform hover:-translate-y-2 transition-transform duration-300 hover:shadow-2xl hover:shadow-primary/20">
+                                  <div className="relative aspect-video">
+                                      <Image
+                                      src={post.imageUrl || `https://picsum.photos/400/250?random=${post.id}`}
+                                      alt={post.title}
+                                      fill
+                                      className="object-cover"
+                                      data-ai-hint={post.hint}
+                                      />
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent group-hover:from-black/60 transition-colors" />
+                                      <Badge variant="primary" className="absolute top-2 left-2">{post.category}</Badge>
+                                  </div>
+                                  <CardContent className="p-4 flex-grow flex flex-col">
+                                      <h3 className="text-lg font-headline font-bold uppercase leading-tight mt-1 group-hover:text-primary transition-colors">
+                                          {post.title}
+                                      </h3>
+                                      <p className="text-sm text-muted-foreground mt-2 flex-grow">
+                                          {post.content.substring(0, 100)}...
+                                      </p>
+                                      <p className="text-xs text-muted-foreground uppercase mt-4">
+                                         {post.date ? format(new Date(post.date.seconds ? post.date.seconds * 1000 : post.date), 'MMM d, yyyy') : ''}
+                                      </p>
+                                  </CardContent>
+                              </Card>
+                            </Link>
+                          ))
+                        )}
                     </div>
                     <div className="text-center mt-12">
                         <Link href="/blog">
@@ -258,25 +272,33 @@ export default function Home() {
                         </h2>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-                        {games.map((game) => (
-                          <Card key={game.id} className="bg-card border-border overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300">
-                                <div className="relative aspect-[3/4]">
-                                    <Image
-                                      src={game.imageUrl}
-                                      alt={game.name}
-                                      fill
-                                      className="object-cover"
-                                      data-ai-hint={game.hint}
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                                    <div className="absolute bottom-0 left-0 p-4">
-                                       <h3 className="text-lg md:text-xl font-headline font-bold uppercase text-white group-hover:text-primary transition-colors">
-                                            {game.name}
-                                        </h3>
-                                    </div>
-                                </div>
-                          </Card>
-                        ))}
+                        {loading ? (
+                           [...Array(4)].map((_, i) => (
+                              <Card key={i} className="bg-card border-border overflow-hidden">
+                                  <Skeleton className="w-full aspect-[3/4] bg-muted" />
+                              </Card>
+                            ))
+                        ) : (
+                          games.map((game) => (
+                            <Card key={game.id} className="bg-card border-border overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300 hover:shadow-2xl hover:shadow-primary/20">
+                                  <div className="relative aspect-[3/4]">
+                                      <Image
+                                        src={game.imageUrl}
+                                        alt={game.name}
+                                        fill
+                                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                        data-ai-hint={game.hint}
+                                      />
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                                      <div className="absolute bottom-0 left-0 p-4">
+                                         <h3 className="text-lg md:text-xl font-headline font-bold uppercase text-white group-hover:text-primary transition-colors">
+                                              {game.name}
+                                          </h3>
+                                      </div>
+                                  </div>
+                            </Card>
+                          ))
+                        )}
                     </div>
                 </div>
             </section>
@@ -323,14 +345,25 @@ export default function Home() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {roster.map((member) => (
-                                            <TableRow key={member.id}>
-                                                <TableCell className="font-medium">{member.name}</TableCell>
-                                                <TableCell className="hidden sm:table-cell">{member.game}</TableCell>
-                                                <TableCell className="hidden md:table-cell">{member.rank}</TableCell>
-                                                <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
-                                            </TableRow>
-                                        ))}
+                                        {loading ? (
+                                           [...Array(5)].map((_, i) => (
+                                              <TableRow key={i}>
+                                                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                                <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-20" /></TableCell>
+                                                <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-20" /></TableCell>
+                                                <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                                              </TableRow>
+                                            ))
+                                        ) : (
+                                          roster.map((member) => (
+                                              <TableRow key={member.id}>
+                                                  <TableCell className="font-medium">{member.name}</TableCell>
+                                                  <TableCell className="hidden sm:table-cell">{member.game}</TableCell>
+                                                  <TableCell className="hidden md:table-cell">{member.rank}</TableCell>
+                                                  <TableCell><Badge variant="secondary">{member.role}</Badge></TableCell>
+                                              </TableRow>
+                                          ))
+                                        )}
                                     </TableBody>
                                 </Table>
                              </CardContent>
@@ -360,26 +393,38 @@ export default function Home() {
                                 </Link>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                {announcements.map((ann) => {
-                                    if (!ann.author) return null;
-                                    return (
-                                        <div key={ann.id} className="flex items-start gap-4">
-                                            <Avatar>
-                                                <AvatarImage src={ann.authorImageUrl || `https://picsum.photos/40/40?random=${ann.id}`} />
-                                                <AvatarFallback>{ann.author.substring(0, 2)}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <div className="flex items-baseline gap-2 flex-wrap">
-                                                    <p className="font-bold text-primary">{ann.author}</p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                         {ann.date ? format(new Date(ann.date.seconds * 1000), 'dd/MM/yyyy - hh:mm a') : ''}
-                                                    </p>
-                                                </div>
-                                                <p className="text-sm text-foreground/80">{ann.content}</p>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
+                                {loading ? (
+                                   [...Array(3)].map((_, i) => (
+                                      <div key={i} className="flex items-start gap-4">
+                                          <Skeleton className="h-10 w-10 rounded-full" />
+                                          <div className="w-full space-y-2">
+                                              <Skeleton className="h-4 w-1/4" />
+                                              <Skeleton className="h-4 w-full" />
+                                          </div>
+                                      </div>
+                                    ))
+                                ) : (
+                                  announcements.map((ann) => {
+                                      if (!ann.author) return null;
+                                      return (
+                                          <div key={ann.id} className="flex items-start gap-4">
+                                              <Avatar>
+                                                  <AvatarImage src={ann.authorImageUrl || `https://picsum.photos/40/40?random=${ann.id}`} />
+                                                  <AvatarFallback>{ann.author.substring(0, 2)}</AvatarFallback>
+                                              </Avatar>
+                                              <div>
+                                                  <div className="flex items-baseline gap-2 flex-wrap">
+                                                      <p className="font-bold text-primary">{ann.author}</p>
+                                                      <p className="text-xs text-muted-foreground">
+                                                           {ann.date ? format(new Date(ann.date.seconds * 1000), 'dd/MM/yyyy - hh:mm a') : ''}
+                                                      </p>
+                                                  </div>
+                                                  <p className="text-sm text-foreground/80">{ann.content}</p>
+                                              </div>
+                                          </div>
+                                      )
+                                  })
+                                )}
                             </CardContent>
                         </Card>
                         <Card variant="glow" className="relative h-full min-h-[300px] flex flex-col items-center justify-center bg-card rounded-lg p-8 text-center">

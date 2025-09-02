@@ -2,12 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: 'var(--font-inter)', sans-serif;
-  background-color: hsl(var(--background));
-  background-image: url('https://www.transparenttextures.com/patterns/dark-matter.png');
-}
-
 @layer base {
   :root {
     --background: 224 71% 4%;
@@ -73,14 +67,42 @@ body {
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline;
   }
+  
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image: 
+      radial-gradient(circle at 15% 50%, hsl(var(--primary) / 0.1), transparent 40%),
+      radial-gradient(circle at 85% 30%, hsl(var(--secondary) / 0.1), transparent 40%),
+      url('https://www.transparenttextures.com/patterns/dark-matter.png');
+    background-size: 200% 200%;
+    animation: gradient-move 20s ease infinite;
+  }
+
+  @keyframes gradient-move {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  #cursor-glow {
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, hsl(var(--primary) / 0.1) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+  }
 }
 
 .btn-primary-glow {
     box-shadow: 0 0 5px theme('colors.primary.DEFAULT'), 0 0 10px theme('colors.primary.DEFAULT'), 0 0 15px theme('colors.primary.DEFAULT');
-}
-
-.btn-secondary-glow {
-    box-shadow: 0 0 5px theme('colors.primary.DEFAULT'), 0 0 10px theme('colors.primary.DEFAULT');
 }
 
 @keyframes glow {
@@ -99,5 +121,3 @@ body {
   animation: glow 4s ease-in-out infinite;
   border-color: hsl(var(--primary));
 }
-
-    
