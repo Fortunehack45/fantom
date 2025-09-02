@@ -80,10 +80,7 @@ export function Header() {
     { href: "/about", label: "About" },
   ];
 
-  const isHomePage = pathname === '/';
-  const headerClasses = isHomePage
-    ? "absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/70 to-transparent"
-    : "sticky top-0 z-50 w-full border-b border-b-primary/20 bg-background/80 backdrop-blur-sm";
+  const headerClasses = "sticky top-0 z-50 w-full border-b border-b-primary/20 bg-background/95 backdrop-blur-sm";
 
 
   return (
