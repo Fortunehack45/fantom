@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Newspaper } from 'lucide-react';
 import { Footer } from '@/components/footer';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface BlogPost {
   id: string;
@@ -49,8 +50,21 @@ export default function BlogPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-background text-foreground justify-center items-center">
-        <p>Loading posts...</p>
+      <div className="flex flex-col min-h-screen bg-background text-foreground">
+        <Header />
+        <main className="flex-grow container mx-auto px-4 py-12">
+           <Skeleton className="w-full h-[500px] rounded-2xl mb-16" />
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[...Array(6)].map((_, i) => (
+                 <div key={i} className="space-y-4">
+                   <Skeleton className="aspect-video w-full" />
+                   <Skeleton className="h-6 w-3/4" />
+                   <Skeleton className="h-4 w-1/2" />
+                 </div>
+              ))}
+           </div>
+        </main>
+        <Footer />
       </div>
     );
   }
@@ -83,7 +97,7 @@ export default function BlogPage() {
         {featuredPost && (
           <section className="container mx-auto px-4 pt-12 pb-8">
              <Link href={`/blog/${featuredPost.slug}`}>
-                <div className="relative w-full h-[500px] rounded-2xl overflow-hidden group">
+                <div className="relative w-full h-[500px] rounded-2xl overflow-hidden group shadow-2xl shadow-black/30">
                     <Image
                         src={featuredPost.imageUrl || `https://picsum.photos/1200/400?random=${featuredPost.id}`}
                         alt={featuredPost.title}
@@ -92,10 +106,10 @@ export default function BlogPage() {
                         data-ai-hint={featuredPost.hint}
                         priority
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <div className="absolute bottom-0 left-0 p-8 md:p-12 text-white">
                         <Badge variant="primary" className="mb-4">{featuredPost.category}</Badge>
-                        <h1 className="text-4xl md:text-6xl font-headline font-bold uppercase text-shadow-lg max-w-4xl">
+                        <h1 className="text-4xl md:text-6xl font-headline font-bold uppercase text-shadow-lg max-w-4xl group-hover:text-primary transition-colors duration-300">
                             {featuredPost.title}
                         </h1>
                         <p className="mt-4 max-w-2xl text-lg text-white/80 hidden md:block">
@@ -113,7 +127,7 @@ export default function BlogPage() {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 {otherPosts.map((post) => (
-                <Link key={post.id} href={`/blog/${post.slug}`}>
+                <Link key={post.id} href={`/blog/${post.slug}`} className="block">
                     <Card className="bg-card border-border overflow-hidden group h-full flex flex-col transform hover:-translate-y-2 transition-transform duration-300 shadow-lg hover:shadow-primary/20">
                         <div className="relative aspect-video overflow-hidden">
                             <Image

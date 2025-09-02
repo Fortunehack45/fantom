@@ -120,5 +120,3 @@ export default {
     })
   ],
 } satisfies Config;
-
-    

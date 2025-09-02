@@ -429,18 +429,18 @@ export default function BlogPostPage() {
                     </p>
                 </header>
                 {post.imageUrl && (
-                    <div className="relative aspect-video mb-8">
+                    <div className="relative aspect-video mb-8 rounded-lg overflow-hidden shadow-2xl shadow-black/20">
                       <Image
                           src={post.imageUrl}
                           alt={post.title}
                           fill
-                          className="w-full rounded-lg object-cover"
+                          className="w-full object-cover"
                           data-ai-hint={post.hint}
                       />
                     </div>
                 )}
                 <div 
-                    className="prose prose-invert prose-lg max-w-none mx-auto prose-p:text-foreground/80 prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary hover:prose-a:text-primary/80"
+                    className="prose prose-invert prose-lg max-w-none mx-auto prose-p:text-foreground/80 prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 prose-blockquote:border-primary prose-blockquote:text-foreground/90"
                     dangerouslySetInnerHTML={{ __html: post.content.replace(/\\n/g, '<br />') }} 
                 />
                 
@@ -554,14 +554,14 @@ export default function BlogPostPage() {
                         <h2 className="text-2xl font-headline font-bold mb-6">You Might Also Like</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
                             {relatedPosts.map((relatedPost) => (
-                                <Link key={relatedPost.id} href={`/blog/${relatedPost.slug}`}>
+                                <Link key={relatedPost.id} href={`/blog/${relatedPost.slug}`} className="block">
                                     <Card className="bg-card border-border overflow-hidden group h-full flex flex-col transform hover:-translate-y-1 transition-transform duration-300">
                                         <div className="relative aspect-video">
                                             <Image
                                                 src={relatedPost.imageUrl || `https://picsum.photos/400/250?random=${relatedPost.id}`}
                                                 alt={relatedPost.title}
                                                 fill
-                                                className="object-cover"
+                                                className="object-cover transform group-hover:scale-105 transition-transform duration-300"
                                                 data-ai-hint={relatedPost.hint}
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
