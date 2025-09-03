@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, ArrowUp, ArrowDown, CheckCheck, Crown, MessageSquare, ArrowRight, Check, X } from "lucide-react";
+import { Edit, Trash2, ArrowUp, ArrowDown, CheckCheck, Crown, MessageSquare, ArrowRight, Check, X, ThumbsUp, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
@@ -49,13 +49,14 @@ interface UserProfile {
     role: 'Creator' | 'Clan Owner' | 'User';
     verification: 'None' | 'Blue' | 'Gold';
 }
-interface UserComment {
+interface UserActivity {
     id: string;
-    content: string;
+    type: 'comment' | 'reply' | 'like_post' | 'like_short' | 'share_short';
+    content: string; // The comment content, or the title of the liked/shared item
     timestamp: any;
-    postTitle: string;
-    postSlug: string;
-    isReply: boolean;
+    targetTitle: string; // Title of the post/short
+    targetSlug?: string; // Slug for blog posts
+    targetId?: string; // ID for shorts
 }
 interface VerificationRequest {
     id: string;
@@ -84,7 +85,7 @@ export default function AdminPage() {
     const [coreValues, setCoreValues] = useState<CoreValue[]>([]);
     const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
     const [users, setUsers] = useState<UserProfile[]>([]);
-    const [userComments, setUserComments] = useState<UserComment[]>([]);
+    const [userActivity, setUserActivity] = useState<UserActivity[]>([]);
     const [verificationRequests, setVerificationRequests] = useState<VerificationRequest[]>([]);
     
     // Content states
@@ -348,23 +349,24 @@ export default function AdminPage() {
   };
 
   const fetchUserActivity = async (userId: string) => {
-    setUserComments([]);
-    const blogPostsSnap = await getDocs(collection(db, 'blogPosts'));
-    const allComments: UserComment[] = [];
+    setUserActivity([]);
+    const allActivity: UserActivity[] = [];
 
+    // Fetch comments
+    const blogPostsSnap = await getDocs(collection(db, 'blogPosts'));
     for (const postDoc of blogPostsSnap.docs) {
-        // Fetch comments
         const commentsRef = collection(db, 'blogPosts', postDoc.id, 'comments');
-        const commentsQuery = query(commentsRef, where('authorId', '==', userId), orderBy('timestamp', 'desc'));
+        const commentsQuery = query(commentsRef, where('authorId', '==', userId));
         const commentsSnap = await getDocs(commentsQuery);
         commentsSnap.forEach(commentDoc => {
-            allComments.push({
-                ...commentDoc.data(),
+            allActivity.push({
                 id: commentDoc.id,
-                postTitle: postDoc.data().title,
-                postSlug: postDoc.data().slug,
-                isReply: false,
-            } as UserComment);
+                type: 'comment',
+                content: commentDoc.data().content,
+                timestamp: commentDoc.data().timestamp,
+                targetTitle: postDoc.data().title,
+                targetSlug: postDoc.data().slug,
+            });
         });
 
         // Fetch replies
@@ -372,22 +374,51 @@ export default function AdminPage() {
         const allCommentsForPostSnap = await getDocs(allCommentsForPostRef);
         for(const commentDoc of allCommentsForPostSnap.docs) {
             const repliesRef = collection(db, 'blogPosts', postDoc.id, 'comments', commentDoc.id, 'replies');
-            const repliesQuery = query(repliesRef, where('authorId', '==', userId), orderBy('timestamp', 'desc'));
+            const repliesQuery = query(repliesRef, where('authorId', '==', userId));
             const repliesSnap = await getDocs(repliesQuery);
             repliesSnap.forEach(replyDoc => {
-                 allComments.push({
-                    ...replyDoc.data(),
+                 allActivity.push({
                     id: replyDoc.id,
-                    postTitle: postDoc.data().title,
-                    postSlug: postDoc.data().slug,
-                    isReply: true,
-                } as UserComment);
+                    type: 'reply',
+                    content: replyDoc.data().content,
+                    timestamp: replyDoc.data().timestamp,
+                    targetTitle: postDoc.data().title,
+                    targetSlug: postDoc.data().slug,
+                });
             });
         }
     }
     
-    allComments.sort((a, b) => b.timestamp.seconds - a.timestamp.seconds);
-    setUserComments(allComments);
+    // Fetch liked posts
+    const likedPostsQuery = query(collection(db, 'blogPosts'), where('likes', 'array-contains', userId));
+    const likedPostsSnap = await getDocs(likedPostsQuery);
+    likedPostsSnap.forEach(postDoc => {
+        allActivity.push({
+            id: `like-${postDoc.id}`,
+            type: 'like_post',
+            content: `Liked post: "${postDoc.data().title}"`,
+            timestamp: postDoc.data().date, // This is an approximation
+            targetTitle: postDoc.data().title,
+            targetSlug: postDoc.data().slug,
+        });
+    });
+
+    // Fetch liked shorts
+    const likedShortsQuery = query(collection(db, 'shorts'), where('likes', 'array-contains', userId));
+    const likedShortsSnap = await getDocs(likedShortsQuery);
+    likedShortsSnap.forEach(shortDoc => {
+        allActivity.push({
+            id: `like-${shortDoc.id}`,
+            type: 'like_short',
+            content: `Liked short: "${shortDoc.data().title}"`,
+            timestamp: shortDoc.data().timestamp,
+            targetTitle: shortDoc.data().title,
+            targetId: shortDoc.id,
+        });
+    });
+
+    allActivity.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+    setUserActivity(allActivity);
   };
 
   const openActivityModal = async (user: UserProfile) => {
@@ -492,6 +523,43 @@ export default function AdminPage() {
     return <p>This item cannot be edited.</p>;
   };
 
+  const ActivityIcon = ({ type }: { type: UserActivity['type'] }) => {
+    switch (type) {
+        case 'comment':
+        case 'reply':
+            return <MessageSquare className="h-4 w-4 text-blue-500" />;
+        case 'like_post':
+        case 'like_short':
+            return <ThumbsUp className="h-4 w-4 text-pink-500" />;
+        case 'share_short':
+            return <Share2 className="h-4 w-4 text-green-500" />;
+        default:
+            return null;
+    }
+  }
+
+  const ActivityLink = ({ activity }: { activity: UserActivity }) => {
+    if (activity.targetSlug) {
+        return (
+            <Link href={`/blog/${activity.targetSlug}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="link" className="h-auto p-0 mt-1">
+                    View Post <ArrowRight className="ml-1 h-3 w-3" />
+                </Button>
+            </Link>
+        )
+    }
+    if (activity.type === 'like_short' || activity.type === 'share_short') {
+         return (
+            <Link href={`/shorts#${activity.targetId}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="link" className="h-auto p-0 mt-1">
+                    View Short <ArrowRight className="ml-1 h-3 w-3" />
+                </Button>
+            </Link>
+        )
+    }
+    return null;
+  }
+
   return (
     <>
     <AlertDialog open={!!deletingItem} onOpenChange={(open) => !open && setDeletingItem(null)}>
@@ -528,28 +596,26 @@ export default function AdminPage() {
         <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
                 <DialogTitle>User Activity: {selectedUserForActivity?.username}</DialogTitle>
-                <DialogDescription>A list of all comments and replies made by this user.</DialogDescription>
+                <DialogDescription>A list of all activities performed by this user, sorted by most recent.</DialogDescription>
             </DialogHeader>
             <div className="max-h-[60vh] overflow-y-auto pr-4 space-y-4">
-                {userComments.length > 0 ? (
-                    userComments.map(comment => (
-                        <div key={comment.id} className="text-sm p-3 bg-muted/50 rounded-lg">
-                           <p className="text-muted-foreground">
-                                {comment.isReply ? "Replied" : "Commented"} on post "{comment.postTitle}" {' '}
-                                <span className="text-xs">({comment.timestamp ? formatDistanceToNow(new Date(comment.timestamp.seconds * 1000), { addSuffix: true }) : 'just now'})</span>
-                           </p>
-                           <p className="mt-1 italic">"{comment.content}"</p>
-                            <Link href={`/blog/${comment.postSlug}`} target="_blank" rel="noopener noreferrer">
-                                <Button variant="link" className="h-auto p-0 mt-1">
-                                    View Post <ArrowRight className="ml-1 h-3 w-3" />
-                                </Button>
-                            </Link>
+                {userActivity.length > 0 ? (
+                    userActivity.map(activity => (
+                        <div key={activity.id} className="text-sm p-3 bg-muted/50 rounded-lg flex items-start gap-3">
+                           <div className="mt-1"><ActivityIcon type={activity.type} /></div>
+                           <div className="flex-grow">
+                               <p className="text-muted-foreground">
+                                   <span className="text-xs">({activity.timestamp ? formatDistanceToNow(new Date(activity.timestamp.seconds * 1000), { addSuffix: true }) : 'sometime ago'})</span>
+                               </p>
+                               <p className="mt-1">{activity.content}</p>
+                                <ActivityLink activity={activity} />
+                           </div>
                         </div>
                     ))
                 ) : (
                     <div className="text-center text-muted-foreground p-8">
                         <MessageSquare className="mx-auto h-8 w-8" />
-                        <p className="mt-2">No comments or replies found for this user.</p>
+                        <p className="mt-2">No activity found for this user.</p>
                     </div>
                 )}
             </div>
@@ -1038,3 +1104,5 @@ export default function AdminPage() {
     </>
   );
 }
+
+    
