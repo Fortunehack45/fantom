@@ -15,10 +15,13 @@ This document outlines all the features of the Fantom eSport website that intera
         *   A user can only create their own user document.
         *   A user can only update their own profile data (e.g., username, photoURL). They cannot change their verification status.
         *   The Admin can update any user's profile (to assign verification).
-        *   Anyone can read profile data to view user pages.
+        *   Anyone can read profile data to view user pages (`get`) and query the collection to find users (`list`).
     *   **`/usernames/{username}`:**
         *   A separate collection to enforce unique usernames.
         *   A user can only create a username document that matches the username in their own user document. This prevents impersonation.
+    *   **`/users/{userId}/followers/{followerId}` & `/users/{userId}/following/{followingId}`:**
+        *   A user can only add/remove documents in their own `following` subcollection.
+        *   A user can only add/remove their own ID from another user's `followers` subcollection. This is a bidirectional write.
 
 ## 2. Content Creation
 
@@ -41,14 +44,10 @@ This document outlines all the features of the Fantom eSport website that intera
     *   Users can reply to comments on blog posts.
     *   Users can follow and unfollow other users.
 *   **Security Rules:**
-    *   **Liking (`/blogPosts/{postId}` & `/shorts/{shortId}`):**
-        *   The `update` rule is configured to allow any signed-in user to modify *only* the `likes` array on a document. They cannot change the title, content, or other fields.
+    *   **Liking:** Liking is handled by updating the `likes` array on a `blogPost` or `short` document. The general `update` rule for those collections governs this.
     *   **Comments & Replies (`.../comments/{commentId}` & `.../replies/{replyId}`):**
         *   Any signed-in user can create a comment or reply.
         *   Only the author of a comment/reply or an Admin can delete it.
-    *   **Following (`/users/{userId}/followers/{followerId}` & `/users/{userId}/following/{followingId}`):**
-        *   A user can only add/remove documents in their own `following` subcollection.
-        *   A user can only add/remove their own ID from another user's `followers` subcollection.
 
 ## 4. Private Messaging
 
@@ -59,7 +58,7 @@ This document outlines all the features of the Fantom eSport website that intera
 *   **Security Rules:**
     *   **`/chats/{chatId}`:**
         *   Read/Write/Update access is only granted if the requesting user's `uid` is in the `users` array of the chat document. This is the core security for private chats.
-        *   Admin can `get` (read a single document) but not `list` (read the whole collection's content) to see participants for moderation purposes.
+        *   Admin can `get` (read a single document) and `list` (read the whole collection) to see participants for moderation purposes.
     *   **`/chats/{chatId}/messages/{messageId}`:**
         *   Read/Create access is only granted by checking the parent `chat` document to ensure the user is a participant.
 
@@ -72,7 +71,7 @@ This document outlines all the features of the Fantom eSport website that intera
 *   **Security Rules:**
     *   **`/verificationRequests/{requestId}`:**
         *   **Create:** A user can only create a request for their own `uid`.
-        *   **Read/Update:** Only the Admin can read the list of requests and update their status. Regular users cannot see or modify other requests.
+        *   **Read/Update/Delete:** Only the Admin can read the list of requests, update their status, or delete them. Regular users cannot see or modify other requests.
 
 ## 6. Administrator Panel & Site Management
 
@@ -82,5 +81,5 @@ This document outlines all the features of the Fantom eSport website that intera
     *   Admin can add/edit/delete roster members, announcements, games, and all content on the "About" and "Home" pages.
 *   **Security Rules:**
     *   An `isAdmin()` helper function checks if the requesting user's email matches the hardcoded admin email.
-    *   This function is used throughout the rules to grant write/delete access to collections like `/roster`, `/announcements`, `/games`, `/siteSettings`, etc.
-    *   This ensures that only the designated administrator can manage sitewide content.
+    *   This function is used throughout the rules to grant write/delete access to collections like `/roster`, `/announcements`, `/games`, `/pageContent`, etc.
+    *   This ensures that only the designated administrator can manage sitewide content. All of these collections are publically readable.
