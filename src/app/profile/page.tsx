@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, User, signOut, updateProfile } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, writeBatch, updateDoc, serverTimestamp, query, where, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, writeBatch, updateDoc, serverTimestamp, query, where, collection, getDocs } from 'firebase/firestore';
 
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
