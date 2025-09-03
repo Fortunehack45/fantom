@@ -27,7 +27,6 @@ interface UserProfile {
     uid: string;
     email: string;
     username: string;
-    lowercaseUsername: string;
     photoURL: string;
     role: 'Creator' | 'Clan Owner' | 'User';
     verification: 'None' | 'Blue' | 'Gold';
@@ -80,8 +79,8 @@ export default function UserProfilePage() {
         setLoading(true);
 
         const usersRef = collection(db, 'users');
-        // Perform a case-insensitive query
-        const q = query(usersRef, where('lowercaseUsername', '==', username.toLowerCase()));
+        // The username in the URL must be an exact match to the one in the database.
+        const q = query(usersRef, where('username', '==', username));
 
         const fetchProfile = async () => {
             try {
@@ -235,11 +234,11 @@ export default function UserProfilePage() {
         return (
              <div className="flex flex-col min-h-screen bg-background text-foreground">
                 <Header />
-                 <div className="flex-grow flex flex-col justify-center items-center">
-                    <p className="text-2xl font-headline">User Not Found</p>
-                    <p className="text-muted-foreground">The profile you are looking for does not exist.</p>
+                 <div className="flex-grow flex flex-col justify-center items-center text-center px-4">
+                    <h2 className="text-4xl font-headline uppercase">User Not Found</h2>
+                    <p className="text-muted-foreground mt-2">The profile you are looking for does not exist.</p>
                      <Link href="/">
-                        <Button variant="ghost" className="mt-4">
+                        <Button variant="outline" className="mt-6">
                             Go Home
                         </Button>
                     </Link>
