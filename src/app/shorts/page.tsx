@@ -1,21 +1,33 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { collection, getDocs, orderBy, query, doc, updateDoc, arrayUnion, arrayRemove, onSnapshot } from 'firebase/firestore';
+import { useEffect, useState, useRef } from 'react';
+import { collection, getDocs, orderBy, query, doc, updateDoc, arrayUnion, arrayRemove, onSnapshot, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { Header } from "@/components/header";
 import { Footer } from '@/components/footer';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, MessageSquare, Share2, Video } from "lucide-react";
+import { ThumbsUp, MessageSquare, Share2, Video, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VideoPlayer } from '@/components/video-player';
 import Link from 'next/link';
+import { Textarea } from '@/components/ui/textarea';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
+
+interface Comment {
+    id: string;
+    authorId: string;
+    authorName: string;
+    authorPhotoURL?: string;
+    content: string;
+    timestamp: any;
+}
 
 interface Short {
     id: string;
@@ -27,6 +39,7 @@ interface Short {
     timestamp: any;
     likes: string[];
     shares: number;
+    comments?: Comment[];
 }
 
 export default function ShortsPage() {
@@ -34,6 +47,8 @@ export default function ShortsPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<User | null>(null);
     const { toast } = useToast();
+    const [newComment, setNewComment] = useState('');
+    const [commentingOn, setCommentingOn] = useState<string | null>(null);
 
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -43,9 +58,20 @@ export default function ShortsPage() {
         const shortsRef = collection(db, "shorts");
         const q = query(shortsRef, orderBy("timestamp", "desc"));
         const unsubscribeShorts = onSnapshot(q, (querySnapshot) => {
-            const shortsData: Short[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Short));
-            setShorts(shortsData);
-            setLoading(false);
+            const shortsPromises = querySnapshot.docs.map(async (shortDoc) => {
+                const shortData = { id: shortDoc.id, ...shortDoc.data() } as Short;
+                
+                const commentsRef = collection(db, 'shorts', shortDoc.id, 'comments');
+                const commentsQuery = query(commentsRef, orderBy('timestamp', 'desc'));
+                const commentsSnapshot = await getDocs(commentsQuery);
+                const commentsData = commentsSnapshot.docs.map(commentDoc => ({id: commentDoc.id, ...commentDoc.data() } as Comment));
+                
+                return { ...shortData, comments: commentsData };
+            });
+            Promise.all(shortsPromises).then(shortsData => {
+                 setShorts(shortsData);
+                 setLoading(false);
+            });
         }, (error) => {
             console.error("Error fetching shorts: ", error);
             setLoading(false);
@@ -79,6 +105,29 @@ export default function ShortsPage() {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not process your like.'});
         }
     };
+    
+    const handleAddComment = async (shortId: string) => {
+        if (!user || !newComment.trim()) {
+            toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in and the comment cannot be empty.' });
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, 'shorts', shortId, 'comments'), {
+                authorId: user.uid,
+                authorName: user.displayName || user.email,
+                authorPhotoURL: user.photoURL,
+                content: newComment,
+                timestamp: serverTimestamp(),
+            });
+            setNewComment('');
+            setCommentingOn(null);
+            toast({ title: 'Success', description: 'Comment posted!' });
+        } catch (error) {
+            console.error("Error adding comment: ", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to post comment.' });
+        }
+    };
 
     const handleShare = async (shortId: string) => {
         const short = shorts.find(s => s.id === shortId);
@@ -87,7 +136,7 @@ export default function ShortsPage() {
         const shareData = {
             title: `Check out this short from ${short.authorName}!`,
             text: short.title,
-            url: window.location.href, // This could be improved to link directly to the short if a detail page existed
+            url: window.location.href,
         };
 
         if (navigator.share) {
@@ -186,15 +235,57 @@ export default function ShortsPage() {
                                             <ThumbsUp className="mr-2 h-4 w-4" />
                                             Like ({short.likes.length})
                                         </Button>
-                                        <Button variant="ghost" className="flex-1" disabled>
+                                        <Button variant="ghost" className="flex-1" onClick={() => setCommentingOn(commentingOn === short.id ? null : short.id)}>
                                             <MessageSquare className="mr-2 h-4 w-4" />
-                                            Comment (0)
+                                            Comment ({short.comments?.length || 0})
                                         </Button>
                                         <Button variant="ghost" className="flex-1" onClick={() => handleShare(short.id)}>
                                             <Share2 className="mr-2 h-4 w-4" />
                                             Share ({short.shares || 0})
                                         </Button>
                                     </div>
+                                    {commentingOn === short.id && (
+                                        <div className="pt-4 space-y-4">
+                                             {user ? (
+                                                <div className="flex items-start gap-2">
+                                                    <Textarea 
+                                                        placeholder="Add a comment..." 
+                                                        className="bg-background/50"
+                                                        value={newComment}
+                                                        onChange={(e) => setNewComment(e.target.value)}
+                                                        rows={1}
+                                                    />
+                                                    <Button variant="primary" size="icon" onClick={() => handleAddComment(short.id)} disabled={!newComment.trim()}><Send className="h-4 w-4" /></Button>
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground text-center">You must be <Link href="/admin/login" className="text-primary underline">logged in</Link> to comment.</p>
+                                            )}
+
+                                            {short.comments && short.comments.length > 0 && (
+                                                <Collapsible>
+                                                    <CollapsibleTrigger asChild>
+                                                        <Button variant="link" size="sm" className="w-full text-muted-foreground">View all {short.comments.length} comments <ChevronDown className="ml-1 h-4 w-4" /></Button>
+                                                    </CollapsibleTrigger>
+                                                    <CollapsibleContent>
+                                                        <div className="space-y-4 mt-2">
+                                                        {short.comments.map(comment => (
+                                                            <div key={comment.id} className="flex items-start gap-3 text-sm">
+                                                                <Avatar className="w-8 h-8">
+                                                                    <AvatarImage src={comment.authorPhotoURL || `https://i.pravatar.cc/150?u=${comment.authorId}`} />
+                                                                    <AvatarFallback>{comment.authorName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                                                </Avatar>
+                                                                <div className="flex-grow bg-muted/30 p-2 rounded-lg">
+                                                                    <span className="font-semibold text-primary mr-2">{comment.authorName}</span>
+                                                                    <span>{comment.content}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        </div>
+                                                    </CollapsibleContent>
+                                                </Collapsible>
+                                            )}
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         ))
