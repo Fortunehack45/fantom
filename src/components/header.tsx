@@ -88,11 +88,13 @@ export function Header() {
   return (
     <header className={headerClasses}>
       <div className="container mx-auto flex h-20 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-3xl font-bold uppercase text-white tracking-widest font-headline">Fantom eSport</span>
-        </Link>
+        <div className="flex-1 flex justify-start">
+            <Link href="/" className="flex items-center gap-2">
+                <span className="text-3xl font-bold uppercase text-white tracking-widest font-headline">Fantom eSport</span>
+            </Link>
+        </div>
         
-        <nav className="hidden lg:flex items-center gap-8 text-sm font-bold uppercase">
+        <nav className="hidden lg:flex flex-[2] justify-center items-center gap-6 text-sm font-bold uppercase">
           {navLinks.map((link) => (
             <Link
               key={link.label}
@@ -104,7 +106,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-1 items-center justify-end gap-2">
              <Link href={settings.discordUrl || '#'} target="_blank" rel="noopener noreferrer">
                 <Button variant="outline" className="hidden lg:flex">
                     Discord
