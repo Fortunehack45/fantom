@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, getDoc, doc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -24,16 +24,26 @@ interface Chat {
     lastMessageTimestamp?: any;
 }
 
+const ADMIN_EMAIL = 'fortunedomination@gmail.com';
+
+
 export default function MessagesPage() {
     const [chats, setChats] = useState<Chat[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
-        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+        const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 setCurrentUser(user);
+                // Check if the user is an admin
+                if (user.email === ADMIN_EMAIL) {
+                    setIsAdmin(true);
+                } else {
+                    setIsAdmin(false);
+                }
             } else {
                 router.push('/admin/login');
             }
@@ -46,11 +56,20 @@ export default function MessagesPage() {
 
         setLoading(true);
         const chatsRef = collection(db, 'chats');
-        const q = query(
-            chatsRef,
-            where('users', 'array-contains', currentUser.uid),
-            orderBy('lastMessageTimestamp', 'desc')
-        );
+        
+        let q;
+        if (isAdmin) {
+            // Admin sees all chats
+            q = query(chatsRef, orderBy('lastMessageTimestamp', 'desc'));
+        } else {
+            // Regular user sees only their chats
+            q = query(
+                chatsRef,
+                where('users', 'array-contains', currentUser.uid),
+                orderBy('lastMessageTimestamp', 'desc')
+            );
+        }
+
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const chatsData = querySnapshot.docs.map(doc => ({
@@ -65,16 +84,28 @@ export default function MessagesPage() {
         });
 
         return () => unsubscribe();
-    }, [currentUser]);
+    }, [currentUser, isAdmin]);
 
     const getOtherParticipant = (chat: Chat) => {
         if (!currentUser) return null;
+        
+        // For admin view, we need to show both participants
+        if (isAdmin) {
+             const user1 = { uid: chat.users[0], name: chat.userNames[chat.users[0]], avatar: chat.userAvatars[chat.users[0]] };
+             const user2 = { uid: chat.users[1], name: chat.userNames[chat.users[1]], avatar: chat.userAvatars[chat.users[1]] };
+             return { user1, user2 };
+        }
+
         const otherUserId = chat.users.find(uid => uid !== currentUser.uid);
         if (!otherUserId) return null;
+        
         return {
-            uid: otherUserId,
-            name: chat.userNames[otherUserId],
-            avatar: chat.userAvatars[otherUserId],
+            user1: {
+                uid: otherUserId,
+                name: chat.userNames[otherUserId],
+                avatar: chat.userAvatars[otherUserId],
+            },
+            user2: null,
         };
     };
 
@@ -86,6 +117,7 @@ export default function MessagesPage() {
                     <Card>
                         <div className="p-6">
                             <h1 className="text-2xl font-headline font-bold">Your Conversations</h1>
+                            {isAdmin && <p className="text-sm text-muted-foreground">Viewing as Administrator.</p>}
                         </div>
                         <div className="border-t">
                             {loading ? (
@@ -109,21 +141,35 @@ export default function MessagesPage() {
                             ) : (
                                 <ul className="divide-y divide-border">
                                     {chats.map(chat => {
-                                        const otherUser = getOtherParticipant(chat);
-                                        if (!otherUser) return null;
+                                        const participants = getOtherParticipant(chat);
+                                        if (!participants?.user1) return null;
 
                                         return (
                                             <li key={chat.id}
                                                 className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
                                                 onClick={() => router.push(`/messages/${chat.id}`)}>
                                                 <div className="flex items-center gap-4">
-                                                    <Avatar className="h-12 w-12">
-                                                        <AvatarImage src={otherUser.avatar} />
-                                                        <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
-                                                    </Avatar>
+                                                    <div className="flex -space-x-4">
+                                                        <Avatar className="h-12 w-12 border-2 border-background">
+                                                            <AvatarImage src={participants.user1.avatar} />
+                                                            <AvatarFallback>{participants.user1.name.charAt(0)}</AvatarFallback>
+                                                        </Avatar>
+                                                         {participants.user2 && (
+                                                             <Avatar className="h-12 w-12 border-2 border-background">
+                                                                <AvatarImage src={participants.user2.avatar} />
+                                                                <AvatarFallback>{participants.user2.name.charAt(0)}</AvatarFallback>
+                                                            </Avatar>
+                                                         )}
+                                                    </div>
+
                                                     <div className="flex-grow overflow-hidden">
                                                         <div className="flex justify-between items-baseline">
-                                                            <p className="font-bold truncate">{otherUser.name}</p>
+                                                            <p className="font-bold truncate">
+                                                                {participants.user2 
+                                                                    ? `${participants.user1.name} & ${participants.user2.name}` 
+                                                                    : participants.user1.name
+                                                                }
+                                                            </p>
                                                             {chat.lastMessageTimestamp && (
                                                                 <p className="text-xs text-muted-foreground shrink-0 ml-2">
                                                                     {formatDistanceToNow(new Date(chat.lastMessageTimestamp.seconds * 1000), { addSuffix: true })}
