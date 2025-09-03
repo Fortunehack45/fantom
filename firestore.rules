@@ -3,188 +3,153 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+  
     // Helper Functions
-    function isSignedIn() {
-      return request.auth != null;
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Clan Owner' || request.auth.token.email == 'fortunedomination@gmail.com';
     }
-
+    
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
-    function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'fortunedomination@gmail.com';
-    }
-
-    function isVerifiedCreator() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verification == 'Blue' || isAdmin();
+    function isAuthenticated() {
+      return request.auth != null;
     }
     
-    function isVerifiedOwner() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verification == 'Gold' || isAdmin();
+    function isProfileOwner(profileId) {
+        return request.auth.uid == profileId;
     }
 
-    function getRole(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.role;
-    }
-    
-    // USERS
-    // Users can be read by anyone (for profile pages).
-    // Users can only create their own user document.
-    // Users can only update their own username and photoURL. Role and verification can only be updated by admin.
+    // Collection: users
     match /users/{userId} {
       allow read: if true;
-      allow create: if isOwner(userId)
+      allow create: if isOwner(userId) 
                     && request.resource.data.uid == userId
-                    && request.resource.data.email == request.auth.email
-                    && request.resource.data.username.size() >= 3 && request.resource.data.username.size() <= 15
-                    && request.resource.data.photoURL is string
-                    && request.resource.data.verification == 'None'
-                    && request.resource.data.role == 'User';
-
-      allow update: if isOwner(userId) &&
-                       request.resource.data.keys().hasAll(['username', 'photoURL', 'role']) &&
-                       request.resource.data.keys().hasOnly(['uid', 'email', 'username', 'photoURL', 'role', 'verification']) &&
-                       // Only allow editing username and photoURL by user
-                       request.resource.data.username.size() >= 3 && request.resource.data.username.size() <= 15 &&
-                       request.resource.data.photoURL is string &&
-                       // Prevent user from changing他们的 own role or verification
-                       request.resource.data.role == resource.data.role &&
-                       request.resource.data.verification == resource.data.verification;
-
-      allow update: if isAdmin() && // Admin can update role and verification
-                      request.resource.data.keys().hasAny(['role', 'verification']);
-
-      // Nested collections for followers/following
+                    && request.resource.data.email == request.auth.token.email;
+      allow update: if isProfileOwner(userId) || isAdmin();
+      
+      // Subcollections for follows
       match /followers/{followerId} {
         allow read: if true;
-        allow create: if isOwner(followerId); // Only the follower can initiate the follow
-        allow delete: if isOwner(followerId) || isOwner(userId); // Either user can break the connection
+        allow create: if isOwner(followerId);
+        allow delete: if isOwner(followerId) || isProfileOwner(userId);
       }
       
       match /following/{followingId} {
-         allow read: if true;
-         allow create: if isOwner(userId); // Only the user can initiate following someone
-         allow delete: if isOwner(userId) || isOwner(followingId); // Either user can break the connection
+        allow read: if true;
+        allow create: if isOwner(userId);
+        allow delete: if isOwner(userId) || isProfileOwner(followingId);
       }
     }
     
-    // USERNAMES
-    // A separate collection to enforce username uniqueness.
+    // Collection: usernames (for uniqueness check)
     match /usernames/{username} {
-      allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow delete: if isSignedIn() && get(/databases/$(database)/documents/usernames/$(username)).data.uid == request.auth.uid;
+        allow read: if true;
+        allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+        allow delete: if isAuthenticated(); // Allow deletion when username is changed
     }
 
-    // BLOG POSTS
-    // Anyone can read posts.
-    // Logged-in users can create posts.
-    // Only author or admin can update/delete.
+    // Collection: blogPosts
     match /blogPosts/{postId} {
       allow read: if true;
-      allow create: if isSignedIn()
-                    && request.resource.data.authorId == request.auth.uid;
-      allow update, delete: if isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin());
-
-      // Comments subcollection
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorId == request.auth.uid);
+      
+      // Subcollection: comments
       match /comments/{commentId} {
         allow read: if true;
-        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-        allow delete: if isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin());
+        allow create, update: if isAuthenticated();
+        allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorId == request.auth.uid);
         
-        // Replies sub-subcollection
+        // Subcollection: replies
         match /replies/{replyId} {
-           allow read: if true;
-           allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-           allow delete: if isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin());
+            allow read: if true;
+            allow create, update: if isAuthenticated();
+            allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorId == request.auth.uid);
         }
       }
     }
-    
-     // SHORTS
-    // Anyone can read shorts.
-    // Logged-in users can create shorts.
-    // Only author or admin can delete. Likes can be updated by any logged in user.
+
+    // Collection: shorts
     match /shorts/{shortId} {
-      allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      allow update: if isSignedIn(); // For likes and shares
-      allow delete: if isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin());
-      
-      // Comments on shorts
-       match /comments/{commentId} {
         allow read: if true;
-        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-        allow delete: if isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin());
-      }
-    }
+        allow create: if isAuthenticated();
+        allow update: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+        allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorId == request.auth.uid);
 
-    // CHATS
-    // Only participants of a chat or an admin can read/write to it.
-    match /chats/{chatId} {
-      allow get, list, update: if isSignedIn() && (request.auth.uid in resource.data.users || isAdmin());
-
-      match /messages/{messageId} {
-        allow read, create: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users || isAdmin());
-      }
-    }
-
-    // VERIFICATION REQUESTS
-    // Users can create their own request.
-    // Admins can read, update, and delete requests.
-    match /verificationRequests/{requestId} {
-        allow read, update, delete: if isAdmin();
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-    }
-
-    // ADMIN-ONLY MANAGED CONTENT
-    // Only admins should be able to create, update, or delete these.
-    // Public can read.
-    match /roster/{memberId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
+        // Subcollection: comments on shorts
+        match /comments/{commentId} {
+            allow read: if true;
+            allow create: if isAuthenticated();
+            allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorId == request.auth.uid);
+        }
     }
     
+    // Collection: chats (for private messaging)
+    match /chats/{chatId} {
+      allow read, update: if isAuthenticated() && (request.auth.uid in resource.data.users || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.users;
+
+      // Subcollection: messages within a chat
+      match /messages/{messageId} {
+        allow read, create: if isAuthenticated() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users || isAdmin());
+      }
+    }
+
+    // Collection: verificationRequests
+    match /verificationRequests/{requestId} {
+        allow read: if isAdmin();
+        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+        allow update: if isAdmin();
+    }
+
+    // Admin-only collections for site content
     match /announcements/{announcementId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
     
-    match /games/{gameId} {
+    match /roster/{memberId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
+    }
+    
+    match /games/{gameId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
     }
     
     match /heroImages/{imageId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
     }
-
+    
     match /timelineEvents/{eventId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-    
-    match /coreValues/{valueId} {
-       allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-    
-    match /galleryImages/{imageId} {
-       allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-    
-    match /siteSettings/{settingsId} {
         allow read: if true;
         allow create, update, delete: if isAdmin();
     }
 
-    match /pageContent/{pageId} {
+    match /coreValues/{valueId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+    }
+
+    match /galleryImages/{imageId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+    }
+    
+    // Admin-only collections for settings
+    match /siteSettings/{settingId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
+    }
+    
+    match /pageContent/{pageId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
     }
   }
 }
