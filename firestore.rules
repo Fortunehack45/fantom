@@ -1,11 +1,13 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // =====================================================================
-    // Helper Functions
-    // =A ====================================================================
+    // Helper functions
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'fortunedomination@gmail.com';
+    }
 
     function isSignedIn() {
       return request.auth != null;
@@ -14,157 +16,161 @@ service cloud.firestore {
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-
-    function getRole(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    
+    function isProfileOwner(username) {
+        return get(/databases/$(database)/documents/usernames/$(username)).data.uid == request.auth.uid;
     }
 
-    function isAdmin() {
-      return isSignedIn() && getRole(request.auth.uid) == 'Clan Owner';
-    }
-
-    function isCreator() {
-        return isSignedIn() && (getRole(request.auth.uid) == 'Creator' || isAdmin());
-    }
-
-    // =====================================================================
-    // Users, Usernames & Follows
-    // =====================================================================
+    // USERS & USERNAMES
+    // users/{userId}
     match /users/{userId} {
       allow read;
-      allow create: isSignedIn() && isOwner(userId)
-                  && request.resource.data.username is string
-                  && request.resource.data.email == request.auth.email
-                  && request.resource.data.uid == request.auth.uid
-                  && request.resource.data.role == 'User'
-                  && request.resource.data.verification == 'None';
+      allow create: if isSignedIn() && isOwner(userId)
+                    && request.resource.data.username.size() >= 3 && request.resource.data.username.size() <= 15
+                    && !exists(/databases/$(database)/documents/usernames/$(request.resource.data.username));
+      allow update: if isSignedIn() && (isOwner(userId) || isAdmin())
+                    // Fields that can be updated by the user
+                    && (request.resource.data.keys().hasOnly(['username', 'photoURL', 'role'])
+                       || request.resource.data.keys().hasOnly(['username'])
+                       || request.resource.data.keys().hasOnly(['photoURL'])
+                       || request.resource.data.keys().hasOnly(['role'])
+                       || request.resource.data.keys().hasOnly(['verification']) // Admin only
+                       || request.resource.data.keys().hasOnly(['verification', 'role']) // Admin only
+                     )
+                    // Username update validation
+                    && (request.resource.data.username == resource.data.username || !exists(/databases/$(database)/documents/usernames/$(request.resource.data.username)))
+                    // Role can only be set once by the user
+                    && (request.resource.data.role == resource.data.role || resource.data.role == 'User');
+      allow delete: if false; // Do not allow user deletion to preserve content attribution
 
-      allow update: (isSignedIn() && isOwner(userId)) || isAdmin();
-
-      // Subcollections for follows
+      // FOLLOWS
       match /followers/{followerId} {
         allow read;
-        allow write: isSignedIn() && (isOwner(followerId) || isOwner(userId));
+        allow write: if isSignedIn() && isOwner(followerId);
       }
       match /following/{followingId} {
         allow read;
-        allow write: isSignedIn() && isOwner(userId);
+        allow write: if isSignedIn() && isOwner(userId);
       }
+    }
+
+    // usernames/{username}
+    match /usernames/{username} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isProfileOwner(username);
+      allow delete: if isSignedIn() && isProfileOwner(resource.data.username);
     }
     
-    match /usernames/{username} {
-        allow read;
-        allow create, delete: isSignedIn();
-    }
-
-
-    // =====================================================================
-    // Content Collections (Blog, Shorts) & Subcollections (Comments, Likes)
-    // =====================================================================
+    // CONTENT
+    // blogPosts/{postId}
     match /blogPosts/{postId} {
       allow read;
-      allow create: isCreator()
-                    && request.resource.data.authorId == request.auth.uid
-                    && request.resource.data.slug is string
-                    && request.resource.data.title is string
-                    && request.resource.data.content is string;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
+      allow delete: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
       
-      allow update: (isSignedIn() && request.resource.data.authorId == request.auth.uid) || isAdmin();
-      allow delete: (isSignedIn() && get(/databases/$(database)/documents/blogPosts/$(postId)).data.authorId == request.auth.uid) || isAdmin();
-
-      // Likes on blog posts
-      match /likes/{userId} {
-          allow read;
-          allow write: isOwner(userId);
-      }
-      
-      // Comments on blog posts
+      // COMMENTS & REPLIES
       match /comments/{commentId} {
         allow read;
-        allow create: isSignedIn();
-        allow delete: (isSignedIn() && get(/databases/$(database)/documents/blogPosts/$(postId)/comments/$(commentId)).data.authorId == request.auth.uid) || isAdmin();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
+        allow delete: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
         
-        // Replies to comments
         match /replies/{replyId} {
             allow read;
-            allow create: isSignedIn();
-            allow delete: (isSignedIn() && get(/databases/$(database)/documents/blogPosts/$(postId)/comments/$(commentId)/replies/$(replyId)).data.authorId == request.auth.uid) || isAdmin();
+            allow create: if isSignedIn();
+            allow update: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
+            allow delete: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
         }
       }
     }
 
+    // shorts/{shortId}
     match /shorts/{shortId} {
       allow read;
-      allow create: isCreator()
-                    && request.resource.data.authorId == request.auth.uid
-                    && request.resource.data.title is string
-                    && request.resource.data.videoUrl is string;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
+      allow delete: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
 
-      allow update: (isSignedIn() && request.resource.data.authorId == request.auth.uid) || isAdmin();
-      allow delete: (isSignedIn() && get(/databases/$(database)/documents/shorts/$(shortId)).data.authorId == request.auth.uid) || isAdmin();
-
-      // Comments on shorts
+      // COMMENTS on shorts
       match /comments/{commentId} {
-        allow read;
-        allow create: isSignedIn();
-        allow delete: (isSignedIn() && get(/databases/$(database)/documents/shorts/$(shortId)/comments/$(commentId)).data.authorId == request.auth.uid) || isAdmin();
+          allow read;
+          allow create: if isSignedIn();
+          allow update: if false; // Comments on shorts are not editable
+          allow delete: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
       }
     }
 
-    // =====================================================================
-    // Private Messaging
-    // =====================================================================
+    // MESSAGING
+    // chats/{chatId}
     match /chats/{chatId} {
-      allow read, write: isSignedIn() && request.auth.uid in resource.data.users || isAdmin();
-
-      match /messages/{messageId} {
-        allow read, create: isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users || isAdmin();
-        // Disallow updates and deletes to preserve chat history integrity
-        allow update, delete: if false;
-      }
+        allow read, write: if isSignedIn() && (request.auth.uid in resource.data.users || isAdmin());
+        
+        // messages/{messageId}
+        match /messages/{messageId} {
+            allow read, write: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users || isAdmin());
+        }
     }
-
-
-    // =====================================================================
-    // Admin-Managed Content
-    // =====================================================================
     
-    // Read-only for users, writeable by admin
-    function adminWriteOnly() {
-      return {
+    // ADMIN-ONLY & SITE CONTENT
+    // announcements/{announcementId}
+    match /announcements/{announcementId} {
         allow read;
-        allow write: isAdmin();
-      };
+        allow write: if isAdmin();
+    }
+    
+    // roster/{rosterId}
+    match /roster/{rosterId} {
+        allow read;
+        allow write: if isAdmin();
+    }
+    
+    // games/{gameId}
+    match /games/{gameId} {
+        allow read;
+        allow write: if isAdmin();
     }
 
-    match /announcements/{announcementId} { rules: adminWriteOnly() }
-    match /roster/{memberId} { rules: adminWriteOnly() }
-    match /games/{gameId} { rules: adminWriteOnly() }
-    match /heroImages/{imageId} { rules: adminWriteOnly() }
-    match /timelineEvents/{eventId} { rules: adminWriteOnly() }
-    match /coreValues/{valueId} { rules: adminWriteOnly() }
-    match /galleryImages/{imageId} { rules: adminWriteOnly() }
-    
-    // =====================================================================
-    // Settings & Configuration
-    // =====================================================================
+    // heroImages/{imageId}
+    match /heroImages/{imageId} {
+        allow read;
+        allow write: if isAdmin();
+    }
 
-    match /siteSettings/{settingsId} {
+    // timelineEvents/{eventId}
+    match /timelineEvents/{eventId} {
+        allow read;
+        allow write: if isAdmin();
+    }
+
+    // coreValues/{valueId}
+    match /coreValues/{valueId} {
+        allow read;
+        allow write: if isAdmin();
+    }
+    
+    // galleryImages/{galleryImageId}
+    match /galleryImages/{galleryImageId} {
       allow read;
-      allow write: isAdmin();
+      allow write: if isAdmin();
     }
-    
-    match /pageContent/{pageId} {
+
+    // siteSettings/footer
+    match /siteSettings/footer {
         allow read;
-        allow write: isAdmin();
+        allow write: if isAdmin();
     }
     
-    // =====================================================================
-    // Verification Requests
-    // =====================================================================
+    // pageContent/about
+    match /pageContent/about {
+        allow read;
+        allow write: if isAdmin();
+    }
+    
+    // verificationRequests/{requestId}
     match /verificationRequests/{requestId} {
-        allow create: isSignedIn() && request.resource.data.userId == request.auth.uid;
-        allow read, update, delete: isAdmin();
+        allow read, update: if isAdmin();
+        allow create: if isSignedIn();
     }
   }
 }
