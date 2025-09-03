@@ -57,6 +57,7 @@ const handleUserSignup = async (email: string, a: any) => {
         uid: user.uid,
         email: user.email,
         username: username,
+        lowercaseUsername: username.toLowerCase(),
         photoURL: photoURL,
         role: 'User',
         verification: 'None',

@@ -27,6 +27,7 @@ interface UserProfile {
     uid: string;
     email: string;
     username: string;
+    lowercaseUsername: string;
     photoURL: string;
     role: 'Creator' | 'Clan Owner' | 'User';
     verification: 'None' | 'Blue' | 'Gold';
@@ -79,7 +80,8 @@ export default function UserProfilePage() {
         setLoading(true);
 
         const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('username', '==', username));
+        // Perform a case-insensitive query
+        const q = query(usersRef, where('lowercaseUsername', '==', username.toLowerCase()));
 
         const fetchProfile = async () => {
             try {
@@ -379,4 +381,3 @@ export default function UserProfilePage() {
         </div>
     );
 }
-
