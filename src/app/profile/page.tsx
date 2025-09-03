@@ -1,12 +1,11 @@
 
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, User, signOut, updateProfile } from 'firebase/auth';
-import { auth, db, storage } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, writeBatch } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -15,9 +14,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogOut, Edit, Check, X, Loader2 } from 'lucide-react';
+import { LogOut, Edit, Check, X, Loader2, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface UserProfile {
     uid: string;
@@ -30,31 +30,35 @@ export default function ProfilePage() {
     const [user, setUser] = useState<User | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
+    
     const [isEditingUsername, setIsEditingUsername] = useState(false);
     const [newUsername, setNewUsername] = useState('');
+    const [newPhotoURL, setNewPhotoURL] = useState('');
+    
     const [isSaving, setIsSaving] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
+    const [isPhotoUrlModalOpen, setIsPhotoUrlModalOpen] = useState(false);
     
     const router = useRouter();
     const { toast } = useToast();
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchUserProfile = async (currentUser: User) => {
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists()) {
-            setUserProfile(userDocSnap.data() as UserProfile);
+            const profileData = userDocSnap.data() as UserProfile;
+            setUserProfile(profileData);
+            setNewPhotoURL(profileData.photoURL);
         } else {
-            // Create a default profile if it doesn't exist
             const defaultProfile = {
                 uid: currentUser.uid,
                 email: currentUser.email || '',
-                username: currentUser.email?.split('@')[0] || `user_${currentUser.uid.substring(0, 5)}`,
+                username: currentUser.displayName || currentUser.email?.split('@')[0] || `user_${currentUser.uid.substring(0, 5)}`,
                 photoURL: currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`,
             };
             await setDoc(userDocRef, defaultProfile);
             setUserProfile(defaultProfile);
+            setNewPhotoURL(defaultProfile.photoURL);
         }
     };
 
@@ -87,6 +91,11 @@ export default function ProfilePage() {
             setIsEditingUsername(!isEditingUsername);
         }
     };
+    
+    const handlePhotoEdit = () => {
+        setNewPhotoURL(userProfile?.photoURL || '');
+        setIsPhotoUrlModalOpen(true);
+    }
 
     const handleUsernameChange = async () => {
         if (!user || !userProfile || !newUsername.trim()) return;
@@ -103,7 +112,6 @@ export default function ProfilePage() {
         const newUsernameLower = newUsername.toLowerCase();
         const oldUsernameLower = userProfile.username.toLowerCase();
 
-        // If username hasn't changed (case-insensitive), do nothing
         if (newUsernameLower === oldUsernameLower) {
             setIsEditingUsername(false);
             setIsSaving(false);
@@ -143,39 +151,34 @@ export default function ProfilePage() {
         }
     };
     
-    const handleAvatarClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!event.target.files || event.target.files.length === 0 || !user) return;
-
-        const file = event.target.files[0];
-        if (file.size > 2 * 1024 * 1024) { // 2MB limit
-            toast({ variant: 'destructive', title: 'File Too Large', description: 'Profile picture must be less than 2MB.' });
+    const handlePhotoURLChange = async () => {
+        if (!user || !userProfile || !newPhotoURL.trim()) {
+            toast({ variant: 'destructive', title: 'Invalid URL', description: 'Please enter a valid image URL.' });
             return;
         }
-
-        setIsUploading(true);
-        const storageRef = ref(storage, `profile-pictures/${user.uid}/${file.name}`);
-
+        
         try {
-            const snapshot = await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(snapshot.ref);
-
-            await updateProfile(user, { photoURL: downloadURL });
-
+            // Basic URL validation
+            new URL(newPhotoURL);
+        } catch (_) {
+            toast({ variant: 'destructive', title: 'Invalid URL', description: 'The provided URL is not valid. Please check and try again.' });
+            return;
+        }
+        
+        setIsSaving(true);
+        try {
+            await updateProfile(user, { photoURL: newPhotoURL });
             const userDocRef = doc(db, 'users', user.uid);
-            await setDoc(userDocRef, { photoURL: downloadURL }, { merge: true });
+            await setDoc(userDocRef, { photoURL: newPhotoURL }, { merge: true });
             
-            setUserProfile(prev => prev ? { ...prev, photoURL: downloadURL } : null);
-            
+            setUserProfile(prev => prev ? { ...prev, photoURL: newPhotoURL } : null);
             toast({ title: 'Success', description: 'Profile picture updated!' });
+            setIsPhotoUrlModalOpen(false);
         } catch (error) {
-            console.error("Error uploading file: ", error);
-            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload your new profile picture.' });
+            console.error("Error updating photo URL: ", error);
+            toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update your profile picture.' });
         } finally {
-            setIsUploading(false);
+            setIsSaving(false);
         }
     };
 
@@ -211,23 +214,46 @@ export default function ProfilePage() {
         <div className="flex flex-col min-h-screen bg-background text-foreground">
             <Header />
             <main className="flex-grow container mx-auto px-4 py-16 flex items-center justify-center">
+                <Dialog open={isPhotoUrlModalOpen} onOpenChange={setIsPhotoUrlModalOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Update Profile Picture</DialogTitle>
+                      <DialogDescription>
+                        Paste a direct link to an image to set it as your new profile picture.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2">
+                        <Label htmlFor="photo-url">Image URL</Label>
+                        <Input 
+                            id="photo-url"
+                            value={newPhotoURL}
+                            onChange={(e) => setNewPhotoURL(e.target.value)}
+                            placeholder="https://example.com/image.png"
+                        />
+                    </div>
+                    <DialogFooter>
+                      <Button variant="ghost" onClick={() => setIsPhotoUrlModalOpen(false)}>Cancel</Button>
+                      <Button onClick={handlePhotoURLChange} disabled={isSaving}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Save
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
                 <Card className="w-full max-w-md">
                     <CardHeader className="text-center">
-                         <div className="relative mx-auto w-fit">
-                            <Avatar className="h-24 w-24 border-4 border-primary cursor-pointer hover:opacity-80 transition-opacity" onClick={handleAvatarClick}>
+                         <div className="relative mx-auto w-fit group">
+                            <Avatar className="h-24 w-24 border-4 border-primary">
                                 <AvatarImage src={userProfile.photoURL} alt={userProfile.username} />
                                 <AvatarFallback className="text-4xl">{userProfile.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <div className="absolute bottom-0 right-0 bg-primary rounded-full p-1.5 border-2 border-background">
-                                {isUploading ? <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" /> : <Edit className="h-4 w-4 text-primary-foreground" />}
-                            </div>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileChange}
-                                className="hidden"
-                                accept="image/png, image/jpeg, image/gif"
-                            />
+                            <button
+                                onClick={handlePhotoEdit}
+                                className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <Edit className="h-8 w-8" />
+                            </button>
                         </div>
                         <div className="flex items-center justify-center gap-2 mt-4">
                              {isEditingUsername ? (
