@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -14,50 +15,133 @@ service cloud.firestore {
     }
     
     // Helper function to check if the user is the owner of a document
-    function isOwner(resource) {
-      return request.auth.uid == resource.data.authorId;
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
     
-    // Helper function to check if the user is the owner of a profile
-    function isProfileOwner(userId) {
-      return request.auth.uid == userId;
+    // Helper function to check if a user is the owner of a resource by looking at the authorId field.
+    function isResourceOwner(resource) {
+      return request.auth.uid == resource.data.authorId;
     }
 
     // Default deny all reads and writes
     match /{document=**} {
       allow read, write: if false;
     }
-    
-    // Rules for Users Collection
-    match /users/{userId} {
-      // Anyone can read a user's profile
-      allow read: if true;
-      // A user can create their own profile document
-      allow create: if isProfileOwner(userId);
-      // A user can only update their own profile
-      allow update: if isProfileOwner(userId);
-      // A user can delete their own profile (or an admin can)
-      allow delete: if isProfileOwner(userId) || isAdmin();
-    }
-    
-    match /usernames/{username} {
-      // Allow reading to check for uniqueness, but no one can list all usernames
-      allow read: if false;
-      // Allow creating a username document only if the user is signed in
-      allow create: if isSignedIn();
-      // No one can update or delete a username document to prevent theft
-      allow update, delete: if false;
-    }
 
+    // Rules for Users collection and their subcollections
+    match /users/{userId} {
+      allow read: if true;
+
+      // A user can only create their own profile document.
+      allow create: if isOwner(userId);
+      
+      // Users can only update their own profile.
+      // They can only change username and photoURL freely.
+      // Role can only be set once if it was previously 'User'.
+      // Verification can only be changed by an admin.
+      function canUpdateProfile() {
+        let isChangingAllowedFields = request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username', 'photoURL']);
+        let isSettingRoleOnce = request.resource.data.role != resource.data.role && resource.data.role == 'User';
+        return isChangingAllowedFields || isSettingRoleOnce;
+      }
+      
+      allow update: if isOwner(userId) && (canUpdateProfile() || isAdmin());
+      
+      // Rules for followers/following subcollections
+      match /followers/{followerId} {
+        allow read: if true;
+        // Only the follower can add/remove themselves from this list.
+        allow write: if isOwner(followerId);
+      }
+      
+      match /following/{followingId} {
+        allow read: if true;
+        // Only the user can add/remove someone from their following list.
+        allow write: if isOwner(userId);
+      }
+    }
+    
+    // Rules for enforcing unique usernames
+    match /usernames/{username} {
+        allow read: if true;
+        // A user can claim a username if they are the owner specified by the UID.
+        allow create: if isOwner(request.resource.data.uid);
+        // Allow deletion only by the user who owns the username, to free it up.
+        allow delete: if isOwner(resource.data.uid);
+    }
+    
     // Rules for Blog Posts
     match /blogPosts/{postId} {
       allow read: if true;
-      // Admin can create/delete/update anything on a post
-      allow create, delete: if isAdmin();
-      // Admin can update anything.
-      // Signed-in users can update *only* the 'likes' array.
-      allow update: if isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
+      allow create: if isSignedIn() && isResourceOwner(request.resource);
+      allow delete: if isSignedIn() && (isResourceOwner(resource) || isAdmin());
+      
+      // Admins can update anything.
+      // The author can update their own post.
+      // Any signed-in user can update *only* the 'likes' array.
+      function canUpdatePost() {
+        return isResourceOwner(resource) || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
+      }
+      
+      allow update: if isSignedIn() && (canUpdatePost() || isAdmin());
+
+      // Rules for comments subcollection
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isSignedIn() && isResourceOwner(request.resource);
+        allow update: if isSignedIn() && (isResourceOwner(resource) || isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
+        allow delete: if isSignedIn() && (isResourceOwner(resource) || isAdmin());
+
+        // Rules for replies sub-subcollection
+        match /replies/{replyId} {
+          allow read: if true;
+          allow create: if isSignedIn() && isResourceOwner(request.resource);
+          allow update: if isSignedIn() && (isResourceOwner(resource) || isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
+          allow delete: if isSignedIn() && (isResourceOwner(resource) || isAdmin());
+        }
+      }
     }
+    
+    // Rules for Shorts
+    match /shorts/{shortId} {
+        allow read: if true;
+        allow create: if isSignedIn() && isResourceOwner(request.resource);
+        allow delete: if isSignedIn() && (isResourceOwner(resource) || isAdmin());
+        // Allow updates for likes and shares by any signed-in user, or any field by the owner/admin.
+        function canUpdateShort() {
+            let allowedKeys = ['likes', 'shares'];
+            return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedKeys);
+        }
+        allow update: if isSignedIn() && (isResourceOwner(resource) || isAdmin() || canUpdateShort());
+        
+        // Rules for comments on shorts
+        match /comments/{commentId} {
+            allow read: if true;
+            allow create: if isSignedIn() && isResourceOwner(request.resource);
+            allow delete: if isSignedIn() && (isResourceOwner(resource) || isAdmin());
+        }
+    }
+    
+    // Rules for Chats
+    match /chats/{chatId} {
+      // Users can only access chats they are a part of. Admin can access all.
+      allow read, write: if isSignedIn() && (request.auth.uid in resource.data.users || isAdmin());
+      
+      // Rules for messages subcollection
+      match /messages/{messageId} {
+        // Inherits read/write from parent chat document.
+        allow read, write: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users || isAdmin());
+      }
+    }
+    
+     // Rules for Verification Requests
+    match /verificationRequests/{requestId} {
+        allow read, update, delete: if isAdmin();
+        // A user can create a request for themselves.
+        allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+    }
+    
 
     // Public read access for other collections, write access for admin only
     match /roster/{memberId} {
@@ -95,36 +179,6 @@ service cloud.firestore {
     match /pageContent/{pageId} {
         allow read: if true;
         allow write: if isAdmin();
-    }
-    
-    // Rules for comments and replies subcollections
-    match /blogPosts/{postId}/comments/{commentId} {
-      allow read: if true;
-      
-      // Anyone signed in can create a comment
-      allow create: if isSignedIn();
-      
-      // Allow authenticated users to update only the 'likes' array on a comment.
-      // Admins can update anything.
-      allow update: if (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) || isAdmin();
-      
-      // Only the author or an admin can delete a comment
-      allow delete: if isSignedIn() && (isOwner(resource) || isAdmin());
-
-      // Rules for replies subcollection
-      match /replies/{replyId} {
-        allow read: if true;
-        
-        // Anyone signed in can create a reply
-        allow create: if isSignedIn();
-        
-        // Allow authenticated users to update only the 'likes' array on a reply.
-        // Admins can update anything.
-        allow update: if (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) || isAdmin();
-
-        // Only the author or an admin can delete a reply
-        allow delete: if isSignedIn() && (isOwner(resource) || isAdmin());
-      }
     }
   }
 }
