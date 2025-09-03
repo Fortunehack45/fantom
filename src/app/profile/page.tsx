@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, User, signOut, updateProfile } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, writeBatch, updateDoc } from 'firebase/firestore';
 
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -14,16 +14,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogOut, Edit, Check, X, Loader2, Link as LinkIcon } from 'lucide-react';
+import { LogOut, Edit, Check, X, Loader2, Crown, CheckCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 interface UserProfile {
     uid: string;
     email: string;
     username: string;
     photoURL: string;
+    role: 'Creator' | 'Clan Owner' | 'User';
+    verification: 'None' | 'Blue' | 'Gold';
 }
 
 export default function ProfilePage() {
@@ -34,6 +38,7 @@ export default function ProfilePage() {
     const [isEditingUsername, setIsEditingUsername] = useState(false);
     const [newUsername, setNewUsername] = useState('');
     const [newPhotoURL, setNewPhotoURL] = useState('');
+    const [newRole, setNewRole] = useState<'Creator' | 'Clan Owner' | 'User'>('User');
     
     const [isSaving, setIsSaving] = useState(false);
     const [isPhotoUrlModalOpen, setIsPhotoUrlModalOpen] = useState(false);
@@ -49,16 +54,20 @@ export default function ProfilePage() {
             const profileData = userDocSnap.data() as UserProfile;
             setUserProfile(profileData);
             setNewPhotoURL(profileData.photoURL);
+            setNewRole(profileData.role || 'User');
         } else {
-            const defaultProfile = {
+            const defaultProfile: UserProfile = {
                 uid: currentUser.uid,
                 email: currentUser.email || '',
                 username: currentUser.displayName || currentUser.email?.split('@')[0] || `user_${currentUser.uid.substring(0, 5)}`,
                 photoURL: currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`,
+                role: 'User',
+                verification: 'None',
             };
             await setDoc(userDocRef, defaultProfile);
             setUserProfile(defaultProfile);
             setNewPhotoURL(defaultProfile.photoURL);
+            setNewRole(defaultProfile.role);
         }
     };
 
@@ -158,7 +167,6 @@ export default function ProfilePage() {
         }
         
         try {
-            // Basic URL validation
             new URL(newPhotoURL);
         } catch (_) {
             toast({ variant: 'destructive', title: 'Invalid URL', description: 'The provided URL is not valid. Please check and try again.' });
@@ -181,6 +189,25 @@ export default function ProfilePage() {
             setIsSaving(false);
         }
     };
+    
+    const handleRoleChange = async () => {
+        if (!user || !userProfile || !newRole || userProfile.role !== 'User') {
+             toast({ variant: 'destructive', title: 'Error', description: 'Role cannot be changed at this time.' });
+            return;
+        }
+        setIsSaving(true);
+        try {
+            const userDocRef = doc(db, 'users', user.uid);
+            await updateDoc(userDocRef, { role: newRole });
+            setUserProfile(prev => prev ? { ...prev, role: newRole } : null);
+            toast({ title: 'Success', description: 'Your role has been set.' });
+        } catch (error) {
+             console.error("Error setting role: ", error);
+            toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not set your role.' });
+        } finally {
+            setIsSaving(false);
+        }
+    }
 
 
     if (loading) {
@@ -209,6 +236,8 @@ export default function ProfilePage() {
     if (!user || !userProfile) {
         return null;
     }
+    
+    const isRoleSet = userProfile.role !== 'User';
 
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -274,17 +303,49 @@ export default function ProfilePage() {
                                 </div>
                              ) : (
                                 <>
-                                    <CardTitle className="text-3xl font-headline font-bold">{userProfile.username}</CardTitle>
-                                    <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={handleUsernameEditToggle}>
-                                        <Edit className="h-4 w-4" />
-                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                        <CardTitle className="text-3xl font-headline font-bold">{userProfile.username}</CardTitle>
+                                        {userProfile.verification === 'Blue' && <CheckCheck className="h-6 w-6 text-blue-500" title="Verified Creator" />}
+                                        {userProfile.verification === 'Gold' && <Crown className="h-6 w-6 text-yellow-500" title="Verified Clan Owner" />}
+                                        <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={handleUsernameEditToggle}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                 </>
                              )}
                         </div>
                         <CardDescription>{userProfile.email}</CardDescription>
+                         <div className="mt-2">
+                           <Badge variant={userProfile.role === 'Clan Owner' ? 'primary' : 'secondary'}>{userProfile.role}</Badge>
+                         </div>
                     </CardHeader>
-                    <CardContent className="text-center">
-                        <Button onClick={handleLogout} variant="destructive" className="mt-8 w-full">
+                    <CardContent className="text-center space-y-6">
+                        {!isRoleSet ? (
+                           <Card className="bg-muted/30 p-4">
+                               <Label>Select Your Role</Label>
+                               <div className="flex gap-4 mt-2">
+                                    <Select value={newRole} onValueChange={(value: 'Creator' | 'Clan Owner' | 'User') => setNewRole(value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a role" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Creator">Creator</SelectItem>
+                                            <SelectItem value="Clan Owner">Clan Owner</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Button onClick={handleRoleChange} disabled={isSaving || newRole === 'User'}>
+                                         {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Set Role'}
+                                    </Button>
+                               </div>
+                                <p className="text-xs text-muted-foreground mt-2">Choose your primary role on this platform. This can only be set once.</p>
+                           </Card>
+                        ) : (
+                            <div>
+                                {/* Potentially show role-specific stats or info here in the future */}
+                            </div>
+                        )}
+                        
+                        <Button onClick={handleLogout} variant="destructive" className="w-full">
                             <LogOut className="mr-2 h-4 w-4" />
                             Log Out
                         </Button>

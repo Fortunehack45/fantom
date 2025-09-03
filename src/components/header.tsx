@@ -10,7 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, X, LogOut, Shield, User as UserIcon } from "lucide-react";
+import { Menu, X, LogOut, Shield, User as UserIcon, PlusCircle } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
@@ -67,9 +67,9 @@ export function Header() {
     }
   };
 
-  const getUsername = (email: string | null | undefined) => {
-      if (!email) return "User";
-      return email.split('@')[0];
+  const getUsername = (user: User | null) => {
+      if (!user) return "User";
+      return user.displayName || user.email?.split('@')[0];
   }
 
   const navLinks = [
@@ -110,6 +110,11 @@ export function Header() {
             </Link>
             {user ? (
               <>
+                <Link href="/blog/create">
+                  <Button variant="primary" size="icon" className="hidden lg:flex rounded-full">
+                    <PlusCircle />
+                  </Button>
+                </Link>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                      <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -122,7 +127,7 @@ export function Header() {
                   <DropdownMenuContent className="w-56" align="end" forceMount>
                       <DropdownMenuLabel className="font-normal">
                           <div className="flex flex-col space-y-1">
-                              <p className="text-sm font-medium leading-none">{getUsername(user.email)}</p>
+                              <p className="text-sm font-medium leading-none">{getUsername(user)}</p>
                               <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
                           </div>
                       </DropdownMenuLabel>
@@ -203,6 +208,11 @@ export function Header() {
                      </Link>
                     {user ? (
                       <>
+                        <Link href="/blog/create" className="w-full">
+                            <Button variant="primary" size="lg" className="w-full">
+                                Create Post
+                            </Button>
+                        </Link>
                         <Link href="/profile" className="w-full">
                             <Button variant="secondary" size="lg" className="w-full">
                                 Profile

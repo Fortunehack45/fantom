@@ -12,12 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Edit, Trash2, ArrowUp, ArrowDown, CheckCheck, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 
 interface BlogPost { id: string; title: string; content: string; imageUrl?: string; category: string; }
@@ -37,6 +39,14 @@ interface AboutPageContent {
     valuesTitle?: string; valuesTagline?: string;
     galleryTitle?: string; galleryTagline?: string;
 }
+interface UserProfile {
+    uid: string;
+    email: string;
+    username: string;
+    photoURL: string;
+    role: 'Creator' | 'Clan Owner' | 'User';
+    verification: 'None' | 'Blue' | 'Gold';
+}
 
 // Union type for all editable items
 type EditableItem = BlogPost | RosterMember | Announcement | Game | HeroImage | TimelineEvent | CoreValue | GalleryImage;
@@ -54,6 +64,7 @@ export default function AdminPage() {
     const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
     const [coreValues, setCoreValues] = useState<CoreValue[]>([]);
     const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+    const [users, setUsers] = useState<UserProfile[]>([]);
     
     // Content states
     const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
@@ -101,6 +112,7 @@ export default function AdminPage() {
         fetchData<TimelineEvent>("timelineEvents", setTimelineEvents, query(collection(db, "timelineEvents"), orderBy("position", "asc")));
         fetchData<CoreValue>("coreValues", setCoreValues);
         fetchData<GalleryImage>("galleryImages", setGalleryImages);
+        fetchData<UserProfile>('users', setUsers);
         fetchSiteSettings();
         fetchPageContent();
     }
@@ -155,29 +167,6 @@ export default function AdminPage() {
         }
     };
     
-    // Specific Add Handlers for items with extra logic
-    const handleAddPost = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (newPost.title && newPost.content) {
-            try {
-                const slug = newPost.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
-                await addDoc(collection(db, "blogPosts"), { 
-                    ...newPost,
-                    slug: slug,
-                    imageUrl: newPost.imageUrl || `https://picsum.photos/400/250?random=${Date.now()}`,
-                    date: serverTimestamp(),
-                    author: "Fantom eSport",
-                    hint: "gamer portrait"
-                });
-                setNewPost({ title: '', content: '', imageUrl: '', category: 'News' });
-                fetchAllData();
-                toast({ title: "Success", description: "Blog post added." });
-            } catch (error) {
-                toast({ variant: "destructive", title: "Error", description: "Could not add blog post." });
-            }
-        }
-    };
-
     const handleAddMember = async (e: React.FormEvent) => {
         e.preventDefault();
         const { name, rank, game, role, server, avatarUrl } = newMember;
@@ -265,7 +254,6 @@ export default function AdminPage() {
         }
     };
 
-    // Site Settings Handler
     const handleUpdateSiteSettings = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -286,7 +274,6 @@ export default function AdminPage() {
         }
     };
 
-    // Generic Delete Function
     const handleDeleteItem = async () => {
         if (!deletingItem) return;
         const { collectionName, id } = deletingItem;
@@ -301,7 +288,6 @@ export default function AdminPage() {
         }
     };
 
-    // Edit functions
     const openEditModal = (item: EditableItem, collection: CollectionName) => {
         setEditingItem(item);
         setCurrentCollection(collection);
@@ -324,6 +310,18 @@ export default function AdminPage() {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to update item.' });
         }
     };
+
+  const handleVerificationChange = async (userId: string, verification: 'None' | 'Blue' | 'Gold') => {
+    try {
+        const userDocRef = doc(db, 'users', userId);
+        await updateDoc(userDocRef, { verification });
+        toast({ title: 'Success', description: 'User verification status updated.' });
+        fetchAllData(); // Refresh user list
+    } catch (error) {
+        console.error("Error updating verification: ", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update verification status.' });
+    }
+  };
 
   const renderEditForm = () => {
     if (!editingItem) return null;
@@ -437,44 +435,33 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="blog" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6">
             <TabsTrigger value="blog">Blog Posts</TabsTrigger>
             <TabsTrigger value="roster">Roster</TabsTrigger>
             <TabsTrigger value="announcements">Announcements</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="about">About Page</TabsTrigger>
             <TabsTrigger value="site">Site Wide</TabsTrigger>
           </TabsList>
           
           <TabsContent value="blog">
              <Card className="bg-card mt-6">
-                <CardHeader><CardTitle>Manage Blog Posts</CardTitle><CardDescription>Add, edit, or delete blog posts.</CardDescription></CardHeader>
+                <CardHeader>
+                  <CardTitle>Manage Blog Posts</CardTitle>
+                  <CardDescription>View, edit, or delete user-submitted blog posts.</CardDescription>
+                </CardHeader>
                 <CardContent>
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div>
-                             <h3 className="text-lg font-semibold mb-4 border-b pb-2">Add New Post</h3>
-                             <form className="space-y-4" onSubmit={handleAddPost}>
-                                <div><Label htmlFor="post-title">Title</Label><Input id="post-title" placeholder="Enter post title" value={newPost.title} onChange={(e) => setNewPost({...newPost, title: e.target.value})} required /></div>
-                                <div><Label htmlFor="post-tags">Category</Label><Input id="post-tags" placeholder="e.g. News, Update, Tutorial" value={newPost.category} onChange={(e) => setNewPost({...newPost, category: e.target.value})} required /></div>
-                                <div><Label htmlFor="post-image-url">Image URL (Optional)</Label><Input id="post-image-url" type="text" placeholder="https://your-image-url.com/image.png" value={newPost.imageUrl} onChange={(e) => setNewPost({...newPost, imageUrl: e.target.value})} /></div>
-                                <div><Label htmlFor="post-content">Content</Label><Textarea id="post-content" placeholder="Write your blog post content here..." value={newPost.content} onChange={(e) => setNewPost({...newPost, content: e.target.value})} required rows={10} /></div>
-                                <Button type="submit" variant="primary">Add Post</Button>
-                             </form>
-                        </div>
-                        <div>
-                             <h3 className="text-lg font-semibold mb-4 border-b pb-2">Existing Posts</h3>
-                             <div className="space-y-2 max-h-[30rem] overflow-y-auto pr-4">
-                                {blogPosts.map((post) => (
-                                <div key={post.id} className="flex justify-between items-center bg-background/50 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                                    <p className="font-medium truncate pr-2">{post.title}</p>
-                                    <div className="flex gap-2 flex-shrink-0">
-                                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(post, 'blogPosts')}><Edit className="h-4 w-4"/></Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({collectionName: 'blogPosts', id: post.id})}><Trash2 className="h-4 w-4"/></Button>
-                                    </div>
-                                </div>
-                                ))}
-                             </div>
-                        </div>
-                    </div>
+                  <div className="space-y-2 max-h-[36rem] overflow-y-auto pr-4">
+                      {blogPosts.map((post) => (
+                      <div key={post.id} className="flex justify-between items-center bg-background/50 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                          <p className="font-medium truncate pr-2">{post.title}</p>
+                          <div className="flex gap-2 flex-shrink-0">
+                              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openEditModal(post, 'blogPosts')}><Edit className="h-4 w-4"/></Button>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({collectionName: 'blogPosts', id: post.id})}><Trash2 className="h-4 w-4"/></Button>
+                          </div>
+                      </div>
+                      ))}
+                  </div>
                 </CardContent>
             </Card>
           </TabsContent>
@@ -540,6 +527,70 @@ export default function AdminPage() {
                                 ))}
                              </div>
                         </div>
+                    </div>
+                </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <Card className="bg-card mt-6">
+                <CardHeader>
+                    <CardTitle>Manage Users</CardTitle>
+                    <CardDescription>View user roles and manage their verification status.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="max-h-[36rem] overflow-y-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>User</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Role</TableHead>
+                                    <TableHead className="text-right">Verification</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {users.map((user) => (
+                                    <TableRow key={user.uid}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-9 w-9">
+                                                    <AvatarImage src={user.photoURL} />
+                                                    <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <span className="font-medium">{user.username}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{user.email}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={user.role === 'Clan Owner' ? 'primary' : 'secondary'}>
+                                                {user.role || 'User'}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="outline" size="sm">
+                                                        {user.verification === 'Blue' && <CheckCheck className="mr-2 h-4 w-4 text-blue-500" />}
+                                                        {user.verification === 'Gold' && <Crown className="mr-2 h-4 w-4 text-yellow-500" />}
+                                                        {user.verification}
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => handleVerificationChange(user.uid, 'None')}>None</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleVerificationChange(user.uid, 'Blue')}>
+                                                        <CheckCheck className="mr-2 h-4 w-4 text-blue-500" /> Blue
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleVerificationChange(user.uid, 'Gold')}>
+                                                        <Crown className="mr-2 h-4 w-4 text-yellow-500" /> Gold
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </div>
                 </CardContent>
             </Card>
