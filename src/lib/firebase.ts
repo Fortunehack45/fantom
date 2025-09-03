@@ -2,7 +2,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { getFirestore, collection, query, where, getDocs, doc, setDoc } from "firebase/firestore";
+import { getFirestore, collection, query, where, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
@@ -38,11 +38,18 @@ const getUsernameByUID = async (uid: string) => {
     return null;
 }
 
-const handleUserSignup = async (email: string, a: any) => {
+const handleUserSignup = async (email: string, a: any, username: string, role: 'Creator' | 'Clan Owner') => {
+    // Check for username uniqueness first
+    const usernameLower = username.toLowerCase();
+    const usernameRef = doc(db, 'usernames', usernameLower);
+    const usernameSnap = await getDoc(usernameRef);
+    if (usernameSnap.exists()) {
+        throw new Error("This username is already taken. Please choose another.");
+    }
+    
     const userCredential = await createUserWithEmailAndPassword(auth, email, a);
     const user = userCredential.user;
 
-    const username = user.email?.split('@')[0] || `user_${user.uid.substring(0, 5)}`;
     const photoURL = user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`;
     
     // Update Firebase Auth profile
@@ -57,20 +64,18 @@ const handleUserSignup = async (email: string, a: any) => {
         uid: user.uid,
         email: user.email,
         username: username,
-        lowercaseUsername: username.toLowerCase(),
+        lowercaseUsername: usernameLower,
         photoURL: photoURL,
-        role: 'User',
+        bannerURL: 'https://i.pinimg.com/originals/a1/b4/27/a1b427a7c88b7f8973686942c4f68641.jpg',
+        role: role,
         verification: 'None',
     });
 
      // Create username document for uniqueness check
-    const usernameDocRef = doc(db, 'usernames', username.toLowerCase());
-    await setDoc(usernameDocRef, { uid: user.uid });
+    await setDoc(usernameRef, { uid: user.uid });
     
     return userCredential;
 }
 
 
 export { app, db, auth, storage, getUsernameByUID, handleUserSignup };
-
-    

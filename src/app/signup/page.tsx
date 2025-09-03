@@ -12,13 +12,16 @@ import { GhostIcon } from '@/components/icons';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, handleUserSignup } from '@/lib/firebase';
 import Link from 'next/link';
-import { Eye, EyeOff } from 'lucide-react';
-import { Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [role, setRole] = useState<'Creator' | 'Clan Owner' | null>(null);
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,16 +41,25 @@ export default function SignupPage() {
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      toast({
-        variant: 'destructive',
-        title: 'Signup Failed',
-        description: 'Passwords do not match.',
-      });
+      toast({ variant: 'destructive', title: 'Signup Failed', description: 'Passwords do not match.' });
       return;
     }
+    if (!username.trim() || !role) {
+        toast({ variant: 'destructive', title: 'Signup Failed', description: 'Username and account type are required.' });
+        return;
+    }
+     if (username.length < 3 || username.length > 15) {
+        toast({ variant: 'destructive', title: 'Invalid Username', description: 'Username must be between 3 and 15 characters.' });
+        return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        toast({ variant: 'destructive', title: 'Invalid Username', description: 'Username can only contain letters, numbers, and underscores.' });
+        return;
+    }
+
     setLoading(true);
     try {
-      await handleUserSignup(email, password);
+      await handleUserSignup(email, password, username, role);
       toast({
         title: 'Signup Successful',
         description: 'You can now log in and participate in the community!',
@@ -77,6 +89,19 @@ export default function SignupPage() {
         <CardContent>
           <form onSubmit={handleSignupSubmit} className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Choose a username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                autoComplete="username"
+                disabled={loading}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -88,6 +113,18 @@ export default function SignupPage() {
                 autoComplete="email"
                 disabled={loading}
               />
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="role">Account Type</Label>
+                <Select onValueChange={(value: 'Creator' | 'Clan Owner') => setRole(value)} disabled={loading} required>
+                    <SelectTrigger id="role">
+                        <SelectValue placeholder="Select an account type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="Creator">Creator</SelectItem>
+                        <SelectItem value="Clan Owner">Clan Owner</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
