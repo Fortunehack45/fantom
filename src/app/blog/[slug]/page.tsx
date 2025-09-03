@@ -287,9 +287,11 @@ export default function BlogPostPage() {
         }
         
         const postRef = doc(db, 'blogPosts', post.id);
-        
+        const currentLikes = post.likes || [];
+        const userHasLiked = currentLikes.includes(user.uid);
+
         try {
-            if (post.likes.includes(user.uid)) {
+            if (userHasLiked) {
                 await updateDoc(postRef, {
                     likes: arrayRemove(user.uid)
                 });
