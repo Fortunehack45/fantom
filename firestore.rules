@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -5,135 +6,164 @@ service cloud.firestore {
 
     // Helper Functions
     function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Clan Owner';
+      return request.auth.email == 'fortunedomination@gmail.com';
     }
     
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-    
-    function isProfileOwner(userId) {
-      let userProfile = get(/databases/$(database)/documents/users/$(userId)).data;
-      return request.auth.uid == userProfile.uid;
+
+    function isAuthenticated() {
+      return request.auth != null;
     }
     
-    function isVerifiedCreator() {
-        let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-        return user.role == 'Creator' || user.role == 'Clan Owner';
+    function isCreatingOwnData(userId) {
+      return isOwner(userId) && request.resource.data.uid == userId;
+    }
+    
+    function isProfileDataPublic() {
+      return resource.data.keys().hasAll(['uid', 'email', 'username', 'photoURL', 'role', 'verification']);
+    }
+    
+    function isUpdatingOwnPublicProfile() {
+      let updatableFields = ['username', 'photoURL'];
+      let isUpdatingRoleOnce = request.resource.data.role != resource.data.role && resource.data.role == 'User';
+      if (isUpdatingRoleOnce) {
+        updatableFields.add('role');
+      }
+      return request.resource.data.keys().hasOnly(updatableFields);
+    }
+    
+    function isAdminUpdatingProfile() {
+        return isAdmin() && request.resource.data.keys().hasAny(['verification', 'role']);
     }
 
-    // Collection: users
-    // Stores user profile information.
-    match /users/{userId} {
-      allow read: if true;
-      allow create: if isOwner(userId) && request.resource.data.uid == userId;
-      allow update: if (isOwner(userId) && (
-                        request.resource.data.keys().hasAll(['username', 'photoURL']) ||
-                        request.resource.data.keys().hasOnly(['username']) || 
-                        request.resource.data.keys().hasOnly(['photoURL']) ||
-                        (request.resource.data.keys().hasOnly(['role']) && resource.data.role == 'User')
-                      )) || isAdmin();
-      allow delete: if false;
-
-      // Subcollection: followers
-      match /followers/{followerId} {
-        allow read: if true;
-        allow write: if isOwner(followerId); // A user can make themselves a follower of someone else.
-        allow delete: if isOwner(followerId);
-      }
-
-      // Subcollection: following
-      match /following/{followingId} {
-        allow read: if true;
-        allow write: if isOwner(userId); // A user can follow someone else.
-        allow delete: if isOwner(userId);
-      }
-    }
-
-    // Collection: usernames
-    // Enforces unique usernames.
+    // Usernames: Ensures username uniqueness
     match /usernames/{username} {
-      allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow update: if false;
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
     }
 
-    // Collection: blogPosts
-    // User-created articles and news.
+    // Users: Profiles, followers, and following
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isCreatingOwnData(userId);
+      allow update: if (isOwner(userId) && isUpdatingOwnPublicProfile()) || isAdminUpdatingProfile();
+
+      // Followers and Following Subcollections
+      match /followers/{followerId} {
+        allow read: if isAuthenticated();
+        allow create, delete: if isOwner(followerId); // A user can add/remove themselves as a follower
+      }
+
+      match /following/{followingId} {
+        allow read: if isAuthenticated();
+        allow create, delete: if isOwner(userId); // A user can update their own "following" list
+      }
+    }
+    
+    // Site-wide content (publicly readable, admin write)
+    match /siteSettings/footer {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /games/{gameId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /heroImages/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Announcements, About Page content (publicly readable, admin write)
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /pageContent/{pageName} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /timelineEvents/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /coreValues/{valueId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /galleryImages/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Roster (publicly readable, admin write)
+    match /roster/{memberId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Blog Posts and their subcollections
     match /blogPosts/{postId} {
       allow read: if true;
-      allow create: if isVerifiedCreator() && request.resource.data.authorId == request.auth.uid;
-      allow update: if (isProfileOwner(resource.data.authorId) || isAdmin());
-      allow delete: if (isProfileOwner(resource.data.authorId) || isAdmin());
+      allow create: if isAuthenticated(); // Any logged-in user can create
+      allow update: if (isOwner(resource.data.authorId)) || isAdmin();
+      allow delete: if (isOwner(resource.data.authorId)) || isAdmin();
 
-      // Subcollection: comments
+      // Comments on Blog Posts
       match /comments/{commentId} {
         allow read: if true;
-        allow create: if isSignedIn();
-        allow update(request, resource) {
-          // Liking a comment
-          return isSignedIn() && request.resource.data.keys().hasOnly(['likes']);
-        }
-        allow delete: if (isProfileOwner(resource.data.authorId) || isAdmin());
+        allow create: if isAuthenticated();
+        allow update, delete: if (isOwner(resource.data.authorId)) || isAdmin();
         
-        // Subcollection: replies
+        // Replies to Comments
         match /replies/{replyId} {
-            allow read: if true;
-            allow create: if isSignedIn();
-            allow update: if isSignedIn() && request.resource.data.keys().hasOnly(['likes']);
-            allow delete: if (isProfileOwner(resource.data.authorId) || isAdmin());
+           allow read: if true;
+           allow create: if isAuthenticated();
+           allow update, delete: if (isOwner(resource.data.authorId)) || isAdmin();
         }
       }
     }
 
-    // Collection: shorts
-    // User-created short video posts.
+    // Shorts and their subcollections
     match /shorts/{shortId} {
-      allow read: if true;
-      allow create: if isVerifiedCreator() && request.resource.data.authorId == request.auth.uid;
-      allow update: if isSignedIn(); // For likes and shares
-      allow delete: if (isProfileOwner(resource.data.authorId) || isAdmin());
+        allow read: if true;
+        allow create: if isAuthenticated(); // Any logged-in user can create
+        allow update: if (isOwner(resource.data.authorId)) || isAdmin();
+        allow delete: if (isOwner(resource.data.authorId)) || isAdmin();
 
-       // Subcollection: comments
-      match /comments/{commentId} {
-        allow read: if true;
-        allow create: if isSignedIn();
-        allow delete: if (isProfileOwner(resource.data.authorId) || isAdmin());
-      }
+        // Comments on Shorts
+        match /comments/{commentId} {
+            allow read: if true;
+            allow create: if isAuthenticated();
+            allow update, delete: if (isOwner(resource.data.authorId)) || isAdmin();
+        }
     }
-    
-    // Collection: chats
-    // Private messaging between users.
-    match /chats/{chatId} {
-      allow read, write: if isSignedIn() && request.auth.uid in resource.data.users;
-      allow create: if isSignedIn() && request.auth.uid in request.resource.data.users;
-      allow list: if isAdmin(); // Admin can list chats but not read messages
-      
-      // Subcollection: messages
-      match /messages/{messageId} {
-        allow read, write, create: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users;
-      }
-    }
-    
-    // Collection: verificationRequests
-    // User requests for verification.
+
+    // Verification Requests
     match /verificationRequests/{requestId} {
-      allow read, list: if isAdmin();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAdmin(); // Admin can approve/deny
-      allow delete: if false;
+        allow read, write: if isAdmin();
+        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
     
-    // All other collections are read-only for public display
-    // and writeable only by the admin.
-    match /{collection}/{docId} {
-        allow read: if true;
-        allow write: if isAdmin();
+    // Private Messaging
+    match /chats/{chatId} {
+        allow read, update: if isAuthenticated() && request.auth.uid in resource.data.users || isAdmin();
+        allow create: if isAuthenticated() && request.auth.uid in request.resource.data.users;
+
+        // Messages within a chat
+        match /messages/{messageId} {
+            allow read, create: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users;
+            // No updates or deletes on messages for data integrity
+        }
     }
   }
 }
