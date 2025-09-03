@@ -1,3 +1,4 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
@@ -66,7 +67,7 @@ const handleUserSignup = async (email: string, a: any, username: string, role: '
         uid: user.uid,
         email: user.email,
         username: username,
-        lowercaseUsername: usernameLower, // <-- THIS IS THE CRITICAL FIX
+        lowercaseUsername: usernameLower,
         photoURL: photoURL,
         bannerURL: 'https://i.pinimg.com/originals/a1/b4/27/a1b427a7c88b7f8973686942c4f68641.jpg',
         role: role,

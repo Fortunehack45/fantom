@@ -81,6 +81,7 @@ export default function UserProfilePage() {
         setLoading(true);
 
         const usersRef = collection(db, 'users');
+        // Decode the username from the URL and convert to lowercase for the query
         const usernameLower = decodeURIComponent(username).toLowerCase();
         const q = query(usersRef, where('lowercaseUsername', '==', usernameLower));
 
@@ -92,7 +93,7 @@ export default function UserProfilePage() {
                     setProfile(null);
                 } else {
                     const userDoc = querySnapshot.docs[0];
-                    const userData = userDoc.data() as UserProfile;
+                    const userData = { uid: userDoc.id, ...userDoc.data() } as UserProfile;
                     setProfile(userData);
                     fetchUserContent(userData.uid);
                 }
@@ -383,5 +384,3 @@ export default function UserProfilePage() {
         </div>
     );
 }
-
-    
