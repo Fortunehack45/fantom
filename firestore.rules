@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -5,116 +6,136 @@ service cloud.firestore {
     
     // Helper function to check for admin role
     function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' || request.auth.token.email == 'fortunedomination@gmail.com';
+      // WARNING: In a real app, use custom claims for security.
+      // This is a temporary, less secure method for demonstration.
+      return request.auth.token.email == 'fortunedomination@gmail.com';
     }
 
-    // Users can be read by anyone, but only the owner or an admin can write.
-    match /users/{userId} {
-      allow read: if true;
-      allow write: if request.auth.uid == userId || isAdmin();
-    }
-    
-    // Usernames must be unique and can only be set by the user who owns it.
-    match /usernames/{username} {
-        allow read: if true;
-        allow create: if request.auth.uid == request.resource.data.uid;
-        allow delete: if isAdmin() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username;
-    }
-
-    // Blog posts can be read by anyone. Create is for any authenticated user.
-    // Update/Delete is for the author or an admin.
+    // Allow anyone to read public-facing content
     match /blogPosts/{postId} {
       allow read: if true;
       allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
-      allow update, delete: if request.auth.uid == resource.data.authorId || isAdmin();
-
-      // Comments can be created by any authenticated user.
-      // Delete is for the comment author or an admin.
+      allow update, delete: if request.auth != null && (resource.data.authorId == request.auth.uid || isAdmin());
+      
+      // Comments and Replies
       match /comments/{commentId} {
         allow read: if true;
         allow create: if request.auth != null;
-        allow update, delete: if request.auth.uid == resource.data.authorId || isAdmin();
+        allow delete: if request.auth != null && (resource.data.authorId == request.auth.uid || isAdmin());
 
-        // Replies have the same rules as comments.
         match /replies/{replyId} {
-            allow read: if true;
-            allow create: if request.auth != null;
-            allow update, delete: if request.auth.uid == resource.data.authorId || isAdmin();
+           allow read: if true;
+           allow create: if request.auth != null;
+           allow delete: if request.auth != null && (resource.data.authorId == request.auth.uid || isAdmin());
         }
       }
     }
-
-    // Shorts can be read by anyone. Create is for any authenticated user.
-    // Update/Delete is for the author or an admin.
+    
     match /shorts/{shortId} {
       allow read: if true;
       allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
-      allow update, delete: if request.auth.uid == resource.data.authorId || isAdmin();
+      allow update, delete: if request.auth != null && (resource.data.authorId == request.auth.uid || isAdmin());
       
-      // Comments on shorts
-      match /comments/{commentId} {
+       match /comments/{commentId} {
         allow read: if true;
         allow create: if request.auth != null;
-        allow delete: if request.auth.uid == resource.data.authorId || isAdmin();
-      }
-    }
-
-    // Verification requests can only be created by the user themselves.
-    // Only admins can read, update, or delete them.
-    match /verificationRequests/{requestId} {
-        allow read, update, delete: if isAdmin();
-        allow create: if request.auth.uid == request.resource.data.userId;
-    }
-
-    // Chat messages can only be read/written by participants in the chat.
-    match /chats/{chatId} {
-      allow get: if request.auth.uid in resource.data.users || isAdmin();
-      allow list: if request.auth.uid in request.query.where.array_contains;
-      allow create, update: if request.auth.uid in resource.data.users;
-
-      match /messages/{messageId} {
-        allow read, create: if get(/databases/$(database)/documents/chats/$(chatId)).data.users.hasAny([request.auth.uid]);
-      }
-    }
-
-    // Read-only collections for public content, writable only by admin.
-    match /games/{gameId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /roster/{memberId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-     match /announcements/{announcementId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-     match /heroImages/{imageId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-     match /timelineEvents/{eventId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-     match /coreValues/{valueId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-     match /galleryImages/{galleryId} {
-      allow read: if true;
-      allow write: if isAdmin();
+        allow delete: if request.auth != null && (resource.data.authorId == request.auth.uid || isAdmin());
+       }
     }
     
-    // Site-wide settings collections, writable only by admin.
+    match /roster/{memberId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+    }
+    
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /games/{gameId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+    }
+    
+    match /heroImages/{imageId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+    }
+
     match /siteSettings/{settingsId} {
         allow read: if true;
         allow write: if isAdmin();
     }
+    
     match /pageContent/{pageId} {
-        allow read: if true;
-        allow write: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
+
+    match /timelineEvents/{eventId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    match /coreValues/{valueId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    match /galleryImages/{imageId} {
+       allow read: if true;
+       allow create, update, delete: if isAdmin();
+    }
+    
+    // User Profiles
+    match /users/{userId} {
+      // Anyone can read a user's profile to view their page
+      allow read: if true; 
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // User can update their own data, admin can update any
+      allow update: if request.auth != null && (request.auth.uid == userId || isAdmin());
+
+      // Follow/Unfollow Logic
+      match /followers/{followerId} {
+        allow read: if true;
+        // You can add yourself to someone's followers list
+        allow create: if request.auth != null && request.auth.uid == followerId;
+        // You can remove yourself from someone's followers list
+        allow delete: if request.auth != null && request.auth.uid == followerId;
+      }
+      match /following/{followingId} {
+         allow read: if true;
+         // You can manage your own "following" list
+         allow create, delete: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Unique username enforcement
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+    
+    // Verification Requests
+    match /verificationRequests/{requestId} {
+      // User can create a request for their own UID
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Only Admin can read/update/delete requests
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // Chat & Messages
+    match /chats/{chatId} {
+      // Allow read/write access ONLY if the user is part of the chat
+      allow read, write: if request.auth != null && request.auth.uid in resource.data.users;
+
+      match /messages/{messageId} {
+        // Inherit read/write access from the parent chat document
+        allow read, write: if request.auth != null && get( /databases/$(database)/documents/chats/$(chatId) ).data.users.hasAny([request.auth.uid]);
+      }
+    }
+
   }
 }
