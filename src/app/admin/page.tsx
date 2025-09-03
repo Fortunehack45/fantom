@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, ArrowUp, ArrowDown, CheckCheck, Crown, MessageSquare, ArrowRight } from "lucide-react";
+import { Edit, Trash2, ArrowUp, ArrowDown, CheckCheck, Crown, MessageSquare, ArrowRight, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
@@ -57,6 +57,15 @@ interface UserComment {
     postSlug: string;
     isReply: boolean;
 }
+interface VerificationRequest {
+    id: string;
+    userId: string;
+    username: string;
+    requestedLevel: 'Blue' | 'Gold';
+    status: 'pending' | 'approved' | 'denied';
+    timestamp: any;
+}
+
 
 // Union type for all editable items
 type EditableItem = BlogPost | RosterMember | Announcement | Game | HeroImage | TimelineEvent | CoreValue | GalleryImage;
@@ -76,6 +85,7 @@ export default function AdminPage() {
     const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [userComments, setUserComments] = useState<UserComment[]>([]);
+    const [verificationRequests, setVerificationRequests] = useState<VerificationRequest[]>([]);
     
     // Content states
     const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
@@ -126,6 +136,7 @@ export default function AdminPage() {
         fetchData<CoreValue>("coreValues", setCoreValues);
         fetchData<GalleryImage>("galleryImages", setGalleryImages);
         fetchData<UserProfile>('users', setUsers);
+        fetchData<VerificationRequest>('verificationRequests', setVerificationRequests, query(collection(db, 'verificationRequests'), where('status', '==', 'pending'), orderBy('timestamp', 'asc')));
         fetchSiteSettings();
         fetchPageContent();
     }
@@ -384,6 +395,33 @@ export default function AdminPage() {
       setIsActivityModalOpen(true);
       await fetchUserActivity(user.uid);
   }
+  
+  const handleVerificationRequest = async (request: VerificationRequest, newStatus: 'approved' | 'denied') => {
+      try {
+          const batch = writeBatch(db);
+          const requestRef = doc(db, 'verificationRequests', request.id);
+          const userRef = doc(db, 'users', request.userId);
+
+          batch.update(requestRef, { status: newStatus });
+
+          if (newStatus === 'approved') {
+              const newRole = request.requestedLevel === 'Gold' ? 'Clan Owner' : 'Creator';
+              batch.update(userRef, {
+                  verification: request.requestedLevel,
+                  role: newRole,
+              });
+          }
+
+          await batch.commit();
+
+          toast({ title: 'Success', description: `Request has been ${newStatus}.` });
+          fetchAllData(); // Refresh requests and users list
+      } catch (error) {
+          console.error(`Error handling verification request:`, error);
+          toast({ variant: 'destructive', title: 'Error', description: 'Could not process the request.' });
+      }
+  };
+
 
   const renderEditForm = () => {
     if (!editingItem) return null;
@@ -530,11 +568,12 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="blog" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-4 lg:grid-cols-7 xl:grid-cols-7">
             <TabsTrigger value="blog">Blog Posts</TabsTrigger>
             <TabsTrigger value="roster">Roster</TabsTrigger>
             <TabsTrigger value="announcements">Announcements</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="requests">Requests</TabsTrigger>
             <TabsTrigger value="about">About Page</TabsTrigger>
             <TabsTrigger value="site">Site Wide</TabsTrigger>
           </TabsList>
@@ -693,6 +732,58 @@ export default function AdminPage() {
                             </TableBody>
                         </Table>
                     </div>
+                </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="requests">
+             <Card className="bg-card mt-6">
+                <CardHeader>
+                  <CardTitle>Verification Requests</CardTitle>
+                  <CardDescription>Approve or deny user requests for verification.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {verificationRequests.length > 0 ? (
+                        <div className="max-h-[36rem] overflow-y-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>User</TableHead>
+                                        <TableHead>Requested Level</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {verificationRequests.map(req => (
+                                        <TableRow key={req.id}>
+                                            <TableCell className="font-medium">{req.username}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={req.requestedLevel === 'Gold' ? 'primary' : 'secondary'}>
+                                                    {req.requestedLevel === 'Gold' && <Crown className="mr-2 h-4 w-4" />}
+                                                    {req.requestedLevel === 'Blue' && <CheckCheck className="mr-2 h-4 w-4" />}
+                                                    {req.requestedLevel}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>{req.timestamp ? formatDistanceToNow(new Date(req.timestamp.seconds * 1000), { addSuffix: true }) : 'N/A'}</TableCell>
+                                            <TableCell className="text-right space-x-2">
+                                                <Button size="icon" variant="outline" className="text-green-500 hover:text-green-500 hover:bg-green-500/10" onClick={() => handleVerificationRequest(req, 'approved')}>
+                                                    <Check className="h-4 w-4" />
+                                                </Button>
+                                                 <Button size="icon" variant="outline" className="text-red-500 hover:text-red-500 hover:bg-red-500/10" onClick={() => handleVerificationRequest(req, 'denied')}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                            <p>No pending verification requests.</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
           </TabsContent>

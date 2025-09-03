@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, User, signOut, updateProfile } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, writeBatch, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, writeBatch, updateDoc, serverTimestamp, query, where, collection } from 'firebase/firestore';
 
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -14,12 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogOut, Edit, Check, X, Loader2, Crown, CheckCheck } from 'lucide-react';
+import { LogOut, Edit, Check, X, Loader2, Crown, CheckCheck, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface UserProfile {
     uid: string;
@@ -42,9 +43,19 @@ export default function ProfilePage() {
     
     const [isSaving, setIsSaving] = useState(false);
     const [isPhotoUrlModalOpen, setIsPhotoUrlModalOpen] = useState(false);
+    const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+    const [requestedVerification, setRequestedVerification] = useState<'Blue' | 'Gold' | null>(null);
+    const [hasPendingRequest, setHasPendingRequest] = useState(false);
     
     const router = useRouter();
     const { toast } = useToast();
+
+    const checkPendingVerification = async (uid: string) => {
+        const requestsRef = collection(db, 'verificationRequests');
+        const q = query(requestsRef, where('userId', '==', uid), where('status', '==', 'pending'));
+        const querySnapshot = await getDocs(q);
+        setHasPendingRequest(!querySnapshot.empty);
+    };
 
     const fetchUserProfile = async (currentUser: User) => {
         const userDocRef = doc(db, 'users', currentUser.uid);
@@ -69,6 +80,7 @@ export default function ProfilePage() {
             setNewPhotoURL(defaultProfile.photoURL);
             setNewRole(defaultProfile.role);
         }
+        await checkPendingVerification(currentUser.uid);
     };
 
     useEffect(() => {
@@ -207,7 +219,33 @@ export default function ProfilePage() {
         } finally {
             setIsSaving(false);
         }
-    }
+    };
+
+    const handleVerificationRequest = async () => {
+        if (!user || !userProfile || !requestedVerification) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please select a verification type.' });
+            return;
+        }
+        setIsSaving(true);
+        try {
+            const requestRef = collection(db, 'verificationRequests');
+            await addDoc(requestRef, {
+                userId: user.uid,
+                username: userProfile.username,
+                requestedLevel: requestedVerification,
+                status: 'pending',
+                timestamp: serverTimestamp(),
+            });
+            toast({ title: 'Success', description: 'Your verification request has been submitted.' });
+            setHasPendingRequest(true);
+            setIsVerificationModalOpen(false);
+        } catch (error) {
+            console.error("Error submitting request: ", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit your request.' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
 
     if (loading) {
@@ -265,6 +303,38 @@ export default function ProfilePage() {
                       <Button onClick={handlePhotoURLChange} disabled={isSaving}>
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                         Save
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isVerificationModalOpen} onOpenChange={setIsVerificationModalOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Request Verification</DialogTitle>
+                      <DialogDescription>
+                        Select the type of verification you would like to request. This will be reviewed by an admin.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <RadioGroup value={requestedVerification || ''} onValueChange={(value: 'Blue' | 'Gold') => setRequestedVerification(value)} className="my-4">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Blue" id="blue" />
+                        <Label htmlFor="blue" className="flex items-center gap-2">
+                           <CheckCheck className="h-5 w-5 text-blue-500" /> Blue Verification (Creator)
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Gold" id="gold" />
+                        <Label htmlFor="gold" className="flex items-center gap-2">
+                            <Crown className="h-5 w-5 text-yellow-500" /> Gold Verification (Clan Owner)
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                    <DialogFooter>
+                      <Button variant="ghost" onClick={() => setIsVerificationModalOpen(false)}>Cancel</Button>
+                      <Button onClick={handleVerificationRequest} disabled={isSaving || !requestedVerification}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Submit Request
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -340,9 +410,16 @@ export default function ProfilePage() {
                                 <p className="text-xs text-muted-foreground mt-2">Choose your primary role on this platform. This can only be set once.</p>
                            </Card>
                         ) : (
-                            <div>
-                                {/* Potentially show role-specific stats or info here in the future */}
-                            </div>
+                           userProfile.verification === 'None' && (
+                                <Button 
+                                    variant="outline"
+                                    onClick={() => setIsVerificationModalOpen(true)}
+                                    disabled={hasPendingRequest}
+                                >
+                                    <Award className="mr-2 h-4 w-4" />
+                                    {hasPendingRequest ? 'Verification Pending' : 'Request Verification'}
+                                </Button>
+                           )
                         )}
                         
                         <Button onClick={handleLogout} variant="destructive" className="w-full">
