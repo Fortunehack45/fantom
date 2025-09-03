@@ -13,12 +13,12 @@ This document outlines all the features of the Fantom eSport website that intera
 *   **Security Rules:**
     *   **`/users/{userId}`:**
         *   A user can only create their own user document.
-        *   A user can only update their own profile data (e.g., username, photoURL). They cannot change their verification status.
+        *   A user can only update their own profile data (e.g., username, photoURL, bannerURL). They cannot change their verification status, which is enforced by the rule `request.resource.data.verification == resource.data.verification`.
         *   The Admin can update any user's profile (to assign verification).
         *   Anyone can read profile data to view user pages (`get`) and query the collection to find users (`list`).
     *   **`/usernames/{username}`:**
-        *   A separate collection to enforce unique usernames.
-        *   A user can only create a username document that matches the username in their own user document. This prevents impersonation.
+        *   A separate collection to enforce unique usernames. A user can only create a username document if the username matches what's in their own user document (`get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username`), which prevents impersonation.
+        *   The existence of a document in this collection blocks others from taking the same name.
     *   **`/users/{userId}/followers/{followerId}` & `/users/{userId}/following/{followingId}`:**
         *   A user can only add/remove documents in their own `following` subcollection.
         *   A user can only add/remove their own ID from another user's `followers` subcollection. This is a bidirectional write.
