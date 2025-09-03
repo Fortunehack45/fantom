@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { getFirestore, collection, query, where, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
+import { getFirestore, collection, query, where, getDocs, doc, setDoc, getDoc, writeBatch } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
@@ -57,21 +57,27 @@ const handleUserSignup = async (email: string, a: any, username: string, role: '
         photoURL: photoURL
     });
 
-    // Create user document in Firestore
+    // Use a batch write to ensure both documents are created atomically
+    const batch = writeBatch(db);
+    
+    // 1. Create user document in Firestore
     const userDocRef = doc(db, 'users', user.uid);
-    await setDoc(userDocRef, {
+    batch.set(userDocRef, {
         uid: user.uid,
         email: user.email,
         username: username,
-        lowercaseUsername: usernameLower,
+        lowercaseUsername: usernameLower, // <-- THIS IS THE CRITICAL FIX
         photoURL: photoURL,
         bannerURL: 'https://i.pinimg.com/originals/a1/b4/27/a1b427a7c88b7f8973686942c4f68641.jpg',
         role: role,
         verification: 'None',
     });
 
-     // Create username document for uniqueness check
-    await setDoc(usernameRef, { uid: user.uid });
+    // 2. Create username document for uniqueness check
+    batch.set(usernameRef, { uid: user.uid });
+    
+    // Commit the batch
+    await batch.commit();
     
     return userCredential;
 }
