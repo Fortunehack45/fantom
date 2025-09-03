@@ -21,6 +21,7 @@ export default function CreatePostPage() {
     const [content, setContent] = useState('');
     const [category, setCategory] = useState('News');
     const [imageUrl, setImageUrl] = useState('');
+    const [videoUrl, setVideoUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [user, setUser] = useState<User | null>(null);
     
@@ -61,6 +62,7 @@ export default function CreatePostPage() {
                 content,
                 category,
                 imageUrl: imageUrl || `https://picsum.photos/1200/800?random=${Date.now()}`,
+                videoUrl: videoUrl || '',
                 hint: "gaming background",
                 date: serverTimestamp(),
                 likes: [],
@@ -96,24 +98,33 @@ export default function CreatePostPage() {
                                     required
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="category">Category</Label>
+                                <Input
+                                    id="category"
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    placeholder="e.g., News, Guide"
+                                    required
+                                />
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="category">Category</Label>
-                                    <Input
-                                        id="category"
-                                        value={category}
-                                        onChange={(e) => setCategory(e.target.value)}
-                                        placeholder="e.g., News, Guide"
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-2">
+                               <div className="space-y-2">
                                     <Label htmlFor="imageUrl">Image URL (Optional)</Label>
                                     <Input
                                         id="imageUrl"
                                         value={imageUrl}
                                         onChange={(e) => setImageUrl(e.target.value)}
                                         placeholder="https://example.com/image.png"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="videoUrl">Video URL (Optional)</Label>
+                                    <Input
+                                        id="videoUrl"
+                                        value={videoUrl}
+                                        onChange={(e) => setVideoUrl(e.target.value)}
+                                        placeholder="YouTube, TikTok, Facebook link"
                                     />
                                 </div>
                             </div>

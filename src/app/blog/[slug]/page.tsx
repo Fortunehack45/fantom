@@ -33,6 +33,7 @@ interface Post {
     hint: string;
     content: string;
     imageUrl?: string;
+    videoUrl?: string;
     likes: string[]; // Array of user IDs
 }
 
@@ -56,6 +57,28 @@ interface Comment {
     likes: string[]; // Array of user IDs
     replies: Reply[];
 }
+
+const getVideoEmbedUrl = (url: string) => {
+    if (!url) return null;
+    try {
+        const urlObj = new URL(url);
+        if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
+            const videoId = urlObj.searchParams.get('v') || urlObj.pathname.split('/').pop();
+            return `https://www.youtube.com/embed/${videoId}`;
+        }
+        if (urlObj.hostname.includes('tiktok.com')) {
+            const videoId = urlObj.pathname.split('/').pop();
+            return `https://www.tiktok.com/embed/v2/${videoId}`;
+        }
+        if (urlObj.hostname.includes('facebook.com')) {
+            return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&width=560`;
+        }
+    } catch (e) {
+        console.error("Invalid video URL", e);
+        return null;
+    }
+    return null;
+};
 
 
 export default function BlogPostPage() {
@@ -110,6 +133,7 @@ export default function BlogPostPage() {
                         category: docData.category || "News",
                         hint: docData.hint || "gamer portrait",
                         imageUrl: docData.imageUrl,
+                        videoUrl: docData.videoUrl,
                         likes: docData.likes || [],
                     });
                 } else {
@@ -383,6 +407,8 @@ export default function BlogPostPage() {
     
     const totalCommentsAndReplies = comments.reduce((acc, comment) => acc + 1 + comment.replies.length, 0);
     const hasLikedPost = user ? post.likes.includes(user.uid) : false;
+    const videoEmbedUrl = post.videoUrl ? getVideoEmbedUrl(post.videoUrl) : null;
+
 
     const CommentCard = ({ item, isReply = false, commentId }: { item: Comment | Reply, isReply?: boolean, commentId?: string }) => {
         const itemLikes = item.likes || [];
@@ -466,7 +492,17 @@ export default function BlogPostPage() {
                         By {post.author} - Posted {formatDistanceToNow(post.date, { addSuffix: true })}
                     </p>
                 </header>
-                {post.imageUrl && (
+                {videoEmbedUrl ? (
+                    <div className="relative aspect-video mb-8 rounded-lg overflow-hidden shadow-2xl shadow-black/20 bg-black">
+                        <iframe
+                            src={videoEmbedUrl}
+                            className="absolute top-0 left-0 w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            title={post.title}
+                        ></iframe>
+                    </div>
+                ) : post.imageUrl && (
                     <div className="relative aspect-video mb-8 rounded-lg overflow-hidden shadow-2xl shadow-black/20">
                       <Image
                           src={post.imageUrl}

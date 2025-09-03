@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, setDoc, getDoc, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, setDoc, getDoc, writeBatch, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, ArrowUp, ArrowDown, CheckCheck, Crown } from "lucide-react";
+import { Edit, Trash2, ArrowUp, ArrowDown, CheckCheck, Crown, MessageSquare, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
@@ -20,12 +20,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { formatDistanceToNow } from 'date-fns';
+import Link from "next/link";
 
 
-interface BlogPost { id: string; title: string; content: string; imageUrl?: string; category: string; }
+interface BlogPost { id: string; title: string; content: string; imageUrl?: string; videoUrl?: string; category: string; }
 interface RosterMember { id: string; name: string; rank: string; game: string; role: string; server: string; avatarUrl?: string; }
 interface Announcement { id: string; author: string; authorImageUrl?: string; content: string; }
-interface Game { id: string; name: string; imageUrl: string; hint: string; }
+interface Game { id:string; name: string; imageUrl: string; hint: string; }
 interface HeroImage { id: string; src: string; alt: string; hint: string; }
 interface TimelineEvent { id: string; year: string; title: string; description: string; position: number; }
 interface CoreValue { id: string; title: string; description: string; }
@@ -47,6 +49,14 @@ interface UserProfile {
     role: 'Creator' | 'Clan Owner' | 'User';
     verification: 'None' | 'Blue' | 'Gold';
 }
+interface UserComment {
+    id: string;
+    content: string;
+    timestamp: any;
+    postTitle: string;
+    postSlug: string;
+    isReply: boolean;
+}
 
 // Union type for all editable items
 type EditableItem = BlogPost | RosterMember | Announcement | Game | HeroImage | TimelineEvent | CoreValue | GalleryImage;
@@ -65,6 +75,7 @@ export default function AdminPage() {
     const [coreValues, setCoreValues] = useState<CoreValue[]>([]);
     const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
     const [users, setUsers] = useState<UserProfile[]>([]);
+    const [userComments, setUserComments] = useState<UserComment[]>([]);
     
     // Content states
     const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
@@ -85,6 +96,8 @@ export default function AdminPage() {
     const [currentCollection, setCurrentCollection] = useState<CollectionName | null>(null);
     const [deletingItem, setDeletingItem] = useState<{ collectionName: string, id: string } | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+    const [selectedUserForActivity, setSelectedUserForActivity] = useState<UserProfile | null>(null);
 
 
     const fetchData = async <T extends {id: string}>(collectionName: string, setData: React.Dispatch<React.SetStateAction<T[]>>, q?: any) => {
@@ -323,6 +336,55 @@ export default function AdminPage() {
     }
   };
 
+  const fetchUserActivity = async (userId: string) => {
+    setUserComments([]);
+    const blogPostsSnap = await getDocs(collection(db, 'blogPosts'));
+    const allComments: UserComment[] = [];
+
+    for (const postDoc of blogPostsSnap.docs) {
+        // Fetch comments
+        const commentsRef = collection(db, 'blogPosts', postDoc.id, 'comments');
+        const commentsQuery = query(commentsRef, where('authorId', '==', userId), orderBy('timestamp', 'desc'));
+        const commentsSnap = await getDocs(commentsQuery);
+        commentsSnap.forEach(commentDoc => {
+            allComments.push({
+                ...commentDoc.data(),
+                id: commentDoc.id,
+                postTitle: postDoc.data().title,
+                postSlug: postDoc.data().slug,
+                isReply: false,
+            } as UserComment);
+        });
+
+        // Fetch replies
+        const allCommentsForPostRef = collection(db, 'blogPosts', postDoc.id, 'comments');
+        const allCommentsForPostSnap = await getDocs(allCommentsForPostRef);
+        for(const commentDoc of allCommentsForPostSnap.docs) {
+            const repliesRef = collection(db, 'blogPosts', postDoc.id, 'comments', commentDoc.id, 'replies');
+            const repliesQuery = query(repliesRef, where('authorId', '==', userId), orderBy('timestamp', 'desc'));
+            const repliesSnap = await getDocs(repliesQuery);
+            repliesSnap.forEach(replyDoc => {
+                 allComments.push({
+                    ...replyDoc.data(),
+                    id: replyDoc.id,
+                    postTitle: postDoc.data().title,
+                    postSlug: postDoc.data().slug,
+                    isReply: true,
+                } as UserComment);
+            });
+        }
+    }
+    
+    allComments.sort((a, b) => b.timestamp.seconds - a.timestamp.seconds);
+    setUserComments(allComments);
+  };
+
+  const openActivityModal = async (user: UserProfile) => {
+      setSelectedUserForActivity(user);
+      setIsActivityModalOpen(true);
+      await fetchUserActivity(user.uid);
+  }
+
   const renderEditForm = () => {
     if (!editingItem) return null;
     
@@ -333,6 +395,7 @@ export default function AdminPage() {
             <div className="space-y-2"><Label>Title</Label><Input value={editingItem.title} onChange={e => setEditingItem({ ...editingItem, title: e.target.value })} /></div>
             <div className="space-y-2"><Label>Category</Label><Input value={editingItem.category} onChange={e => setEditingItem({ ...editingItem, category: e.target.value })} /></div>
             <div className="space-y-2"><Label>Image URL</Label><Input value={editingItem.imageUrl} onChange={e => setEditingItem({ ...editingItem, imageUrl: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Video URL (YouTube, TikTok, Facebook)</Label><Input value={editingItem.videoUrl} onChange={e => setEditingItem({ ...editingItem, videoUrl: e.target.value })} /></div>
             <div className="space-y-2"><Label>Content</Label><Textarea value={editingItem.content} onChange={e => setEditingItem({ ...editingItem, content: e.target.value })} rows={10} /></div>
         </>;
     }
@@ -420,6 +483,38 @@ export default function AdminPage() {
                 <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
                 <Button onClick={handleUpdateItem}>Save Changes</Button>
             </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
+    <Dialog open={isActivityModalOpen} onOpenChange={setIsActivityModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+                <DialogTitle>User Activity: {selectedUserForActivity?.username}</DialogTitle>
+                <DialogDescription>A list of all comments and replies made by this user.</DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-y-auto pr-4 space-y-4">
+                {userComments.length > 0 ? (
+                    userComments.map(comment => (
+                        <div key={comment.id} className="text-sm p-3 bg-muted/50 rounded-lg">
+                           <p className="text-muted-foreground">
+                                {comment.isReply ? "Replied" : "Commented"} on post "{comment.postTitle}" {' '}
+                                <span className="text-xs">({comment.timestamp ? formatDistanceToNow(new Date(comment.timestamp.seconds * 1000), { addSuffix: true }) : 'just now'})</span>
+                           </p>
+                           <p className="mt-1 italic">"{comment.content}"</p>
+                            <Link href={`/blog/${comment.postSlug}`} target="_blank" rel="noopener noreferrer">
+                                <Button variant="link" className="h-auto p-0 mt-1">
+                                    View Post <ArrowRight className="ml-1 h-3 w-3" />
+                                </Button>
+                            </Link>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center text-muted-foreground p-8">
+                        <MessageSquare className="mx-auto h-8 w-8" />
+                        <p className="mt-2">No comments or replies found for this user.</p>
+                    </div>
+                )}
+            </div>
         </DialogContent>
     </Dialog>
 
@@ -546,7 +641,8 @@ export default function AdminPage() {
                                     <TableHead>User</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead>Role</TableHead>
-                                    <TableHead className="text-right">Verification</TableHead>
+                                    <TableHead>Verification</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -567,7 +663,7 @@ export default function AdminPage() {
                                                 {user.role || 'User'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right">
+                                        <TableCell>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button variant="outline" size="sm">
@@ -586,6 +682,11 @@ export default function AdminPage() {
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="sm" onClick={() => openActivityModal(user)}>
+                                                View Activity
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
