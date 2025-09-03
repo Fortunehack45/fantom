@@ -10,7 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, X, LogOut, Shield, User as UserIcon, PlusCircle } from "lucide-react";
+import { Menu, X, LogOut, Shield, User as UserIcon, PlusCircle, Video } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
@@ -75,6 +75,7 @@ export function Header() {
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/blog", label: "News" },
+    { href: "/shorts", label: "Shorts" },
     { href: "/roster", label: "Roster" },
     { href: "/announcements", label: "Announcements" },
     { href: "/about", label: "About" },
@@ -110,11 +111,28 @@ export function Header() {
             </Link>
             {user ? (
               <>
-                <Link href="/blog/create">
-                  <Button variant="primary" size="icon" className="hidden lg:flex rounded-full">
-                    <PlusCircle />
-                  </Button>
-                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="primary" size="icon" className="hidden lg:flex rounded-full">
+                      <PlusCircle />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem asChild>
+                      <Link href="/blog/create">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        New Post
+                      </Link>
+                    </DropdownMenuItem>
+                     <DropdownMenuItem asChild>
+                      <Link href="/shorts/create">
+                        <Video className="mr-2 h-4 w-4" />
+                        New Short
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                      <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -211,6 +229,11 @@ export function Header() {
                         <Link href="/blog/create" className="w-full">
                             <Button variant="primary" size="lg" className="w-full">
                                 Create Post
+                            </Button>
+                        </Link>
+                         <Link href="/shorts/create" className="w-full">
+                            <Button variant="primary" size="lg" className="w-full">
+                                Create Short
                             </Button>
                         </Link>
                         <Link href="/profile" className="w-full">
