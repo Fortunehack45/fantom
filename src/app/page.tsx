@@ -15,7 +15,7 @@ import { collection, getDocs, limit, orderBy, query, doc, getDoc } from "firebas
 import { db } from "@/lib/firebase";
 import { format } from "date-fns";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay";
+import Autoplay from 'embla-carousel-autoplay';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Footer } from "@/components/footer";
 import Fade from 'embla-carousel-fade';
@@ -459,3 +459,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
