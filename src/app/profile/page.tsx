@@ -3,9 +3,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, User, signOut, updateProfile } from 'firebase/auth';
+import { onAuthStateChanged, User, updateProfile, signOut } from 'firebase/auth';
+import { doc, getDoc, setDoc, writeBatch, updateDoc, serverTimestamp, query, where, collection, getDocs, addDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, writeBatch, updateDoc, serverTimestamp, query, where, collection, getDocs } from 'firebase/firestore';
 
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -17,10 +17,11 @@ import { Label } from '@/components/ui/label';
 import { LogOut, Edit, Check, X, Loader2, Crown, CheckCheck, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import Link from 'next/link';
 
 interface UserProfile {
     uid: string;
@@ -49,6 +50,41 @@ export default function ProfilePage() {
     
     const router = useRouter();
     const { toast } = useToast();
+
+    // Go to /profile/`username` when this page is loaded
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (currentUser) {
+                const userDocRef = doc(db, 'users', currentUser.uid);
+                const userDocSnap = await getDoc(userDocRef);
+                if(userDocSnap.exists()) {
+                    const username = userDocSnap.data().username;
+                    if(username) {
+                        router.replace(`/profile/${username}`);
+                    } else {
+                        // Handle case where username might be missing, though it shouldn't be
+                        setLoading(false);
+                    }
+                } else {
+                     // If the user document doesn't exist yet, we'll create it and then redirect
+                    const defaultUsername = currentUser.displayName || currentUser.email?.split('@')[0] || `user_${currentUser.uid.substring(0, 5)}`;
+                    const defaultProfile: UserProfile = {
+                        uid: currentUser.uid,
+                        email: currentUser.email || '',
+                        username: defaultUsername,
+                        photoURL: currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`,
+                        role: 'User',
+                        verification: 'None',
+                    };
+                    await setDoc(userDocRef, defaultProfile);
+                    router.replace(`/profile/${defaultUsername}`);
+                }
+            } else {
+                router.push('/admin/login');
+            }
+        });
+        return () => unsubscribe();
+    }, [router]);
 
     const checkPendingVerification = async (uid: string) => {
         const requestsRef = collection(db, 'verificationRequests');
@@ -161,6 +197,9 @@ export default function ProfilePage() {
 
             await updateProfile(user, { displayName: newUsername });
 
+            // After successfully updating, redirect to the new profile URL
+            router.push(`/profile/${newUsername}`);
+            
             setUserProfile(prev => prev ? { ...prev, username: newUsername } : null);
             toast({ title: 'Success', description: 'Your username has been updated.' });
             setIsEditingUsername(false);
@@ -247,24 +286,12 @@ export default function ProfilePage() {
         }
     };
 
-
     if (loading) {
         return (
             <div className="flex flex-col min-h-screen bg-background text-foreground">
                 <Header />
                  <main className="flex-grow container mx-auto px-4 py-16 flex items-center justify-center">
-                    <Card className="w-full max-w-md">
-                        <CardHeader className="text-center">
-                             <div className="flex justify-center mb-4">
-                                <Skeleton className="h-24 w-24 rounded-full" />
-                             </div>
-                             <Skeleton className="h-8 w-40 mx-auto" />
-                        </CardHeader>
-                        <CardContent className="text-center space-y-4">
-                           <Skeleton className="h-5 w-48 mx-auto" />
-                           <Skeleton className="h-10 w-full mt-8" />
-                        </CardContent>
-                    </Card>
+                     <Loader2 className="h-16 w-16 animate-spin text-primary" />
                  </main>
                 <Footer />
             </div>
@@ -272,7 +299,16 @@ export default function ProfilePage() {
     }
 
     if (!user || !userProfile) {
-        return null;
+        return (
+             <div className="flex flex-col min-h-screen bg-background text-foreground">
+                <Header />
+                 <main className="flex-grow container mx-auto px-4 py-16 flex items-center justify-center">
+                    <p>Redirecting to your profile...</p>
+                    <Loader2 className="ml-2 h-8 w-8 animate-spin text-primary" />
+                 </main>
+                <Footer />
+            </div>
+        );
     }
     
     const isRoleSet = userProfile.role !== 'User';

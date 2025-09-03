@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { GhostIcon } from '@/components/icons';
-import { createUserWithEmailAndPassword, onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, handleUserSignup } from '@/lib/firebase';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -20,6 +21,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   
@@ -33,7 +35,7 @@ export default function SignupPage() {
     return () => unsubscribe();
   }, [router]);
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       toast({
@@ -43,9 +45,9 @@ export default function SignupPage() {
       });
       return;
     }
-
+    setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      await handleUserSignup(email, password);
       toast({
         title: 'Signup Successful',
         description: 'You can now log in and participate in the community!',
@@ -57,6 +59,8 @@ export default function SignupPage() {
         title: 'Signup Failed',
         description: error.message,
       });
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -71,7 +75,7 @@ export default function SignupPage() {
           <CardDescription>Join the Fantom eSport community.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignup} className="space-y-4">
+          <form onSubmit={handleSignupSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -82,6 +86,7 @@ export default function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -94,6 +99,7 @@ export default function SignupPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="new-password"
+                  disabled={loading}
                 />
                  <Button
                   type="button"
@@ -101,6 +107,7 @@ export default function SignupPage() {
                   size="icon"
                   className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={loading}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
@@ -116,6 +123,7 @@ export default function SignupPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     autoComplete="new-password"
+                    disabled={loading}
                   />
                   <Button
                     type="button"
@@ -123,13 +131,14 @@ export default function SignupPage() {
                     size="icon"
                     className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    disabled={loading}
                   >
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
               </div>
             </div>
-            <Button type="submit" className="w-full" variant="primary">
-              Sign Up
+            <Button type="submit" className="w-full" variant="primary" disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sign Up'}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
                 Already have an account?{' '}
