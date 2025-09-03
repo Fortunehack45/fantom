@@ -1,4 +1,4 @@
-# Application Features & Corresponding Firestore Security
+I'll# Application Features & Corresponding Firestore Security
 
 This document outlines all the features of the Fantom eSport website that interact with Firestore and explains how the `firestore.rules` file secures them.
 
@@ -84,6 +84,7 @@ This document outlines all the features of the Fantom eSport website that intera
     *   An `isAdmin()` helper function checks if the requesting user's email matches the hardcoded admin email.
     *   This function is used throughout the rules to grant write/delete access to collections like `/roster`, `/announcements`, `/games`, `/siteSettings`, etc.
     *   This ensures that only the designated administrator can manage sitewide content.
+
 
 
 
