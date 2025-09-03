@@ -80,7 +80,6 @@ export default function UserProfilePage() {
         if (!usernameFromUrl) return;
         setLoading(true);
 
-        // Decode the username from the URL and convert to lowercase for the query
         const usernameLower = decodeURIComponent(usernameFromUrl).toLowerCase();
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where('lowercaseUsername', '==', usernameLower), limit(1));
