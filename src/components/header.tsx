@@ -10,7 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, X, LogOut, Shield, User as UserIcon, PlusCircle, Video } from "lucide-react";
+import { Menu, X, LogOut, Shield, User as UserIcon, PlusCircle, Video, MessageSquare } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
@@ -76,6 +76,7 @@ export function Header() {
     { href: "/", label: "Home" },
     { href: "/blog", label: "News" },
     { href: "/shorts", label: "Shorts" },
+    { href: "/messages", label: "Messages" },
     { href: "/roster", label: "Roster" },
     { href: "/announcements", label: "Announcements" },
     { href: "/about", label: "About" },

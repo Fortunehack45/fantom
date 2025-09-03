@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { collection, query, where, getDocs, doc, onSnapshot, writeBatch } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, onSnapshot, writeBatch, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
@@ -12,7 +12,7 @@ import { Footer } from '@/components/footer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Crown, CheckCheck, UserPlus, UserCheck } from 'lucide-react';
+import { Loader2, Crown, CheckCheck, UserPlus, UserCheck, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -135,6 +135,35 @@ export default function UserProfilePage() {
             setIsFollowLoading(false);
         }
     };
+    
+    const handleStartChat = async () => {
+        if (!currentUser || !profile || currentUser.uid === profile.uid) return;
+
+        const chatId = [currentUser.uid, profile.uid].sort().join('_');
+        const chatDocRef = doc(db, 'chats', chatId);
+
+        try {
+            const chatDoc = await getDoc(chatDocRef);
+            if (!chatDoc.exists()) {
+                await setDoc(chatDocRef, {
+                    users: [currentUser.uid, profile.uid],
+                    userNames: {
+                        [currentUser.uid]: currentUser.displayName,
+                        [profile.uid]: profile.username,
+                    },
+                    userAvatars: {
+                        [currentUser.uid]: currentUser.photoURL,
+                        [profile.uid]: profile.photoURL,
+                    },
+                    lastMessageTimestamp: serverTimestamp(),
+                });
+            }
+            router.push(`/messages/${chatId}`);
+        } catch (error) {
+            console.error('Error starting chat:', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not start conversation.' });
+        }
+    };
 
     if (loading) {
         return (
@@ -198,7 +227,7 @@ export default function UserProfilePage() {
                            <Badge variant={profile.role === 'Clan Owner' ? 'primary' : 'secondary'}>{profile.role}</Badge>
                          </div>
                     </CardHeader>
-                    <CardContent className="text-center space-y-6">
+                    <CardContent className="text-center space-y-4">
                         <div className="flex justify-center gap-6 text-sm">
                             <div className="text-center">
                                 <p className="font-bold text-lg">{followersCount}</p>
@@ -211,11 +240,16 @@ export default function UserProfilePage() {
                         </div>
 
                         {currentUser && !isOwnProfile && (
-                            <Button onClick={handleFollowToggle} disabled={isFollowLoading} variant={isFollowing ? 'outline' : 'primary'} className="w-full">
-                                {isFollowLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
-                                 isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                                {isFollowing ? 'Following' : 'Follow'}
-                            </Button>
+                            <div className="flex flex-col sm:flex-row gap-2 w-full">
+                                <Button onClick={handleFollowToggle} disabled={isFollowLoading} variant={isFollowing ? 'outline' : 'primary'} className="flex-1">
+                                    {isFollowLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
+                                    isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                                    {isFollowing ? 'Following' : 'Follow'}
+                                </Button>
+                                 <Button variant="secondary" onClick={handleStartChat} className="flex-1">
+                                    <MessageSquare className="mr-2 h-4 w-4" /> Message
+                                </Button>
+                            </div>
                         )}
 
                         {isOwnProfile && (
@@ -230,5 +264,3 @@ export default function UserProfilePage() {
         </div>
     );
 }
-
-    
