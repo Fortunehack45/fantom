@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { collection, query, where, getDocs, doc, onSnapshot, writeBatch, setDoc, serverTimestamp, orderBy, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, onSnapshot, writeBatch, setDoc, serverTimestamp, orderBy, getDoc, limit } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
@@ -67,7 +67,7 @@ export default function UserProfilePage() {
     const params = useParams();
     const router = useRouter();
     const { toast } = useToast();
-    const username = params?.username as string;
+    const usernameFromUrl = params?.username as string;
 
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -77,13 +77,13 @@ export default function UserProfilePage() {
     }, []);
 
     useEffect(() => {
-        if (!username) return;
+        if (!usernameFromUrl) return;
         setLoading(true);
 
-        const usersRef = collection(db, 'users');
         // Decode the username from the URL and convert to lowercase for the query
-        const usernameLower = decodeURIComponent(username).toLowerCase();
-        const q = query(usersRef, where('lowercaseUsername', '==', usernameLower));
+        const usernameLower = decodeURIComponent(usernameFromUrl).toLowerCase();
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('lowercaseUsername', '==', usernameLower), limit(1));
 
         const fetchProfile = async () => {
             try {
@@ -104,7 +104,7 @@ export default function UserProfilePage() {
                 setLoading(false);
             }
         };
-
+        
         const fetchUserContent = async (userId: string) => {
             setContentLoading(true);
             try {
@@ -134,7 +134,7 @@ export default function UserProfilePage() {
         }
 
         fetchProfile();
-    }, [username, toast]);
+    }, [usernameFromUrl, toast]);
 
     useEffect(() => {
         if (!profile || !currentUser) {
