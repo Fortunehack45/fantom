@@ -31,6 +31,7 @@ interface UserProfile {
     bannerURL?: string;
     role: 'Creator' | 'Clan Owner' | 'User';
     verification: 'None' | 'Blue' | 'Gold';
+    lowercaseUsername?: string;
 }
 
 export default function ProfilePage() {
@@ -53,47 +54,16 @@ export default function ProfilePage() {
     const router = useRouter();
     const { toast } = useToast();
 
-    // Go to /profile/`username` when this page is loaded
+    // Fetch user and profile data
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             if (currentUser) {
-                const userDocRef = doc(db, 'users', currentUser.uid);
-                const userDocSnap = await getDoc(userDocRef);
-                if(userDocSnap.exists()) {
-                    const username = userDocSnap.data().username;
-                    if(username && router) {
-                         // Check if we are already on the correct profile page
-                        if(!window.location.pathname.endsWith(username)) {
-                           router.replace(`/profile/${username}`);
-                        } else {
-                           // If we are on the right page, proceed to load data
-                           setUser(currentUser);
-                           await fetchUserProfile(currentUser);
-                           setLoading(false);
-                        }
-                    } else {
-                        // User doc exists but no username, stay on this page to edit
-                        setUser(currentUser);
-                        await fetchUserProfile(currentUser);
-                        setLoading(false);
-                    }
-                } else {
-                    // This is a new user, create their profile and redirect
-                    const defaultUsername = currentUser.displayName || currentUser.email?.split('@')[0] || `user_${currentUser.uid.substring(0, 5)}`;
-                    const defaultProfile: UserProfile = {
-                        uid: currentUser.uid,
-                        email: currentUser.email || '',
-                        username: defaultUsername,
-                        photoURL: currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`,
-                        role: 'User',
-                        verification: 'None',
-                    };
-                    await setDoc(userDocRef, defaultProfile);
-                    router.replace(`/profile/${defaultUsername}`);
-                }
+                setUser(currentUser);
+                await fetchUserProfile(currentUser);
             } else {
                 router.push('/admin/login');
             }
+            setLoading(false);
         });
         return () => unsubscribe();
     }, [router]);
@@ -113,20 +83,9 @@ export default function ProfilePage() {
         if (userDocSnap.exists()) {
             const profileData = userDocSnap.data() as UserProfile;
             setUserProfile(profileData);
-        } else {
-             const defaultUsername = currentUser.displayName || currentUser.email?.split('@')[0] || `user_${currentUser.uid.substring(0, 5)}`;
-            const defaultProfile: UserProfile = {
-                uid: currentUser.uid,
-                email: currentUser.email || '',
-                username: defaultUsername,
-                photoURL: currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`,
-                role: 'User',
-                verification: 'None',
-            };
-            await setDoc(userDocRef, defaultProfile);
-            setUserProfile(defaultProfile);
+            setNewUsername(profileData.username);
+            await checkPendingVerification(currentUser.uid);
         }
-        await checkPendingVerification(currentUser.uid);
     };
 
     const handleLogout = async () => {
@@ -190,17 +149,19 @@ export default function ProfilePage() {
 
             batch.update(userDocRef, { username: newUsername, lowercaseUsername: newUsernameLower });
             batch.set(newUsernameRef, { uid: user.uid });
-            batch.delete(oldUsernameRef);
+            if (userProfile.username) {
+                batch.delete(oldUsernameRef);
+            }
+            
 
             await batch.commit();
 
             await updateProfile(user, { displayName: newUsername });
             
-            router.push(`/profile/${newUsername}`);
-            
             setUserProfile(prev => prev ? { ...prev, username: newUsername } : null);
             toast({ title: 'Success', description: 'Your username has been updated.' });
             setIsEditingUsername(false);
+            // We no longer need to push to the new URL, just stay on /profile
         } catch (error) {
             console.error("Error updating username: ", error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to update username.' });
@@ -217,8 +178,9 @@ export default function ProfilePage() {
         
         try {
             const url = new URL(photoUrlToEdit);
-            if (!url.hostname.includes('pinterest.com') && !url.hostname.includes('i.pinimg.com')) {
-                 toast({ variant: 'destructive', title: 'Invalid URL', description: 'URL must be a direct link from Pinterest (i.pinimg.com) or pinterest.com.' });
+            const hostname = url.hostname;
+            if (!hostname.includes('pinterest.com') && !hostname.includes('i.pinimg.com') && !hostname.includes('pin.it')) {
+                 toast({ variant: 'destructive', title: 'Invalid URL', description: 'URL must be a direct link from Pinterest (i.pinimg.com, pinterest.com, or pin.it).' });
                  return;
             }
         } catch (_) {
@@ -291,7 +253,7 @@ export default function ProfilePage() {
              <div className="flex flex-col min-h-screen bg-background text-foreground">
                 <Header />
                  <main className="flex-grow container mx-auto px-4 py-16 flex items-center justify-center">
-                    <p>Redirecting...</p>
+                    <p>Redirecting to login...</p>
                     <Loader2 className="ml-2 h-8 w-8 animate-spin text-primary" />
                  </main>
                 <Footer />

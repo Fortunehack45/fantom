@@ -2,6 +2,13 @@
 {
   "indexes": [
     {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "lowercaseUsername", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "blogPosts",
       "queryScope": "COLLECTION",
       "fields": [
@@ -62,13 +69,6 @@
       "fields": [
         { "fieldPath": "users", "arrayConfig": "CONTAINS" },
         { "fieldPath": "lastMessageTimestamp", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "users",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "lowercaseUsername", "order": "ASCENDING" }
       ]
     }
   ],

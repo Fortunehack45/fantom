@@ -29,6 +29,7 @@ interface UserProfile {
     email: string;
     username: string;
     photoURL: string;
+    bannerURL?: string;
     role: 'Creator' | 'Clan Owner' | 'User';
     verification: 'None' | 'Blue' | 'Gold';
     lowercaseUsername?: string;
@@ -266,7 +267,17 @@ export default function UserProfilePage() {
             <Header />
             <main className="flex-grow container mx-auto px-4 py-8 md:py-16">
                 <Card className="w-full max-w-4xl mx-auto overflow-visible">
-                    <CardHeader className="p-0 relative h-32 md:h-48 rounded-t-lg bg-card-foreground" style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.05))' }}>
+                     <CardHeader className="p-0 relative h-32 md:h-48 rounded-t-lg bg-card-foreground">
+                        {profile.bannerURL ? (
+                            <Image
+                                src={profile.bannerURL}
+                                alt={`${profile.username}'s banner`}
+                                fill
+                                className="object-cover rounded-t-lg"
+                            />
+                        ) : (
+                            <div className="h-full w-full bg-gradient-to-tr from-primary/20 to-primary/5 rounded-t-lg"></div>
+                        )}
                          <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2">
                             <Avatar className="h-28 w-28 md:h-36 md:w-36 border-4 border-background bg-background">
                                 <AvatarImage src={profile.photoURL} alt={profile.username} />
