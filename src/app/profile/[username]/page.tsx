@@ -12,7 +12,7 @@ import { Footer } from '@/components/footer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Crown, CheckCheck, UserPlus, UserCheck, MessageSquare, Newspaper, Video, Heart } from 'lucide-react';
+import { Loader2, UserPlus, UserCheck, MessageSquare, Newspaper, Video } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { VideoPlayer } from '@/components/video-player';
+import { VerificationBadge } from '@/components/icons/verification-badge';
 
 
 interface UserProfile {
@@ -276,8 +277,8 @@ export default function UserProfilePage() {
                     <CardContent className="pt-20 text-center">
                         <div className="flex items-center justify-center gap-2">
                             <CardTitle className="text-4xl font-headline font-bold">{profile.username}</CardTitle>
-                            {profile.verification === 'Blue' && <CheckCheck className="h-7 w-7 text-blue-500" title="Verified Creator" />}
-                            {profile.verification === 'Gold' && <Crown className="h-7 w-7 text-yellow-500" title="Verified Clan Owner" />}
+                            {profile.verification === 'Blue' && <VerificationBadge className="text-[#1D9BF0]" title="Verified Creator" />}
+                            {profile.verification === 'Gold' && <VerificationBadge className="text-[#A47C1B]" title="Verified Clan Owner" />}
                         </div>
                         <CardDescription>{profile.email}</CardDescription>
                          <div className="mt-2">

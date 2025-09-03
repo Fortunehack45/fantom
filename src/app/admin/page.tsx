@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, ArrowUp, ArrowDown, CheckCheck, Crown, MessageSquare, ArrowRight, Check, X, ThumbsUp, Share2 } from "lucide-react";
+import { Edit, Trash2, ArrowUp, ArrowDown, MessageSquare, ArrowRight, Check, X, ThumbsUp, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
@@ -22,6 +22,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from 'date-fns';
 import Link from "next/link";
+import { VerificationBadge } from "@/components/icons/verification-badge";
 
 
 interface BlogPost { id: string; title: string; content: string; imageUrl?: string; videoUrl?: string; category: string; }
@@ -771,19 +772,19 @@ export default function AdminPage() {
                                         <TableCell>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="outline" size="sm">
-                                                        {user.verification === 'Blue' && <CheckCheck className="mr-2 h-4 w-4 text-blue-500" />}
-                                                        {user.verification === 'Gold' && <Crown className="mr-2 h-4 w-4 text-yellow-500" />}
+                                                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                                                        {user.verification === 'Blue' && <VerificationBadge className="text-[#1D9BF0] h-5 w-5" />}
+                                                        {user.verification === 'Gold' && <VerificationBadge className="text-[#A47C1B] h-5 w-5" />}
                                                         {user.verification}
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem onClick={() => handleVerificationChange(user.uid, 'None')}>None</DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handleVerificationChange(user.uid, 'Blue')}>
-                                                        <CheckCheck className="mr-2 h-4 w-4 text-blue-500" /> Blue
+                                                        <VerificationBadge className="mr-2 h-5 w-5 text-[#1D9BF0]" /> Blue
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handleVerificationChange(user.uid, 'Gold')}>
-                                                        <Crown className="mr-2 h-4 w-4 text-yellow-500" /> Gold
+                                                        <VerificationBadge className="mr-2 h-5 w-5 text-[#A47C1B]" /> Gold
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -825,9 +826,9 @@ export default function AdminPage() {
                                         <TableRow key={req.id}>
                                             <TableCell className="font-medium">{req.username}</TableCell>
                                             <TableCell>
-                                                <Badge variant={req.requestedLevel === 'Gold' ? 'primary' : 'secondary'}>
-                                                    {req.requestedLevel === 'Gold' && <Crown className="mr-2 h-4 w-4" />}
-                                                    {req.requestedLevel === 'Blue' && <CheckCheck className="mr-2 h-4 w-4" />}
+                                                <Badge variant={req.requestedLevel === 'Gold' ? 'primary' : 'secondary'} className="flex gap-2 items-center w-fit">
+                                                    {req.requestedLevel === 'Gold' && <VerificationBadge className="h-4 w-4 text-[#A47C1B]" />}
+                                                    {req.requestedLevel === 'Blue' && <VerificationBadge className="h-4 w-4 text-[#1D9BF0]" />}
                                                     {req.requestedLevel}
                                                 </Badge>
                                             </TableCell>

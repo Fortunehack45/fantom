@@ -14,12 +14,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogOut, Edit, Check, X, Loader2, Crown, CheckCheck, Award, Camera } from 'lucide-react';
+import { LogOut, Edit, Check, X, Loader2, Award, Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Image from 'next/image';
+import { VerificationBadge } from '@/components/icons/verification-badge';
+import { Badge } from '@/components/ui/badge';
 
 interface UserProfile {
     uid: string;
@@ -59,12 +61,24 @@ export default function ProfilePage() {
                 const userDocSnap = await getDoc(userDocRef);
                 if(userDocSnap.exists()) {
                     const username = userDocSnap.data().username;
-                    if(username) {
-                        router.replace(`/profile/${username}`);
+                    if(username && router) {
+                         // Check if we are already on the correct profile page
+                        if(!window.location.pathname.endsWith(username)) {
+                           router.replace(`/profile/${username}`);
+                        } else {
+                           // If we are on the right page, proceed to load data
+                           setUser(currentUser);
+                           await fetchUserProfile(currentUser);
+                           setLoading(false);
+                        }
                     } else {
+                        // User doc exists but no username, stay on this page to edit
+                        setUser(currentUser);
+                        await fetchUserProfile(currentUser);
                         setLoading(false);
                     }
                 } else {
+                    // This is a new user, create their profile and redirect
                     const defaultUsername = currentUser.displayName || currentUser.email?.split('@')[0] || `user_${currentUser.uid.substring(0, 5)}`;
                     const defaultProfile: UserProfile = {
                         uid: currentUser.uid,
@@ -83,6 +97,7 @@ export default function ProfilePage() {
         });
         return () => unsubscribe();
     }, [router]);
+
 
     const checkPendingVerification = async (uid: string) => {
         const requestsRef = collection(db, 'verificationRequests');
@@ -113,19 +128,6 @@ export default function ProfilePage() {
         }
         await checkPendingVerification(currentUser.uid);
     };
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-            if (currentUser) {
-                setUser(currentUser);
-                await fetchUserProfile(currentUser);
-            } else {
-                router.push('/admin/login');
-            }
-            setLoading(false);
-        });
-        return () => unsubscribe();
-    }, [router]);
 
     const handleLogout = async () => {
         try {
@@ -289,7 +291,7 @@ export default function ProfilePage() {
              <div className="flex flex-col min-h-screen bg-background text-foreground">
                 <Header />
                  <main className="flex-grow container mx-auto px-4 py-16 flex items-center justify-center">
-                    <p>Redirecting to your profile...</p>
+                    <p>Redirecting...</p>
                     <Loader2 className="ml-2 h-8 w-8 animate-spin text-primary" />
                  </main>
                 <Footer />
@@ -342,13 +344,13 @@ export default function ProfilePage() {
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="Blue" id="blue" />
                         <Label htmlFor="blue" className="flex items-center gap-2">
-                           <CheckCheck className="h-5 w-5 text-blue-500" /> Blue Verification (Creator)
+                           <VerificationBadge className="text-[#1D9BF0] h-5 w-5" /> Blue Verification (Creator)
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="Gold" id="gold" />
                         <Label htmlFor="gold" className="flex items-center gap-2">
-                            <Crown className="h-5 w-5 text-yellow-500" /> Gold Verification (Clan Owner)
+                            <VerificationBadge className="text-[#A47C1B] h-5 w-5" /> Gold Verification (Clan Owner)
                         </Label>
                       </div>
                     </RadioGroup>
@@ -411,8 +413,8 @@ export default function ProfilePage() {
                                 <>
                                     <div className="flex items-center gap-2">
                                         <CardTitle className="text-3xl font-headline font-bold">{userProfile.username}</CardTitle>
-                                        {userProfile.verification === 'Blue' && <CheckCheck className="h-6 w-6 text-blue-500" title="Verified Creator" />}
-                                        {userProfile.verification === 'Gold' && <Crown className="h-6 w-6 text-yellow-500" title="Verified Clan Owner" />}
+                                        {userProfile.verification === 'Blue' && <VerificationBadge className="text-[#1D9BF0]" title="Verified Creator" />}
+                                        {userProfile.verification === 'Gold' && <VerificationBadge className="text-[#A47C1B]" title="Verified Clan Owner" />}
                                         <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={handleUsernameEditToggle}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
