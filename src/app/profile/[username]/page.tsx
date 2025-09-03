@@ -30,6 +30,7 @@ interface UserProfile {
     photoURL: string;
     role: 'Creator' | 'Clan Owner' | 'User';
     verification: 'None' | 'Blue' | 'Gold';
+    lowercaseUsername?: string;
 }
 
 interface BlogPost {
@@ -79,13 +80,14 @@ export default function UserProfilePage() {
         setLoading(true);
 
         const usersRef = collection(db, 'users');
-        // The username in the URL must be an exact match to the one in the database.
-        const q = query(usersRef, where('username', '==', username));
+        const usernameLower = decodeURIComponent(username).toLowerCase();
+        const q = query(usersRef, where('lowercaseUsername', '==', usernameLower));
 
         const fetchProfile = async () => {
             try {
                 const querySnapshot = await getDocs(q);
                 if (querySnapshot.empty) {
+                    console.log(`No user found for lowercase username: ${usernameLower}`);
                     setProfile(null);
                 } else {
                     const userDoc = querySnapshot.docs[0];
@@ -380,3 +382,5 @@ export default function UserProfilePage() {
         </div>
     );
 }
+
+    
