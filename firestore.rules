@@ -17,17 +17,49 @@ service cloud.firestore {
     function isOwner(resource) {
       return request.auth.uid == resource.data.authorId;
     }
+    
+    // Helper function to check if the user is the owner of a profile
+    function isProfileOwner(userId) {
+      return request.auth.uid == userId;
+    }
 
     // Default deny all reads and writes
     match /{document=**} {
       allow read, write: if false;
     }
+    
+    // Rules for Users Collection
+    match /users/{userId} {
+      // Anyone can read a user's profile
+      allow read: if true;
+      // A user can create their own profile document
+      allow create: if isProfileOwner(userId);
+      // A user can only update their own profile
+      allow update: if isProfileOwner(userId);
+      // A user can delete their own profile (or an admin can)
+      allow delete: if isProfileOwner(userId) || isAdmin();
+    }
+    
+    match /usernames/{username} {
+      // Allow reading to check for uniqueness, but no one can list all usernames
+      allow read: if false;
+      // Allow creating a username document only if the user is signed in
+      allow create: if isSignedIn();
+      // No one can update or delete a username document to prevent theft
+      allow update, delete: if false;
+    }
 
-    // Public read access for most collections, write access for admin only
+    // Rules for Blog Posts
     match /blogPosts/{postId} {
       allow read: if true;
-      allow write: if isAdmin();
+      // Admin can create/delete/update anything on a post
+      allow create, delete: if isAdmin();
+      // Admin can update anything.
+      // Signed-in users can update *only* the 'likes' array.
+      allow update: if isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
     }
+
+    // Public read access for other collections, write access for admin only
     match /roster/{memberId} {
       allow read: if true;
       allow write: if isAdmin();
