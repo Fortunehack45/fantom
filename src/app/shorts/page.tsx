@@ -209,12 +209,16 @@ export default function ShortsPage() {
                             <Card key={short.id} className="w-full max-w-lg mx-auto bg-card shadow-lg border-primary/20">
                                 <CardContent className="p-4 space-y-4">
                                     <div className="flex items-center gap-3">
-                                        <Avatar className="h-10 w-10">
-                                            <AvatarImage src={short.authorPhotoURL || `https://i.pravatar.cc/150?u=${short.authorId}`} />
-                                            <AvatarFallback>{short.authorName?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                                        </Avatar>
+                                        <Link href={`/profile/${short.authorName}`}>
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarImage src={short.authorPhotoURL || `https://i.pravatar.cc/150?u=${short.authorId}`} />
+                                                <AvatarFallback>{short.authorName?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                            </Avatar>
+                                        </Link>
                                         <div>
-                                            <p className="font-semibold text-primary">{short.authorName}</p>
+                                            <Link href={`/profile/${short.authorName}`}>
+                                                <p className="font-semibold text-primary hover:underline">{short.authorName}</p>
+                                            </Link>
                                             <p className="text-xs text-muted-foreground">
                                                 {short.timestamp ? formatDistanceToNow(new Date(short.timestamp.seconds * 1000), { addSuffix: true }) : 'just now'}
                                             </p>
@@ -270,12 +274,16 @@ export default function ShortsPage() {
                                                         <div className="space-y-4 mt-2">
                                                         {short.comments.map(comment => (
                                                             <div key={comment.id} className="flex items-start gap-3 text-sm">
-                                                                <Avatar className="w-8 h-8">
-                                                                    <AvatarImage src={comment.authorPhotoURL || `https://i.pravatar.cc/150?u=${comment.authorId}`} />
-                                                                    <AvatarFallback>{comment.authorName.substring(0, 2).toUpperCase()}</AvatarFallback>
-                                                                </Avatar>
+                                                                <Link href={`/profile/${comment.authorName}`}>
+                                                                    <Avatar className="w-8 h-8">
+                                                                        <AvatarImage src={comment.authorPhotoURL || `https://i.pravatar.cc/150?u=${comment.authorId}`} />
+                                                                        <AvatarFallback>{comment.authorName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                                                    </Avatar>
+                                                                </Link>
                                                                 <div className="flex-grow bg-muted/30 p-2 rounded-lg">
-                                                                    <span className="font-semibold text-primary mr-2">{comment.authorName}</span>
+                                                                     <Link href={`/profile/${comment.authorName}`}>
+                                                                        <span className="font-semibold text-primary mr-2 hover:underline">{comment.authorName}</span>
+                                                                     </Link>
                                                                     <span>{comment.content}</span>
                                                                 </div>
                                                             </div>
@@ -296,3 +304,5 @@ export default function ShortsPage() {
         </div>
     );
 }
+
+    

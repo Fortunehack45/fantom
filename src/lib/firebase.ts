@@ -2,7 +2,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
@@ -28,5 +28,17 @@ if (typeof window !== 'undefined') {
   isSupported().then(yes => yes ? getAnalytics(app) : null);
 }
 
-export { app, db, auth, storage };
+const getUsernameByUID = async (uid: string) => {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('uid', '==', uid));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+        return querySnapshot.docs[0].data().username;
+    }
+    return null;
+}
 
+
+export { app, db, auth, storage, getUsernameByUID };
+
+    

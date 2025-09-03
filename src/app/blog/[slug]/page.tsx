@@ -27,7 +27,7 @@ interface Post {
     id: string;
     slug: string;
     title: string;
-    author: string;
+    authorName: string;
     date: any;
     category: string;
     hint: string;
@@ -128,7 +128,7 @@ export default function BlogPostPage() {
                         slug: slug,
                         title: docData.title,
                         content: docData.content,
-                        author: docData.author || "Fantom eSport",
+                        authorName: docData.authorName || "Fantom eSport",
                         date: postDate,
                         category: docData.category || "News",
                         hint: docData.hint || "gamer portrait",
@@ -352,7 +352,6 @@ export default function BlogPostPage() {
             try {
                 await navigator.share(shareData);
             } catch (error) {
-                // Silently fail if user cancels share dialog
                 if ((error as DOMException).name !== 'AbortError') {
                     console.error('Error sharing:', error);
                     toast({
@@ -425,13 +424,17 @@ export default function BlogPostPage() {
 
         return (
             <div className={`flex items-start gap-4`}>
-                <Avatar className="w-10 h-10 border-2 border-transparent group-hover:border-primary transition-colors">
-                    <AvatarImage src={item.authorPhotoURL || `https://i.pravatar.cc/150?u=${item.authorId}`} />
-                    <AvatarFallback>{item.authorName.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <Link href={`/profile/${item.authorName}`}>
+                    <Avatar className="w-10 h-10 border-2 border-transparent group-hover:border-primary transition-colors">
+                        <AvatarImage src={item.authorPhotoURL || `https://i.pravatar.cc/150?u=${item.authorId}`} />
+                        <AvatarFallback>{item.authorName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                </Link>
                 <div className="flex-grow">
                     <div className="flex items-center justify-between">
-                        <p className="font-semibold text-primary">{item.authorName}</p>
+                        <Link href={`/profile/${item.authorName}`}>
+                            <p className="font-semibold text-primary hover:underline">{item.authorName}</p>
+                        </Link>
                         <p className="text-xs text-muted-foreground">
                             {item.timestamp ? formatDistanceToNow(new Date(item.timestamp.seconds * 1000), { addSuffix: true }) : 'just now'}
                         </p>
@@ -489,7 +492,7 @@ export default function BlogPostPage() {
                     <Badge variant="primary">{post.category}</Badge>
                     <h1 className="text-4xl md:text-6xl font-headline font-bold uppercase my-2">{post.title}</h1>
                     <p className="text-muted-foreground text-sm">
-                        By {post.author} - Posted {formatDistanceToNow(post.date, { addSuffix: true })}
+                        By <Link href={`/profile/${post.authorName}`} className="text-primary hover:underline">{post.authorName}</Link> - Posted {formatDistanceToNow(post.date, { addSuffix: true })}
                     </p>
                 </header>
                 {videoEmbedUrl ? (
@@ -673,3 +676,5 @@ export default function BlogPostPage() {
     </>
   );
 }
+
+    
