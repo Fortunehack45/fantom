@@ -539,7 +539,7 @@ export default function AdminPage() {
     }
   }
 
-  const ActivityLink = ({ activity }: { activity: UserActivity }) => {
+  const ActivityLink = ({ activity, username }: { activity: UserActivity, username: string }) => {
     if (activity.targetSlug) {
         return (
             <Link href={`/blog/${activity.targetSlug}`} target="_blank" rel="noopener noreferrer">
@@ -549,8 +549,9 @@ export default function AdminPage() {
             </Link>
         )
     }
-    if (activity.type === 'like_short' || activity.type === 'share_short') {
-         return (
+    if (activity.type === 'like_short' || activity.type === 'share_short' || (activity.type === 'comment' && !activity.targetSlug)) {
+        // Assuming comments without a slug are for shorts
+        return (
             <Link href={`/shorts#${activity.targetId}`} target="_blank" rel="noopener noreferrer">
                 <Button variant="link" className="h-auto p-0 mt-1">
                     View Short <ArrowRight className="ml-1 h-3 w-3" />
@@ -558,7 +559,14 @@ export default function AdminPage() {
             </Link>
         )
     }
-    return null;
+    // Fallback for user profile link from activity
+    return (
+        <Link href={`/profile/${username}`} target="_blank" rel="noopener noreferrer">
+            <Button variant="link" className="h-auto p-0 mt-1">
+                View Profile <ArrowRight className="ml-1 h-3 w-3" />
+            </Button>
+        </Link>
+    )
   }
 
   return (
@@ -609,7 +617,7 @@ export default function AdminPage() {
                                    <span className="text-xs">({activity.timestamp ? formatDistanceToNow(new Date(activity.timestamp.seconds * 1000), { addSuffix: true }) : 'sometime ago'})</span>
                                </p>
                                <p className="mt-1">{activity.content}</p>
-                                <ActivityLink activity={activity} />
+                                <ActivityLink activity={activity} username={selectedUserForActivity!.username} />
                            </div>
                         </div>
                     ))
@@ -1105,5 +1113,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-    
