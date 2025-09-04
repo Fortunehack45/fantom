@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { collection, doc, onSnapshot, addDoc, serverTimestamp, query, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, addDoc, serverTimestamp, query, orderBy, updateDoc, where } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
@@ -184,7 +184,6 @@ const ChatView = ({ chatId }: { chatId: string }) => {
                 setCurrentUser(user);
             } else {
                 router.push('/admin/login');
-                setCurrentUser(null);
             }
         });
         return () => unsubscribeAuth();
@@ -417,4 +416,3 @@ export default function ChatPage() {
         </div>
     );
 }
-

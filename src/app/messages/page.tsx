@@ -161,7 +161,6 @@ export default function MessagesPage() {
                 setIsAdmin(user.email === ADMIN_EMAIL);
             } else {
                 router.push('/admin/login');
-                setCurrentUser(null);
             }
         });
         return () => unsubscribeAuth();
