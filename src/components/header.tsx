@@ -38,6 +38,8 @@ export function Header() {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [settings, setSettings] = useState<SiteSettings>({});
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -154,9 +156,15 @@ export function Header() {
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                            <Link href="/profile">
+                            <Link href={`/profile/${getUsername(user)}`}>
                                <UserIcon className="mr-2 h-4 w-4" />
                                <span>Profile</span>
+                            </Link>
+                        </DropdownMenuItem>
+                         <DropdownMenuItem asChild>
+                            <Link href="/profile">
+                               <UserIcon className="mr-2 h-4 w-4" />
+                               <span>Edit Profile</span>
                             </Link>
                         </DropdownMenuItem>
                        {user.email === ADMIN_EMAIL && (
@@ -188,7 +196,7 @@ export function Header() {
                 </Link>
               </>
             )}
-             <Sheet>
+             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="lg:hidden text-white">
                     <Menu />
@@ -199,7 +207,7 @@ export function Header() {
                    <SheetHeader>
                     <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                     <div className="flex justify-between items-center mb-8">
-                      <Link href="/" className="flex items-center gap-2">
+                      <Link href="/" className="flex items-center gap-2" onClick={() => setIsSheetOpen(false)}>
                           <span className="text-2xl font-bold uppercase text-white tracking-widest font-headline">Fantom eSport</span>
                       </Link>
                       <SheetTrigger asChild>
@@ -215,6 +223,7 @@ export function Header() {
                       <Link
                         key={link.label}
                         href={link.href}
+                        onClick={() => setIsSheetOpen(false)}
                         className="text-2xl font-bold uppercase tracking-wider text-white"
                       >
                         {link.label}
@@ -222,30 +231,30 @@ export function Header() {
                     ))}
                   </nav>
                   <div className="mt-8 flex flex-col gap-4">
-                     <Link href={settings.discordUrl || '#'} target="_blank" rel="noopener noreferrer" className="w-full">
+                     <Link href={settings.discordUrl || '#'} target="_blank" rel="noopener noreferrer" className="w-full" onClick={() => setIsSheetOpen(false)}>
                         <Button variant="outline" size="lg" className="w-full">
                             Discord
                         </Button>
                      </Link>
                     {user ? (
                       <>
-                        <Link href="/blog/create" className="w-full">
+                        <Link href="/blog/create" className="w-full" onClick={() => setIsSheetOpen(false)}>
                             <Button variant="primary" size="lg" className="w-full">
                                 Create Post
                             </Button>
                         </Link>
-                         <Link href="/shorts/create" className="w-full">
+                         <Link href="/shorts/create" className="w-full" onClick={() => setIsSheetOpen(false)}>
                             <Button variant="primary" size="lg" className="w-full">
                                 Create Short
                             </Button>
                         </Link>
-                        <Link href="/profile" className="w-full">
+                        <Link href="/profile" className="w-full" onClick={() => setIsSheetOpen(false)}>
                             <Button variant="secondary" size="lg" className="w-full">
                                 Profile
                             </Button>
                         </Link>
                         {user.email === ADMIN_EMAIL && (
-                            <Link href="/admin" className="w-full">
+                            <Link href="/admin" className="w-full" onClick={() => setIsSheetOpen(false)}>
                                 <Button variant="secondary" size="lg" className="w-full">
                                     Admin
                                 </Button>
@@ -257,12 +266,12 @@ export function Header() {
                       </>
                     ) : (
                       <>
-                         <Link href="/admin/login" className="w-full">
+                         <Link href="/admin/login" className="w-full" onClick={() => setIsSheetOpen(false)}>
                             <Button variant="secondary" size="lg" className="w-full">
                                 Login
                             </Button>
                          </Link>
-                         <Link href="/signup" className="w-full">
+                         <Link href="/signup" className="w-full" onClick={() => setIsSheetOpen(false)}>
                             <Button variant="primary" size="lg" className="w-full">
                                Sign Up
                             </Button>

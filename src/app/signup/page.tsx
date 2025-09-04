@@ -93,12 +93,15 @@ export default function SignupPage() {
               <Input
                 id="username"
                 type="text"
-                placeholder="Choose a username"
+                placeholder="3-15 chars, letters, numbers, _"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 autoComplete="username"
                 disabled={loading}
+                minLength={3}
+                maxLength={15}
+                pattern="^[a-zA-Z0-9_]+$"
               />
             </div>
             <div className="space-y-2">

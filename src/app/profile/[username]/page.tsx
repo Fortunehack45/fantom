@@ -12,7 +12,7 @@ import { Footer } from '@/components/footer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, UserPlus, UserCheck, MessageSquare, Newspaper, Video } from 'lucide-react';
+import { Loader2, UserPlus, UserCheck, MessageSquare, Newspaper, Video, Frown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -79,37 +79,30 @@ export default function UserProfilePage() {
 
     useEffect(() => {
         if (!usernameFromUrl) return;
-        setLoading(true);
+        
+        const fetchProfileAndContent = async () => {
+            setLoading(true);
+            const usernameLower = decodeURIComponent(usernameFromUrl).toLowerCase();
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where('lowercaseUsername', '==', usernameLower), limit(1));
 
-        const usernameLower = decodeURIComponent(usernameFromUrl).toLowerCase();
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('lowercaseUsername', '==', usernameLower), limit(1));
-
-        const fetchProfile = async () => {
             try {
                 const querySnapshot = await getDocs(q);
                 if (querySnapshot.empty) {
                     console.log(`No user found for lowercase username: ${usernameLower}`);
                     setProfile(null);
-                } else {
-                    const userDoc = querySnapshot.docs[0];
-                    const userData = { uid: userDoc.id, ...userDoc.data() } as UserProfile;
-                    setProfile(userData);
-                    fetchUserContent(userData.uid);
-                }
-            } catch (error) {
-                console.error("Error fetching user profile:", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user profile.' });
-            } finally {
-                setLoading(false);
-            }
-        };
-        
-        const fetchUserContent = async (userId: string) => {
-            setContentLoading(true);
-            try {
-                const postsQuery = query(collection(db, 'blogPosts'), where('authorId', '==', userId), orderBy('date', 'desc'));
-                const shortsQuery = query(collection(db, 'shorts'), where('authorId', '==', userId), orderBy('timestamp', 'desc'));
+                    setLoading(false);
+                    return;
+                } 
+                
+                const userDoc = querySnapshot.docs[0];
+                const userData = { uid: userDoc.id, ...userDoc.data() } as UserProfile;
+                setProfile(userData);
+                
+                // Fetch content only after profile is found
+                setContentLoading(true);
+                const postsQuery = query(collection(db, 'blogPosts'), where('authorId', '==', userData.uid), orderBy('date', 'desc'));
+                const shortsQuery = query(collection(db, 'shorts'), where('authorId', '==', userData.uid), orderBy('timestamp', 'desc'));
 
                 const [postsSnapshot, shortsSnapshot] = await Promise.all([
                     getDocs(postsQuery),
@@ -125,15 +118,18 @@ export default function UserProfilePage() {
                 setPosts(postsData);
                 setShorts(shortsData);
                 setTotalLikes(postLikes + shortLikes);
-
-            } catch (error) {
-                console.error("Error fetching user content:", error);
-            } finally {
                 setContentLoading(false);
+                
+            } catch (error) {
+                console.error("Error fetching user profile:", error);
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user profile.' });
+                setProfile(null);
+            } finally {
+                setLoading(false);
             }
-        }
+        };
 
-        fetchProfile();
+        fetchProfileAndContent();
     }, [usernameFromUrl, toast]);
 
     useEffect(() => {
@@ -141,6 +137,9 @@ export default function UserProfilePage() {
             setIsFollowing(false);
             return;
         };
+
+        // Reset follow state when profile changes
+        setIsFollowLoading(false);
 
         const followerRef = doc(db, 'users', profile.uid, 'followers', currentUser.uid);
         const unsubscribeFollower = onSnapshot(followerRef, (doc) => {
@@ -239,8 +238,9 @@ export default function UserProfilePage() {
              <div className="flex flex-col min-h-screen bg-background text-foreground">
                 <Header />
                  <div className="flex-grow flex flex-col justify-center items-center text-center px-4">
+                    <Frown className="h-24 w-24 text-muted-foreground mb-4"/>
                     <h2 className="text-4xl font-headline uppercase">User Not Found</h2>
-                    <p className="text-muted-foreground mt-2">The profile you are looking for does not exist.</p>
+                    <p className="text-muted-foreground mt-2">The profile for "{decodeURIComponent(usernameFromUrl)}" does not exist.</p>
                      <Link href="/">
                         <Button variant="outline" className="mt-6">
                             Go Home
@@ -394,5 +394,3 @@ export default function UserProfilePage() {
         </div>
     );
 }
-
-    

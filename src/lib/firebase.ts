@@ -39,6 +39,14 @@ const getUsernameByUID = async (uid: string) => {
 }
 
 const handleUserSignup = async (email: string, a: any, username: string, role: 'Creator' | 'Clan Owner') => {
+    // Validate username format
+    if (username.length < 3 || username.length > 15) {
+        throw new Error('Username must be between 3 and 15 characters.');
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        throw new Error('Username can only contain letters, numbers, and underscores.');
+    }
+
     // Check for username uniqueness first
     const usernameLower = username.toLowerCase();
     const usernameRef = doc(db, 'usernames', usernameLower);

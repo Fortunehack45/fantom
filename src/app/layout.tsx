@@ -4,11 +4,11 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { Inter, Unica_One } from 'next/font/google';
+import { Inter, Space_Grotesk as SpaceGrotesk } from 'next/font/google';
 import { useEffect } from 'react';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const unicaOne = Unica_One({ subsets: ['latin'], variable: '--font-unica-one', weight: ['400'] });
+const spaceGrotesk = SpaceGrotesk({ subsets: ['latin'], variable: '--font-space-grotesk', weight: ['400', '700'] });
 
 const metadata: Metadata = {
   title: 'Fantom eSport',
@@ -49,8 +49,11 @@ export default function RootLayout({
       <head>
           <title>{metadata.title as React.ReactNode}</title>
           <meta name="description" content={metadata.description!} />
+           <link rel="preconnect" href="https://fonts.googleapis.com" />
+           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+           <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body className={`${inter.variable} ${unicaOne.variable} font-body antialiased`}>
+      <body className={`${inter.variable} ${spaceGrotesk.variable} font-body antialiased`}>
         <div id="cursor-glow"></div>
         {children}
         <Toaster />
