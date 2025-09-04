@@ -88,11 +88,17 @@ export default function MessagesPage() {
 
     const getOtherParticipant = (chat: Chat) => {
         if (!currentUser) return null;
+
+        const safeGet = (uid: string) => ({
+            uid,
+            name: chat.userNames?.[uid] || 'Unknown User',
+            avatar: chat.userAvatars?.[uid] || ''
+        });
         
         // For admin view, we need to show both participants
         if (isAdmin) {
-             const user1 = { uid: chat.users[0], name: chat.userNames[chat.users[0]], avatar: chat.userAvatars[chat.users[0]] };
-             const user2 = { uid: chat.users[1], name: chat.userNames[chat.users[1]], avatar: chat.userAvatars[chat.users[1]] };
+             const user1 = safeGet(chat.users[0]);
+             const user2 = chat.users[1] ? safeGet(chat.users[1]) : null;
              return { user1, user2 };
         }
 
@@ -100,11 +106,7 @@ export default function MessagesPage() {
         if (!otherUserId) return null;
         
         return {
-            user1: {
-                uid: otherUserId,
-                name: chat.userNames[otherUserId],
-                avatar: chat.userAvatars[otherUserId],
-            },
+            user1: safeGet(otherUserId),
             user2: null,
         };
     };
@@ -152,12 +154,12 @@ export default function MessagesPage() {
                                                     <div className="flex -space-x-4">
                                                         <Avatar className="h-12 w-12 border-2 border-background">
                                                             <AvatarImage src={participants.user1.avatar} />
-                                                            <AvatarFallback>{participants.user1.name.charAt(0)}</AvatarFallback>
+                                                            <AvatarFallback>{participants.user1.name?.charAt(0) || '?'}</AvatarFallback>
                                                         </Avatar>
                                                          {participants.user2 && (
                                                              <Avatar className="h-12 w-12 border-2 border-background">
                                                                 <AvatarImage src={participants.user2.avatar} />
-                                                                <AvatarFallback>{participants.user2.name.charAt(0)}</AvatarFallback>
+                                                                <AvatarFallback>{participants.user2.name?.charAt(0) || '?'}</AvatarFallback>
                                                             </Avatar>
                                                          )}
                                                     </div>
