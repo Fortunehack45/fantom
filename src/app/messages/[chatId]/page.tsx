@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { collection, doc, onSnapshot, addDoc, serverTimestamp, query, orderBy, updateDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -12,10 +12,12 @@ import { Footer } from '@/components/footer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, MessageSquareText, Image as ImageIcon, Video as VideoIcon } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDistanceToNowStrict } from 'date-fns';
 
 interface Message {
     id: string;
@@ -26,31 +28,148 @@ interface Message {
     videoUrl?: string;
 }
 
-interface Chat {
+interface ChatListItem {
     id: string;
     users: string[];
     userAvatars: { [key: string]: string };
     userNames: { [key: string]: string };
+    lastMessage?: string;
+    lastMessageTimestamp?: any;
 }
 
-const isImage = (url: string) => /\.(jpeg|jpg|gif|png|webp)$/.test(url);
-const isVideo = (url: string) => /\.(mp4|webm|ogg)$/.test(url);
+interface ChatDetails extends ChatListItem {
+    // any additional details needed for a single chat view
+}
+
+const isImage = (url: string) => /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url);
+const isVideo = (url: string) => /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
 
 
-export default function ChatPage() {
+const ChatList = ({ currentUser, activeChatId, isAdmin }: { currentUser: User | null; activeChatId: string; isAdmin: boolean; }) => {
+    const [chats, setChats] = useState<ChatListItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!currentUser) return;
+        setLoading(true);
+
+        const chatsRef = collection(db, 'chats');
+        const q = isAdmin
+            ? query(chatsRef, orderBy('lastMessageTimestamp', 'desc'))
+            : query(chatsRef, where('users', 'array-contains', currentUser.uid), orderBy('lastMessageTimestamp', 'desc'));
+
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const chatsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatListItem));
+            setChats(chatsData);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching chats:", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [currentUser, isAdmin]);
+
+    const getParticipantDetails = (chat: ChatListItem) => {
+        if (!currentUser) return null;
+        if (isAdmin) {
+             const user1 = chat.users[0];
+             const user2 = chat.users[1];
+             return {
+                 name: `${chat.userNames?.[user1] || 'User'} & ${chat.userNames?.[user2] || 'User'}`,
+                 avatar: chat.userAvatars?.[user1] || '', // show first user's avatar for group
+                 otherUserId: null
+             }
+        }
+        const otherUserId = chat.users.find(uid => uid !== currentUser.uid);
+        if (!otherUserId) return null;
+        return {
+            name: chat.userNames?.[otherUserId] || 'Unknown User',
+            avatar: chat.userAvatars?.[otherUserId] || '',
+            otherUserId: otherUserId
+        };
+    };
+
+    return (
+         <aside className="h-full w-full md:w-1/3 lg:w-1/4 flex-col border-r border-border hidden md:flex">
+            <div className="p-4 border-b border-border">
+                <h1 className="text-xl font-headline font-bold">Conversations</h1>
+            </div>
+            <div className="flex-grow overflow-y-auto">
+                 {loading ? (
+                    <div className="p-4 space-y-4">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className="flex items-center gap-4">
+                                <Skeleton className="h-12 w-12 rounded-full" />
+                                <div className="space-y-2 flex-grow">
+                                    <Skeleton className="h-4 w-1/3" />
+                                    <Skeleton className="h-4 w-2/3" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                 ) : chats.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">
+                        <MessageSquareText className="mx-auto h-10 w-10 mb-2"/>
+                        <p className="font-semibold">No chats yet.</p>
+                        <p className="text-sm">Start a chat from a user's profile.</p>
+                    </div>
+                 ) : (
+                    <nav className="p-2">
+                        {chats.map(chat => {
+                            const details = getParticipantDetails(chat);
+                            if (!details) return null;
+                            const isActive = chat.id === activeChatId;
+
+                            return (
+                                <Link
+                                    key={chat.id}
+                                    href={`/messages/${chat.id}`}
+                                    className={
+                                        `flex items-center gap-4 p-3 rounded-lg cursor-pointer transition-colors ${
+                                            isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'
+                                        }`
+                                    }
+                                >
+                                    <Avatar className="h-12 w-12 border-2 border-transparent">
+                                        <AvatarImage src={details.avatar} />
+                                        <AvatarFallback>{details.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-grow overflow-hidden">
+                                        <div className="flex justify-between items-baseline">
+                                            <p className="font-bold truncate">{details.name}</p>
+                                            {chat.lastMessageTimestamp && (
+                                                <p className="text-xs text-muted-foreground shrink-0 ml-2">
+                                                    {formatDistanceToNowStrict(new Date(chat.lastMessageTimestamp.seconds * 1000))}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <p className={`text-sm truncate ${isActive ? 'text-foreground/90' : 'text-muted-foreground'}`}>
+                                            {chat.lastMessage || 'No messages yet'}
+                                        </p>
+                                    </div>
+                                </Link>
+                            )
+                        })}
+                    </nav>
+                 )}
+            </div>
+        </aside>
+    )
+}
+
+const ChatView = ({ chatId }: { chatId: string }) => {
     const [messages, setMessages] = useState<Message[]>([]);
-    const [chatDetails, setChatDetails] = useState<Chat | null>(null);
+    const [chatDetails, setChatDetails] = useState<ChatDetails | null>(null);
     const [newMessage, setNewMessage] = useState('');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-
     const router = useRouter();
-    const params = useParams();
-    const chatId = params?.chatId as string;
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+     useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
     useEffect(() => {
@@ -66,11 +185,12 @@ export default function ChatPage() {
 
     useEffect(() => {
         if (!chatId || !currentUser) return;
+        setLoading(true);
 
         const chatDocRef = doc(db, 'chats', chatId);
         const unsubscribeChat = onSnapshot(chatDocRef, (doc) => {
             if (doc.exists()) {
-                const chatData = { id: doc.id, ...doc.data() } as Chat;
+                const chatData = { id: doc.id, ...doc.data() } as ChatDetails;
                 if (!chatData.users.includes(currentUser.uid)) {
                     router.push('/messages');
                     return;
@@ -87,6 +207,7 @@ export default function ChatPage() {
             const msgs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
             setMessages(msgs);
             setLoading(false);
+             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100);
         });
 
         return () => {
@@ -101,30 +222,31 @@ export default function ChatPage() {
 
         const messagesRef = collection(db, 'chats', chatId, 'messages');
         
-        const messagePayload: any = {
-            senderId: currentUser.uid,
-            text: newMessage,
-            timestamp: serverTimestamp(),
-        };
+        let messagePayload: any = { text: newMessage };
+        let lastMessageText = newMessage;
 
         try {
             const url = new URL(newMessage.trim());
             if (isImage(url.pathname)) {
-                messagePayload.imageUrl = url.href;
-                messagePayload.text = ''; // Clear text if it's an image
+                messagePayload = { imageUrl: url.href };
+                lastMessageText = 'Image';
             } else if (isVideo(url.pathname)) {
-                messagePayload.videoUrl = url.href;
-                messagePayload.text = '';
+                messagePayload = { videoUrl: url.href };
+                lastMessageText = 'Video';
             }
         } catch (_) {
             // Not a valid URL, treat as plain text
         }
         
-        await addDoc(messagesRef, messagePayload);
+        await addDoc(messagesRef, {
+            ...messagePayload,
+            senderId: currentUser.uid,
+            timestamp: serverTimestamp(),
+        });
 
         const chatDocRef = doc(db, 'chats', chatId);
         await updateDoc(chatDocRef, {
-            lastMessage: messagePayload.imageUrl ? 'Image' : messagePayload.videoUrl ? 'Video' : newMessage,
+            lastMessage: lastMessageText,
             lastMessageTimestamp: serverTimestamp(),
         });
         
@@ -134,67 +256,120 @@ export default function ChatPage() {
     const otherUser = chatDetails ? chatDetails.users.find(uid => uid !== currentUser?.uid) : null;
     const otherUserName = otherUser ? chatDetails?.userNames[otherUser] : 'Loading...';
     const otherUserAvatar = otherUser ? chatDetails?.userAvatars[otherUser] : '';
+    
+     if (loading) {
+        return (
+            <div className="flex flex-1 flex-col h-full">
+                <div className="flex items-center p-3 border-b border-border bg-muted/50">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="ml-4 space-y-1">
+                        <Skeleton className="h-5 w-32" />
+                    </div>
+                </div>
+                <div className="flex-grow p-4 space-y-4">
+                    <Skeleton className="h-10 w-3/5 rounded-lg" />
+                    <Skeleton className="h-10 w-3/5 ml-auto rounded-lg" />
+                    <Skeleton className="h-16 w-1/2 rounded-lg" />
+                    <Skeleton className="h-10 w-3/5 ml-auto rounded-lg" />
+                </div>
+                 <div className="p-4 border-t border-border bg-muted/50">
+                    <Skeleton className="h-10 w-full" />
+                </div>
+            </div>
+        )
+    }
 
+    return (
+        <div className="flex flex-1 flex-col h-full">
+             <div className="flex items-center p-3 border-b border-border bg-muted/50">
+                 <Button variant="ghost" size="icon" className="mr-2 md:hidden" onClick={() => router.push('/messages')}>
+                    <ArrowLeft />
+                </Button>
+                <Link href={otherUserName ? `/profile/${otherUserName}` : '#'} className="flex items-center gap-4">
+                    <Avatar className="h-10 w-10">
+                        <AvatarImage src={otherUserAvatar} />
+                        <AvatarFallback>{otherUserName?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <h2 className="font-bold">{otherUserName}</h2>
+                </Link>
+            </div>
+            <div className="flex-grow p-4 overflow-y-auto space-y-4 bg-background/50">
+                {messages.map(msg => (
+                    <div key={msg.id} className={`flex items-end gap-2 ${msg.senderId === currentUser?.uid ? 'justify-end' : 'justify-start'}`}>
+                        {msg.senderId !== currentUser?.uid && (
+                            <Avatar className="h-8 w-8 self-end">
+                                <AvatarImage src={otherUserAvatar} />
+                                <AvatarFallback>{otherUserName.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                        )}
+                        <div className={`flex flex-col group max-w-xs md:max-w-md ${msg.senderId === currentUser?.uid ? 'items-end' : 'items-start'}`}>
+                            <div className={`p-3 rounded-2xl ${msg.senderId === currentUser?.uid ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-card border border-border rounded-bl-none'}`}>
+                                {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
+                                {msg.imageUrl && <Image src={msg.imageUrl} alt="Sent image" width={250} height={250} className="rounded-lg mt-1" />}
+                                {msg.videoUrl && <video src={msg.videoUrl} controls className="rounded-lg mt-1 w-full max-w-[250px]" />}
+                            </div>
+                            <p className="text-xs mt-1 px-2 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                                {msg.timestamp ? format(new Date(msg.timestamp.seconds * 1000), 'p') : ''}
+                            </p>
+                        </div>
+                    </div>
+                ))}
+                 <div ref={messagesEndRef} />
+            </div>
+            <div className="p-4 border-t border-border bg-muted/50">
+                <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                    <div className="relative flex-grow">
+                         <Input 
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            placeholder="Type a message or paste a link..."
+                            autoComplete="off"
+                            className="pr-10"
+                        />
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><ImageIcon className="h-4 w-4" /></Button>
+                        </div>
+                    </div>
+                    <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+                        <Send />
+                    </Button>
+                </form>
+            </div>
+        </div>
+    )
+}
+
+export default function ChatPage() {
+    const params = useParams();
+    const chatId = params?.chatId as string;
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const ADMIN_EMAIL = 'fortunedomination@gmail.com';
+    const router = useRouter();
+    
+     useEffect(() => {
+        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setCurrentUser(user);
+                 setIsAdmin(user.email === ADMIN_EMAIL);
+            } else {
+                router.push('/admin/login');
+            }
+        });
+        return () => unsubscribeAuth();
+    }, [router]);
 
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground">
             <Header />
-            <main className="flex-grow container mx-auto px-4 py-8 flex flex-col h-[calc(100vh-10rem)]">
-                <div className="flex flex-col flex-grow bg-card border border-border rounded-lg overflow-hidden">
-                    {/* Chat Header */}
-                    <div className="flex items-center p-3 border-b border-border bg-muted/50">
-                         <Button variant="ghost" size="icon" className="mr-2" onClick={() => router.push('/messages')}>
-                            <ArrowLeft />
-                        </Button>
-                        <Link href={otherUserName ? `/profile/${otherUserName}` : '#'}>
-                            <Avatar className="h-10 w-10">
-                                <AvatarImage src={otherUserAvatar} />
-                                <AvatarFallback>{otherUserName.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                        </Link>
-                        <div className="ml-4">
-                            <h2 className="font-bold">{otherUserName}</h2>
-                        </div>
-                    </div>
-                    {/* Messages Area */}
-                    <div className="flex-grow p-4 overflow-y-auto space-y-4">
-                        {loading ? <p>Loading messages...</p> : messages.map(msg => (
-                            <div key={msg.id} className={`flex items-end gap-2 ${msg.senderId === currentUser?.uid ? 'justify-end' : 'justify-start'}`}>
-                                {msg.senderId !== currentUser?.uid && (
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarImage src={otherUserAvatar} />
-                                        <AvatarFallback>{otherUserName.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                )}
-                                <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${msg.senderId === currentUser?.uid ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none'}`}>
-                                    {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
-                                    {msg.imageUrl && <Image src={msg.imageUrl} alt="Sent image" width={250} height={250} className="rounded-lg mt-2" />}
-                                    {msg.videoUrl && <video src={msg.videoUrl} controls className="rounded-lg mt-2 w-full max-w-[250px]" />}
-                                    <p className={`text-xs mt-1 opacity-70 ${msg.senderId === currentUser?.uid ? 'text-right' : 'text-left'}`}>
-                                        {msg.timestamp ? format(new Date(msg.timestamp.seconds * 1000), 'p') : ''}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
-                         <div ref={messagesEndRef} />
-                    </div>
-                    {/* Message Input */}
-                    <div className="p-4 border-t border-border bg-muted/50">
-                        <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                            <Input 
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="Type a message or paste a link..."
-                                autoComplete="off"
-                            />
-                            <Button type="submit" size="icon" disabled={!newMessage.trim()}>
-                                <Send />
-                            </Button>
-                        </form>
-                    </div>
+            <main className="flex-grow container mx-auto px-0 md:px-4 py-0 md:py-8 flex h-[calc(100vh-10rem)]">
+                <div className="flex flex-grow bg-card border border-border rounded-none md:rounded-lg overflow-hidden">
+                    <ChatList currentUser={currentUser} activeChatId={chatId} isAdmin={isAdmin} />
+                    <ChatView chatId={chatId} />
                 </div>
             </main>
             <Footer />
         </div>
     );
 }
+

@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, orderBy, getDoc, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -10,12 +10,12 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MessageSquareText } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNowStrict } from 'date-fns';
+import Link from 'next/link';
 
-interface Chat {
+interface ChatListItem {
     id: string;
     users: string[]; // UIDs of participants
     userAvatars: { [key: string]: string };
@@ -26,56 +26,22 @@ interface Chat {
 
 const ADMIN_EMAIL = 'fortunedomination@gmail.com';
 
-
-export default function MessagesPage() {
-    const [chats, setChats] = useState<Chat[]>([]);
+const ChatList = ({ currentUser, isAdmin }: { currentUser: User | null; isAdmin: boolean; }) => {
+    const [chats, setChats] = useState<ChatListItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [isAdmin, setIsAdmin] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
-        const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                setCurrentUser(user);
-                // Check if the user is an admin
-                if (user.email === ADMIN_EMAIL) {
-                    setIsAdmin(true);
-                } else {
-                    setIsAdmin(false);
-                }
-            } else {
-                router.push('/admin/login');
-            }
-        });
-        return () => unsubscribeAuth();
-    }, [router]);
-
-    useEffect(() => {
         if (!currentUser) return;
-
         setLoading(true);
-        const chatsRef = collection(db, 'chats');
-        
-        let q;
-        if (isAdmin) {
-            // Admin sees all chats
-            q = query(chatsRef, orderBy('lastMessageTimestamp', 'desc'));
-        } else {
-            // Regular user sees only their chats
-            q = query(
-                chatsRef,
-                where('users', 'array-contains', currentUser.uid),
-                orderBy('lastMessageTimestamp', 'desc')
-            );
-        }
 
+        const chatsRef = collection(db, 'chats');
+        const q = isAdmin
+            ? query(chatsRef, orderBy('lastMessageTimestamp', 'desc'))
+            : query(chatsRef, where('users', 'array-contains', currentUser.uid), orderBy('lastMessageTimestamp', 'desc'));
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const chatsData = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            } as Chat));
+            const chatsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatListItem));
             setChats(chatsData);
             setLoading(false);
         }, (error) => {
@@ -86,109 +52,130 @@ export default function MessagesPage() {
         return () => unsubscribe();
     }, [currentUser, isAdmin]);
 
-    const getOtherParticipant = (chat: Chat) => {
+    const getParticipantDetails = (chat: ChatListItem) => {
         if (!currentUser) return null;
-
-        const safeGet = (uid: string) => ({
-            uid,
-            name: chat.userNames?.[uid] || 'Unknown User',
-            avatar: chat.userAvatars?.[uid] || ''
-        });
-        
-        // For admin view, we need to show both participants
         if (isAdmin) {
-             const user1 = safeGet(chat.users[0]);
-             const user2 = chat.users[1] ? safeGet(chat.users[1]) : null;
-             return { user1, user2 };
+             const user1 = chat.users[0];
+             const user2 = chat.users[1];
+             return {
+                 name: `${chat.userNames?.[user1] || 'User'} & ${chat.userNames?.[user2] || 'User'}`,
+                 avatar: chat.userAvatars?.[user1] || '',
+                 otherUserId: null
+             }
         }
-
         const otherUserId = chat.users.find(uid => uid !== currentUser.uid);
         if (!otherUserId) return null;
-        
         return {
-            user1: safeGet(otherUserId),
-            user2: null,
+            name: chat.userNames?.[otherUserId] || 'Unknown User',
+            avatar: chat.userAvatars?.[otherUserId] || '',
+            otherUserId: otherUserId
         };
     };
+
+    if (loading) {
+        return (
+            <div className="p-4 space-y-4">
+                {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-4">
+                        <Skeleton className="h-12 w-12 rounded-full" />
+                        <div className="space-y-2 flex-grow">
+                            <Skeleton className="h-4 w-1/3" />
+                            <Skeleton className="h-4 w-2/3" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    
+    if (chats.length === 0) {
+        return (
+            <div className="p-8 text-center text-muted-foreground flex-grow flex flex-col items-center justify-center">
+                <MessageSquareText className="mx-auto h-10 w-10 mb-2"/>
+                <p className="font-semibold">No chats yet.</p>
+                <p className="text-sm">Start a chat from a user's profile.</p>
+            </div>
+        )
+    }
+
+    return (
+        <nav className="p-2 space-y-1">
+            {chats.map(chat => {
+                const details = getParticipantDetails(chat);
+                if (!details) return null;
+
+                return (
+                    <Link
+                        key={chat.id}
+                        href={`/messages/${chat.id}`}
+                        className='flex items-center gap-4 p-3 rounded-lg cursor-pointer transition-colors hover:bg-muted/50'
+                    >
+                        <Avatar className="h-12 w-12 border-2 border-transparent">
+                            <AvatarImage src={details.avatar} />
+                            <AvatarFallback>{details.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-grow overflow-hidden">
+                            <div className="flex justify-between items-baseline">
+                                <p className="font-bold truncate">{details.name}</p>
+                                {chat.lastMessageTimestamp && (
+                                    <p className="text-xs text-muted-foreground shrink-0 ml-2">
+                                        {formatDistanceToNowStrict(new Date(chat.lastMessageTimestamp.seconds * 1000))}
+                                    </p>
+                                )}
+                            </div>
+                            <p className='text-sm truncate text-muted-foreground'>
+                                {chat.lastMessage || 'No messages yet'}
+                            </p>
+                        </div>
+                    </Link>
+                )
+            })}
+        </nav>
+    )
+}
+
+const EmptyState = () => (
+    <div className="h-full flex-col items-center justify-center text-center text-muted-foreground hidden md:flex flex-grow">
+        <MessageSquareText className="h-16 w-16 mb-4" />
+        <h2 className="text-xl font-bold">Select a conversation</h2>
+        <p>Choose a chat from the list to start messaging.</p>
+    </div>
+);
+
+
+export default function MessagesPage() {
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const router = useRouter();
+
+    useEffect(() => {
+        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setCurrentUser(user);
+                setIsAdmin(user.email === ADMIN_EMAIL);
+            } else {
+                router.push('/admin/login');
+            }
+        });
+        return () => unsubscribeAuth();
+    }, [router]);
 
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground">
             <Header />
-            <main className="flex-grow container mx-auto px-4 py-16">
-                <div className="max-w-2xl mx-auto">
-                    <Card>
-                        <div className="p-6">
-                            <h1 className="text-2xl font-headline font-bold">Your Conversations</h1>
-                            {isAdmin && <p className="text-sm text-muted-foreground">Viewing as Administrator.</p>}
+            <main className="flex-grow container mx-auto px-0 md:px-4 py-0 md:py-8 flex h-[calc(100vh-10rem)]">
+                 <div className="flex flex-grow bg-card border border-border rounded-none md:rounded-lg overflow-hidden">
+                    <aside className="h-full w-full md:w-1/3 lg:w-1/4 flex flex-col border-r border-border">
+                        <div className="p-4 border-b border-border">
+                            <h1 className="text-xl font-headline font-bold">Conversations</h1>
+                            {isAdmin && <p className="text-xs text-muted-foreground">Admin View</p>}
                         </div>
-                        <div className="border-t">
-                            {loading ? (
-                                <div className="p-6 space-y-4">
-                                    {[...Array(3)].map((_, i) => (
-                                        <div key={i} className="flex items-center gap-4">
-                                            <Skeleton className="h-12 w-12 rounded-full" />
-                                            <div className="space-y-2 flex-grow">
-                                                <Skeleton className="h-4 w-1/3" />
-                                                <Skeleton className="h-4 w-2/3" />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : chats.length === 0 ? (
-                                <div className="text-center p-12 text-muted-foreground">
-                                    <MessageSquareText className="h-12 w-12 mx-auto mb-4" />
-                                    <p className="font-semibold">No conversations yet.</p>
-                                    <p className="text-sm">Start a new chat from a user's profile page.</p>
-                                </div>
-                            ) : (
-                                <ul className="divide-y divide-border">
-                                    {chats.map(chat => {
-                                        const participants = getOtherParticipant(chat);
-                                        if (!participants?.user1) return null;
-
-                                        return (
-                                            <li key={chat.id}
-                                                className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
-                                                onClick={() => router.push(`/messages/${chat.id}`)}>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="flex -space-x-4">
-                                                        <Avatar className="h-12 w-12 border-2 border-background">
-                                                            <AvatarImage src={participants.user1.avatar} />
-                                                            <AvatarFallback>{participants.user1.name?.charAt(0) || '?'}</AvatarFallback>
-                                                        </Avatar>
-                                                         {participants.user2 && (
-                                                             <Avatar className="h-12 w-12 border-2 border-background">
-                                                                <AvatarImage src={participants.user2.avatar} />
-                                                                <AvatarFallback>{participants.user2.name?.charAt(0) || '?'}</AvatarFallback>
-                                                            </Avatar>
-                                                         )}
-                                                    </div>
-
-                                                    <div className="flex-grow overflow-hidden">
-                                                        <div className="flex justify-between items-baseline">
-                                                            <p className="font-bold truncate">
-                                                                {participants.user2 
-                                                                    ? `${participants.user1.name} & ${participants.user2.name}` 
-                                                                    : participants.user1.name
-                                                                }
-                                                            </p>
-                                                            {chat.lastMessageTimestamp && (
-                                                                <p className="text-xs text-muted-foreground shrink-0 ml-2">
-                                                                    {formatDistanceToNow(new Date(chat.lastMessageTimestamp.seconds * 1000), { addSuffix: true })}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-sm text-muted-foreground truncate">{chat.lastMessage || 'No messages yet'}</p>
-                                                    </div>
-                                                </div>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            )}
+                        <div className="flex-grow overflow-y-auto">
+                            <ChatList currentUser={currentUser} isAdmin={isAdmin} />
                         </div>
-                    </Card>
-                </div>
+                    </aside>
+                    <EmptyState />
+                 </div>
             </main>
             <Footer />
         </div>
