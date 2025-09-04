@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, setDoc, getDoc, writeBatch, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, setDoc, getDoc, writeBatch, where, collectionGroup } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -456,37 +456,69 @@ export default function AdminPage() {
       }
   };
 
-  const handleFixUserData = async () => {
-    setIsFixingUsers(true);
-    toast({ title: 'Starting User Data Fix', description: 'Checking all users for missing data. This may take a moment.' });
-    try {
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        const batch = writeBatch(db);
-        let updatedCount = 0;
+    const handleFixUserData = async () => {
+        setIsFixingUsers(true);
+        toast({ title: 'Starting User Data Fix', description: 'This may take a moment...' });
 
-        usersSnapshot.forEach(userDoc => {
-            const userData = userDoc.data() as UserProfile;
-            if (userData.username && !userData.lowercaseUsername) {
-                const userRef = doc(db, 'users', userDoc.id);
-                batch.update(userRef, { lowercaseUsername: userData.username.toLowerCase() });
-                updatedCount++;
+        try {
+            const userProfiles: { [uid: string]: UserProfile } = {};
+            const usersSnapshot = await getDocs(collection(db, 'users'));
+            usersSnapshot.forEach(doc => {
+                userProfiles[doc.id] = { uid: doc.id, ...doc.data() } as UserProfile;
+            });
+
+            const batch = writeBatch(db);
+            let updatesCount = 0;
+
+            // Function to update authorName if it doesn't match
+            const processDoc = (docSnap: any, collectionName: string) => {
+                const data = docSnap.data();
+                const author = userProfiles[data.authorId];
+                if (author && author.username && data.authorName !== author.username) {
+                    batch.update(docSnap.ref, { authorName: author.username });
+                    updatesCount++;
+                }
+            };
+            
+            // Fix blogPosts
+            const blogPostsSnapshot = await getDocs(collection(db, 'blogPosts'));
+            blogPostsSnapshot.forEach(postDoc => processDoc(postDoc, 'blogPosts'));
+
+            // Fix shorts
+            const shortsSnapshot = await getDocs(collection(db, 'shorts'));
+            shortsSnapshot.forEach(shortDoc => processDoc(shortDoc, 'shorts'));
+
+            // Fix comments and replies (using collectionGroup)
+            const commentsSnapshot = await getDocs(collectionGroup(db, 'comments'));
+            commentsSnapshot.forEach(commentDoc => processDoc(commentDoc, 'comments'));
+
+            const repliesSnapshot = await getDocs(collectionGroup(db, 'replies'));
+            repliesSnapshot.forEach(replyDoc => processDoc(replyDoc, 'replies'));
+            
+            // Fix lowercase usernames
+            usersSnapshot.forEach(userDoc => {
+                const userData = userDoc.data() as UserProfile;
+                if (userData.username && !userData.lowercaseUsername) {
+                    const userRef = doc(db, 'users', userDoc.id);
+                    batch.update(userRef, { lowercaseUsername: userData.username.toLowerCase() });
+                    updatesCount++;
+                }
+            });
+
+            if (updatesCount > 0) {
+                await batch.commit();
+                toast({ title: 'Success!', description: `Fixed ${updatesCount} records in the database.` });
+            } else {
+                toast({ title: 'All Good!', description: 'No outdated user data found.' });
             }
-        });
-
-        if (updatedCount > 0) {
-            await batch.commit();
-            toast({ title: 'Success', description: `Updated ${updatedCount} user(s) with missing lowercase usernames.` });
-        } else {
-            toast({ title: 'All Good!', description: 'No users needed fixing. All data is up to date.' });
+             fetchAllData();
+        } catch (error) {
+            console.error("Error fixing user data:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while fixing data.' });
+        } finally {
+            setIsFixingUsers(false);
         }
-        fetchAllData(); // Refresh users list
-    } catch (error) {
-        console.error('Error fixing user data:', error);
-        toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while fixing user data.' });
-    } finally {
-        setIsFixingUsers(false);
-    }
-  };
+    };
 
 
   const renderEditForm = () => {
@@ -781,7 +813,7 @@ export default function AdminPage() {
                     <div className="flex justify-between items-start">
                         <div>
                             <CardTitle>Manage Users</CardTitle>
-                            <CardDescription>View user roles, manage verification, and repair missing data.</CardDescription>
+                            <CardDescription>View user roles, manage verification, and repair legacy data.</CardDescription>
                         </div>
                         <Button variant="outline" onClick={handleFixUserData} disabled={isFixingUsers}>
                             {isFixingUsers ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wrench className="mr-2 h-4 w-4" />}
