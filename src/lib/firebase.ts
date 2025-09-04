@@ -38,7 +38,7 @@ const getUsernameByUID = async (uid: string) => {
     return null;
 }
 
-const handleUserSignup = async (email: string, a: any, username: string, role: 'Creator' | 'Clan Owner') => {
+const handleUserSignup = async (email: string, password: any, username: string, role: 'Creator' | 'Clan Owner') => {
     // Validate username format
     if (username.length < 3 || username.length > 15) {
         throw new Error('Username must be between 3 and 15 characters.');
@@ -55,7 +55,7 @@ const handleUserSignup = async (email: string, a: any, username: string, role: '
         throw new Error("This username is already taken. Please choose another.");
     }
     
-    const userCredential = await createUserWithEmailAndPassword(auth, email, a);
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
     const photoURL = user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`;
