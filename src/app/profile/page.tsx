@@ -153,12 +153,10 @@ export default function ProfilePage() {
                 batch.delete(oldUsernameRef);
             }
             
-
             await batch.commit();
-
             await updateProfile(user, { displayName: newUsername });
             
-            await fetchUserProfile(user);
+            await fetchUserProfile(user); // Re-fetch to update state
             toast({ title: 'Success', description: 'Your username has been updated.' });
             setIsEditingUsername(false);
         } catch (error) {
@@ -197,9 +195,8 @@ export default function ProfilePage() {
                 await updateDoc(userDocRef, { bannerURL: photoUrlToEdit });
             }
             
-            // Refetch the profile to get the latest data and trigger a re-render
-            await fetchUserProfile(user);
-
+            await fetchUserProfile(user); // Re-fetch to get the latest data
+            
             toast({ title: 'Success', description: `Your ${photoType} picture has been updated!` });
             setIsPhotoUrlModalOpen(false);
         } catch (error) {
