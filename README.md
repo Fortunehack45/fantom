@@ -1,3 +1,5 @@
+
+
 # Application Features & Corresponding Firestore Security
 
 This document outlines all the features of the Fantom eSport website that interact with Firestore and explains how the `firestore.rules` file secures them.
