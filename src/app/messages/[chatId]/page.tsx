@@ -51,13 +51,17 @@ const ChatList = ({ currentUser, activeChatId, isAdmin }: { currentUser: User | 
     const router = useRouter();
 
     useEffect(() => {
-        if (!currentUser) return;
+        if (!currentUser) {
+            setChats([]);
+            setLoading(false);
+            return;
+        };
         setLoading(true);
 
         const chatsRef = collection(db, 'chats');
         const q = isAdmin
             ? query(chatsRef, orderBy('lastMessageTimestamp', 'desc'))
-            : query(chatsRef, where('users', 'array-contains', currentUser.uid), orderBy('lastMessageTimestamp', 'desc'));
+            : query(collection(db, "chats"), where('users', 'array-contains', currentUser.uid), orderBy('lastMessageTimestamp', 'desc'));
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const chatsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatListItem));
@@ -76,8 +80,10 @@ const ChatList = ({ currentUser, activeChatId, isAdmin }: { currentUser: User | 
         if (isAdmin) {
              const user1 = chat.users[0];
              const user2 = chat.users[1];
+             const name1 = chat.userNames?.[user1] || 'User';
+             const name2 = chat.userNames?.[user2] || 'User';
              return {
-                 name: `${chat.userNames?.[user1] || 'User'} & ${chat.userNames?.[user2] || 'User'}`,
+                 name: `${name1} & ${name2}`,
                  avatar: chat.userAvatars?.[user1] || '', // show first user's avatar for group
                  otherUserId: null
              }
@@ -134,7 +140,7 @@ const ChatList = ({ currentUser, activeChatId, isAdmin }: { currentUser: User | 
                                 >
                                     <Avatar className="h-12 w-12 border-2 border-transparent">
                                         <AvatarImage src={details.avatar} />
-                                        <AvatarFallback>{details.name.charAt(0)}</AvatarFallback>
+                                        <AvatarFallback>{details.name?.charAt(0) ?? '?'}</AvatarFallback>
                                     </Avatar>
                                     <div className="flex-grow overflow-hidden">
                                         <div className="flex justify-between items-baseline">
@@ -178,20 +184,30 @@ const ChatView = ({ chatId }: { chatId: string }) => {
                 setCurrentUser(user);
             } else {
                 router.push('/admin/login');
+                setCurrentUser(null);
             }
         });
         return () => unsubscribeAuth();
     }, [router]);
 
     useEffect(() => {
-        if (!chatId || !currentUser) return;
+        if (!chatId || !currentUser) {
+            setMessages([]);
+            setChatDetails(null);
+            setLoading(!currentUser);
+            return;
+        }
+
         setLoading(true);
 
         const chatDocRef = doc(db, 'chats', chatId);
         const unsubscribeChat = onSnapshot(chatDocRef, (doc) => {
             if (doc.exists()) {
                 const chatData = { id: doc.id, ...doc.data() } as ChatDetails;
-                if (!chatData.users.includes(currentUser.uid)) {
+                // Admin check is not needed here as rules should handle it.
+                // But as a fallback, we check if user is a participant.
+                const isAdmin = currentUser.email === 'fortunedomination@gmail.com';
+                if (!chatData.users.includes(currentUser.uid) && !isAdmin) {
                     router.push('/messages');
                     return;
                 }
@@ -199,6 +215,9 @@ const ChatView = ({ chatId }: { chatId: string }) => {
             } else {
                 router.push('/messages');
             }
+        }, (error) => {
+            console.error("Chat details snapshot error:", error);
+            router.push('/messages');
         });
 
         const messagesRef = collection(db, 'chats', chatId, 'messages');
@@ -208,6 +227,9 @@ const ChatView = ({ chatId }: { chatId: string }) => {
             setMessages(msgs);
             setLoading(false);
              setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100);
+        }, (error) => {
+            console.error("Messages snapshot error:", error);
+            setLoading(false);
         });
 
         return () => {
@@ -228,10 +250,10 @@ const ChatView = ({ chatId }: { chatId: string }) => {
         try {
             const url = new URL(newMessage.trim());
             if (isImage(url.pathname)) {
-                messagePayload = { imageUrl: url.href };
+                messagePayload = { imageUrl: url.href, text: '' };
                 lastMessageText = 'Image';
             } else if (isVideo(url.pathname)) {
-                messagePayload = { videoUrl: url.href };
+                messagePayload = { videoUrl: url.href, text: '' };
                 lastMessageText = 'Video';
             }
         } catch (_) {
@@ -253,9 +275,32 @@ const ChatView = ({ chatId }: { chatId: string }) => {
         setNewMessage('');
     };
 
-    const otherUser = chatDetails ? chatDetails.users.find(uid => uid !== currentUser?.uid) : null;
-    const otherUserName = otherUser ? chatDetails?.userNames[otherUser] : 'Loading...';
-    const otherUserAvatar = otherUser ? chatDetails?.userAvatars[otherUser] : '';
+    const getOtherUserDetails = () => {
+        if (!chatDetails || !currentUser) return { name: 'Loading...', avatar: '' };
+        
+        const isAdmin = currentUser.email === 'fortunedomination@gmail.com';
+
+        if (isAdmin && chatDetails.users.length === 2) {
+             const otherUser1 = chatDetails.users[0];
+             const otherUser2 = chatDetails.users[1];
+             const name1 = chatDetails.userNames?.[otherUser1] || 'User';
+             const name2 = chatDetails.userNames?.[otherUser2] || 'User';
+            return {
+                name: `${name1} & ${name2}`,
+                avatar: chatDetails.userAvatars?.[otherUser1] || '',
+            }
+        }
+        
+        const otherUserId = chatDetails.users.find(uid => uid !== currentUser.uid);
+        if (!otherUserId) return { name: 'Conversation', avatar: ''};
+
+        return {
+            name: chatDetails.userNames?.[otherUserId] || 'Unknown User',
+            avatar: chatDetails.userAvatars?.[otherUserId] || '',
+        };
+    };
+    
+    const { name: otherUserName, avatar: otherUserAvatar } = getOtherUserDetails();
     
      if (loading) {
         return (
@@ -285,10 +330,10 @@ const ChatView = ({ chatId }: { chatId: string }) => {
                  <Button variant="ghost" size="icon" className="mr-2 md:hidden" onClick={() => router.push('/messages')}>
                     <ArrowLeft />
                 </Button>
-                <Link href={otherUserName ? `/profile/${otherUserName}` : '#'} className="flex items-center gap-4">
+                <Link href={otherUserName && otherUserName.includes('&') ? '#' : `/profile/${otherUserName}`} className="flex items-center gap-4">
                     <Avatar className="h-10 w-10">
                         <AvatarImage src={otherUserAvatar} />
-                        <AvatarFallback>{otherUserName?.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>{otherUserName?.charAt(0) ?? '?'}</AvatarFallback>
                     </Avatar>
                     <h2 className="font-bold">{otherUserName}</h2>
                 </Link>
@@ -298,8 +343,8 @@ const ChatView = ({ chatId }: { chatId: string }) => {
                     <div key={msg.id} className={`flex items-end gap-2 ${msg.senderId === currentUser?.uid ? 'justify-end' : 'justify-start'}`}>
                         {msg.senderId !== currentUser?.uid && (
                             <Avatar className="h-8 w-8 self-end">
-                                <AvatarImage src={otherUserAvatar} />
-                                <AvatarFallback>{otherUserName.charAt(0)}</AvatarFallback>
+                                <AvatarImage src={chatDetails?.userAvatars[msg.senderId]} />
+                                <AvatarFallback>{chatDetails?.userNames[msg.senderId]?.charAt(0) ?? '?'}</AvatarFallback>
                             </Avatar>
                         )}
                         <div className={`flex flex-col group max-w-xs md:max-w-md ${msg.senderId === currentUser?.uid ? 'items-end' : 'items-start'}`}>

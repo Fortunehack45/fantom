@@ -32,13 +32,17 @@ const ChatList = ({ currentUser, isAdmin }: { currentUser: User | null; isAdmin:
     const router = useRouter();
 
     useEffect(() => {
-        if (!currentUser) return;
+        if (!currentUser) {
+            setChats([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
 
         const chatsRef = collection(db, 'chats');
         const q = isAdmin
             ? query(chatsRef, orderBy('lastMessageTimestamp', 'desc'))
-            : query(chatsRef, where('users', 'array-contains', currentUser.uid), orderBy('lastMessageTimestamp', 'desc'));
+            : query(collection(db, "chats"), where('users', 'array-contains', currentUser.uid), orderBy('lastMessageTimestamp', 'desc'));
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const chatsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatListItem));
@@ -57,8 +61,10 @@ const ChatList = ({ currentUser, isAdmin }: { currentUser: User | null; isAdmin:
         if (isAdmin) {
              const user1 = chat.users[0];
              const user2 = chat.users[1];
+             const name1 = chat.userNames?.[user1] || 'User';
+             const name2 = chat.userNames?.[user2] || 'User';
              return {
-                 name: `${chat.userNames?.[user1] || 'User'} & ${chat.userNames?.[user2] || 'User'}`,
+                 name: `${name1} & ${name2}`,
                  avatar: chat.userAvatars?.[user1] || '',
                  otherUserId: null
              }
@@ -112,7 +118,7 @@ const ChatList = ({ currentUser, isAdmin }: { currentUser: User | null; isAdmin:
                     >
                         <Avatar className="h-12 w-12 border-2 border-transparent">
                             <AvatarImage src={details.avatar} />
-                            <AvatarFallback>{details.name.charAt(0)}</AvatarFallback>
+                            <AvatarFallback>{details.name?.charAt(0) ?? '?'}</AvatarFallback>
                         </Avatar>
                         <div className="flex-grow overflow-hidden">
                             <div className="flex justify-between items-baseline">
@@ -155,6 +161,7 @@ export default function MessagesPage() {
                 setIsAdmin(user.email === ADMIN_EMAIL);
             } else {
                 router.push('/admin/login');
+                setCurrentUser(null);
             }
         });
         return () => unsubscribeAuth();
