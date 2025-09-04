@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, ArrowUp, ArrowDown, MessageSquare, ArrowRight, Check, X, ThumbsUp, Share2 } from "lucide-react";
+import { Edit, Trash2, ArrowUp, ArrowDown, MessageSquare, ArrowRight, Check, X, ThumbsUp, Share2, Wrench, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
@@ -49,6 +49,7 @@ interface UserProfile {
     photoURL: string;
     role: 'Creator' | 'Clan Owner' | 'User';
     verification: 'None' | 'Blue' | 'Gold';
+    lowercaseUsername?: string;
 }
 interface UserActivity {
     id: string;
@@ -110,6 +111,7 @@ export default function AdminPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
     const [selectedUserForActivity, setSelectedUserForActivity] = useState<UserProfile | null>(null);
+    const [isFixingUsers, setIsFixingUsers] = useState(false);
 
 
     const fetchData = async <T extends {id: string}>(collectionName: string, setData: React.Dispatch<React.SetStateAction<T[]>>, q?: any) => {
@@ -454,6 +456,38 @@ export default function AdminPage() {
       }
   };
 
+  const handleFixUserData = async () => {
+    setIsFixingUsers(true);
+    toast({ title: 'Starting User Data Fix', description: 'Checking all users for missing data. This may take a moment.' });
+    try {
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const batch = writeBatch(db);
+        let updatedCount = 0;
+
+        usersSnapshot.forEach(userDoc => {
+            const userData = userDoc.data() as UserProfile;
+            if (userData.username && !userData.lowercaseUsername) {
+                const userRef = doc(db, 'users', userDoc.id);
+                batch.update(userRef, { lowercaseUsername: userData.username.toLowerCase() });
+                updatedCount++;
+            }
+        });
+
+        if (updatedCount > 0) {
+            await batch.commit();
+            toast({ title: 'Success', description: `Updated ${updatedCount} user(s) with missing lowercase usernames.` });
+        } else {
+            toast({ title: 'All Good!', description: 'No users needed fixing. All data is up to date.' });
+        }
+        fetchAllData(); // Refresh users list
+    } catch (error) {
+        console.error('Error fixing user data:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while fixing user data.' });
+    } finally {
+        setIsFixingUsers(false);
+    }
+  };
+
 
   const renderEditForm = () => {
     if (!editingItem) return null;
@@ -744,8 +778,16 @@ export default function AdminPage() {
           <TabsContent value="users">
             <Card className="bg-card mt-6">
                 <CardHeader>
-                    <CardTitle>Manage Users</CardTitle>
-                    <CardDescription>View user roles and manage their verification status.</CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle>Manage Users</CardTitle>
+                            <CardDescription>View user roles, manage verification, and repair missing data.</CardDescription>
+                        </div>
+                        <Button variant="outline" onClick={handleFixUserData} disabled={isFixingUsers}>
+                            {isFixingUsers ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wrench className="mr-2 h-4 w-4" />}
+                            Fix User Data
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="max-h-[36rem] overflow-y-auto">
