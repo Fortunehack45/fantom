@@ -22,6 +22,7 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { VideoPlayer } from '@/components/video-player';
 import { VerificationBadge } from '@/components/icons/verification-badge';
+import { FollowListDialog, type FollowUser } from '@/components/follow-list-dialog';
 
 
 interface UserProfile {
@@ -64,6 +65,10 @@ export default function UserProfilePage() {
     const [shorts, setShorts] = useState<Short[]>([]);
     const [totalLikes, setTotalLikes] = useState(0);
     const [contentLoading, setContentLoading] = useState(true);
+    
+    const [dialogOpen, setDialogOpen] = useState<'followers' | 'following' | null>(null);
+    const [followList, setFollowList] = useState<FollowUser[]>([]);
+    const [followListLoading, setFollowListLoading] = useState(false);
 
     const params = useParams();
     const router = useRouter();
@@ -133,35 +138,34 @@ export default function UserProfilePage() {
     }, [usernameFromUrl, toast]);
 
     useEffect(() => {
-        if (!profile || !currentUser) {
-            setIsFollowing(false);
-            return;
-        };
+        if (!profile) return;
 
-        // Reset follow state when profile changes
         setIsFollowLoading(false);
 
-        const followerRef = doc(db, 'users', profile.uid, 'followers', currentUser.uid);
-        const unsubscribeFollower = onSnapshot(followerRef, (doc) => {
-            setIsFollowing(doc.exists());
-        });
+        const setupListeners = () => {
+            if (currentUser) {
+                const followerRef = doc(db, 'users', profile.uid, 'followers', currentUser.uid);
+                const unsubFollower = onSnapshot(followerRef, (doc) => setIsFollowing(doc.exists()));
+                return [unsubFollower];
+            }
+            return [];
+        };
 
         const followersColRef = collection(db, 'users', profile.uid, 'followers');
-        const unsubscribeFollowersCount = onSnapshot(followersColRef, (snapshot) => {
-            setFollowersCount(snapshot.size);
-        });
+        const unsubFollowersCount = onSnapshot(followersColRef, (snapshot) => setFollowersCount(snapshot.size));
 
         const followingColRef = collection(db, 'users', profile.uid, 'following');
-        const unsubscribeFollowingCount = onSnapshot(followingColRef, (snapshot) => {
-            setFollowingCount(snapshot.size);
-        });
+        const unsubFollowingCount = onSnapshot(followingColRef, (snapshot) => setFollowingCount(snapshot.size));
+        
+        const userListeners = setupListeners();
 
         return () => {
-            unsubscribeFollower();
-            unsubscribeFollowersCount();
-            unsubscribeFollowingCount();
-        }
+            userListeners.forEach(unsub => unsub());
+            unsubFollowersCount();
+            unsubFollowingCount();
+        };
     }, [profile, currentUser]);
+
 
     const handleFollowToggle = async () => {
         if (!currentUser || !profile || isFollowLoading) return;
@@ -221,6 +225,31 @@ export default function UserProfilePage() {
         }
     };
 
+    const openFollowDialog = async (type: 'followers' | 'following') => {
+        if (!profile) return;
+        setDialogOpen(type);
+        setFollowListLoading(true);
+        setFollowList([]);
+
+        const collectionPath = `users/${profile.uid}/${type}`;
+        const q = query(collection(db, collectionPath));
+        
+        try {
+            const querySnapshot = await getDocs(q);
+            const users = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                username: doc.data().username,
+                photoURL: doc.data().photoURL
+            } as FollowUser));
+            setFollowList(users);
+        } catch (error) {
+            console.error(`Error fetching ${type}:`, error);
+            toast({ variant: 'destructive', title: 'Error', description: `Could not fetch ${type} list.` });
+        } finally {
+            setFollowListLoading(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -254,8 +283,8 @@ export default function UserProfilePage() {
     
     const isOwnProfile = currentUser?.uid === profile.uid;
 
-    const StatItem = ({ value, label }: { value: number, label: string }) => (
-        <div className="text-center">
+    const StatItem = ({ value, label, onClick }: { value: number; label: string; onClick?: () => void }) => (
+        <div className={`text-center ${onClick ? 'cursor-pointer hover:text-primary' : ''}`} onClick={onClick}>
             <p className="font-bold text-lg">{value}</p>
             <p className="text-sm text-muted-foreground">{label}</p>
         </div>
@@ -263,6 +292,14 @@ export default function UserProfilePage() {
 
 
     return (
+        <>
+        <FollowListDialog
+            isOpen={dialogOpen !== null}
+            onClose={() => setDialogOpen(null)}
+            title={dialogOpen === 'followers' ? 'Followers' : 'Following'}
+            users={followList}
+            isLoading={followListLoading}
+        />
         <div className="flex flex-col min-h-screen bg-background text-foreground">
             <Header />
             <main className="flex-grow container mx-auto px-4 py-8 md:py-16">
@@ -298,8 +335,8 @@ export default function UserProfilePage() {
                         
                         <div className="flex justify-center gap-6 text-sm my-6">
                             <StatItem value={posts.length + shorts.length} label="Posts" />
-                            <StatItem value={followersCount} label="Followers" />
-                            <StatItem value={followingCount} label="Following" />
+                            <StatItem value={followersCount} label="Followers" onClick={() => openFollowDialog('followers')} />
+                            <StatItem value={followingCount} label="Following" onClick={() => openFollowDialog('following')} />
                             <StatItem value={totalLikes} label="Likes" />
                         </div>
 
@@ -392,5 +429,6 @@ export default function UserProfilePage() {
             </main>
             <Footer />
         </div>
+        </>
     );
 }
