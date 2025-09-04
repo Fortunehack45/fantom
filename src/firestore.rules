@@ -1,0 +1,151 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'fortunedomination@gmail.com';
+    }
+
+    function isUserAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Collection: users
+    match /users/{userId} {
+      // Anyone can view a user's profile.
+      allow get: if true;
+      // Anyone can query the users collection (e.g., for search).
+      allow list: if true;
+      // Only the user themselves can create their own document.
+      allow create: if isOwner(userId);
+      // The user can update their own profile, but cannot change their verification status.
+      // The admin can update any user profile.
+      allow update: if isOwner(userId) && request.resource.data.verification == resource.data.verification || isAdmin();
+
+      // Subcollection: followers
+      match /followers/{followerId} {
+        // Anyone can read who is following a user.
+        allow get, list: if true;
+        // A user can only add/remove themselves from another user's followers list.
+        allow write: if isOwner(followerId) || isAdmin();
+      }
+
+      // Subcollection: following
+      match /following/{followingId} {
+        // Anyone can read who a user is following.
+        allow get, list: if true;
+        // A user can only manage their own "following" list.
+        allow write: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    // Collection: usernames (for uniqueness)
+    match /usernames/{username} {
+      // Anyone can check if a username exists.
+      allow get: if true;
+      // A user can only create a username document if their auth.uid matches the user document
+      // that has this username. This prevents impersonation.
+      allow create: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username;
+      // Only the user who owns this username can delete it.
+      allow delete: if isOwner(resource.data.uid) || isAdmin();
+    }
+    
+    // Collection: blogPosts
+    match /blogPosts/{postId} {
+      // Anyone can read any blog post.
+      allow get, list: if true;
+      // Any authenticated user can create a post, but the authorId must be their own.
+      allow create: if isUserAuthenticated() && request.resource.data.authorId == request.auth.uid;
+      // Only the original author or an admin can update/delete a post.
+      allow update, delete: if (isOwner(resource.data.authorId) || isAdmin());
+
+      // Subcollection: comments
+      match /comments/{commentId} {
+        // Anyone can read comments.
+        allow get, list: if true;
+        // Any authenticated user can create a comment.
+        allow create: if isUserAuthenticated();
+        // Only the comment author or an admin can update/delete.
+        allow update, delete: if (isOwner(resource.data.authorId) || isAdmin());
+
+        // Subcollection: replies
+        match /replies/{replyId} {
+          // Anyone can read replies.
+          allow get, list: if true;
+          // Any authenticated user can create a reply.
+          allow create: if isUserAuthenticated();
+          // Only the reply author or an admin can update/delete.
+          allow update, delete: if (isOwner(resource.data.authorId) || isAdmin());
+        }
+      }
+    }
+
+    // Collection: shorts
+    match /shorts/{shortId} {
+       // Anyone can read any short.
+      allow get, list: if true;
+       // Any authenticated user can create a short, but the authorId must be their own.
+      allow create: if isUserAuthenticated() && request.resource.data.authorId == request.auth.uid;
+      // Only the original author or an admin can update/delete a short.
+      allow update, delete: if (isOwner(resource.data.authorId) || isAdmin());
+      
+      // Subcollection: comments
+      match /comments/{commentId} {
+        // Anyone can read comments on shorts.
+        allow get, list: if true;
+        // Any authenticated user can create a comment.
+        allow create: if isUserAuthenticated();
+        // Only the comment author or an admin can delete.
+        allow delete: if (isOwner(resource.data.authorId) || isAdmin());
+      }
+    }
+
+    // Collection: chats
+    match /chats/{chatId} {
+      // Admin can see the list of chats for moderation.
+      allow list, get: if isAdmin();
+      // Users can only access chats they are a part of.
+      allow read, write: if request.auth.uid in resource.data.users;
+
+      // Subcollection: messages
+      match /messages/{messageId} {
+        // A user can only read/create messages in a chat they are a part of.
+        allow read, create: if get(parent).data.users.includes(request.auth.uid);
+      }
+    }
+
+    // Collection: verificationRequests
+    match /verificationRequests/{requestId} {
+      // Only the user themselves can create a request.
+      allow create: if isOwner(request.resource.data.userId);
+      // Only an admin can read, update, or delete requests.
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // Admin-only write access collections
+    match /{collection}/{docId} 
+    where collection in ['roster', 'announcements', 'games', 'heroImages', 'timelineEvents', 'coreValues', 'galleryImages', 'pageContent', 'siteSettings'] {
+      // Anyone can read these collections.
+      allow read: if true;
+      // Only an admin can write to these collections.
+      allow write: if isAdmin();
+    }
+    
+    // Collection Group Queries for Admin
+    match /{path=**}/comments/{commentId} {
+      // Admin needs read/write access to all comments for the "Fix User Data" feature.
+      allow read, write: if isAdmin();
+    }
+    
+    match /{path=**}/replies/{replyId} {
+       // Admin needs read/write access to all replies for the "Fix User Data" feature.
+      allow read, write: if isAdmin();
+    }
+  }
+}

@@ -27,7 +27,7 @@ export function FollowListDialog({ isOpen, onClose, title, users, isLoading }: F
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredUsers = users.filter(user =>
-        user.username.toLowerCase().includes(searchTerm.toLowerCase())
+        (user.username || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -64,9 +64,9 @@ export function FollowListDialog({ isOpen, onClose, title, users, isLoading }: F
                                 >
                                     <Avatar>
                                         <AvatarImage src={user.photoURL} />
-                                        <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                        <AvatarFallback>{user.username?.substring(0, 2).toUpperCase() || '?'}</AvatarFallback>
                                     </Avatar>
-                                    <span className="font-semibold">{user.username}</span>
+                                    <span className="font-semibold">{user.username || 'Unknown User'}</span>
                                 </Link>
                             ))
                         ) : (
