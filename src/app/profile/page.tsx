@@ -158,10 +158,9 @@ export default function ProfilePage() {
 
             await updateProfile(user, { displayName: newUsername });
             
-            setUserProfile(prev => prev ? { ...prev, username: newUsername } : null);
+            await fetchUserProfile(user);
             toast({ title: 'Success', description: 'Your username has been updated.' });
             setIsEditingUsername(false);
-            // We no longer need to push to the new URL, just stay on /profile
         } catch (error) {
             console.error("Error updating username: ", error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to update username.' });
@@ -194,12 +193,13 @@ export default function ProfilePage() {
             if (photoType === 'profile') {
                 await updateProfile(user, { photoURL: photoUrlToEdit });
                 await updateDoc(userDocRef, { photoURL: photoUrlToEdit });
-                setUserProfile(prev => prev ? { ...prev, photoURL: photoUrlToEdit } : null);
             } else {
                 await updateDoc(userDocRef, { bannerURL: photoUrlToEdit });
-                setUserProfile(prev => prev ? { ...prev, bannerURL: photoUrlToEdit } : null);
             }
             
+            // Refetch the profile to get the latest data and trigger a re-render
+            await fetchUserProfile(user);
+
             toast({ title: 'Success', description: `Your ${photoType} picture has been updated!` });
             setIsPhotoUrlModalOpen(false);
         } catch (error) {
