@@ -1,184 +1,134 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+  
     // Helper Functions
-    function isSignedIn() {
-      return request.auth != null;
+    function isAdmin() {
+      return request.auth.token.email == 'fortunedomination@gmail.com';
     }
-
+    
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-
-    function isAdmin() {
-      // For security, this should be managed by custom claims in a real app.
-      // For this project, we'll use a hardcoded email.
-      return request.auth.token.email == 'fortunedomination@gmail.com';
-    }
-
-    // Function to check if the user is the owner of a blog post.
-    function isPostOwner(postId) {
-      return get(/databases/$(database)/documents/blogPosts/$(postId)).data.authorId == request.auth.uid;
-    }
-
-    // Function to check if the user is the owner of a short.
-    function isShortOwner(shortId) {
-      return get(/databases/$(database)/documents/shorts/$(shortId)).data.authorId == request.auth.uid;
-    }
     
-    // Function to check if the user is the author of a comment or reply
-    function isCommentAuthor(item) {
-       return request.auth.uid == item.authorId;
+    function isUserAuthenticated() {
+      return request.auth != null;
     }
 
-    // Collection: users
+    // USER DATA
     match /users/{userId} {
-      // Anyone can view a user's profile.
-      allow get, list;
-      // Users can only create their own user document.
-      allow create: if isSignedIn() && isOwner(userId);
-      // Users can only update their own profile, but cannot change their verification status.
-      // Admin can update any user profile.
-      allow update: if (isSignedIn() && isOwner(userId) && request.resource.data.verification == resource.data.verification) || isAdmin();
+      allow read;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
     }
 
-    // Collection: usernames (to enforce uniqueness)
     match /usernames/{username} {
       allow read;
-      // A user can only create a username document if the username matches the one in their user document.
-      allow create: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username;
-      // Users can delete their old username document when updating to a new one.
-      allow delete: if isSignedIn() && isOwner(resource.data.uid);
+      allow create, delete: if isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username || isAdmin();
+    }
+    
+    match /users/{userId}/followers/{followerId} {
+        allow read;
+        allow create, delete: if isOwner(followerId) || isAdmin(); 
     }
 
-    // Collection: blogPosts
+    match /users/{userId}/following/{followingId} {
+        allow read;
+        allow create, delete: if isOwner(userId) || isAdmin();
+    }
+    
+    // CONTENT
     match /blogPosts/{postId} {
       allow read;
-      // Users can create a post if they are signed in and the authorId matches their UID.
-      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      // Allow update only by the original author or an admin.
-      // A specific rule for likes allows any signed-in user to update ONLY the 'likes' array.
-      allow update: if (isSignedIn() && (isPostOwner(postId) || isAdmin()))
-                    || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
-      // Allow delete only by the original author or an admin.
-      allow delete: if isSignedIn() && (isPostOwner(postId) || isAdmin());
-
-      // Subcollection: comments
-      match /comments/{commentId} {
-        allow read;
-        allow create: if isSignedIn();
-        // Allow delete only by the comment author or an admin.
-        allow update, delete: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
-
-        // Subcollection: replies
-        match /replies/{replyId} {
-          allow read;
-          allow create: if isSignedIn();
-          // Allow delete only by the reply author or an admin.
-          allow update, delete: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
-        }
-      }
+      allow create: if isUserAuthenticated() && request.resource.data.authorId == request.auth.uid;
+      allow update: if (isUserAuthenticated() && resource.data.authorId == request.auth.uid) || isAdmin();
+      allow delete: if (isUserAuthenticated() && resource.data.authorId == request.auth.uid) || isAdmin();
     }
 
-    // Collection: shorts
     match /shorts/{shortId} {
       allow read;
-      // Users can create a short if they are signed in and the authorId matches their UID.
-      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-       // Allow update only by the original author or an admin.
-      // A specific rule for likes/shares allows any signed-in user to update ONLY those arrays.
-      allow update: if (isSignedIn() && (isShortOwner(shortId) || isAdmin()))
-                    || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'shares']));
-      // Allow delete only by the original author or an admin.
-      allow delete: if isSignedIn() && (isShortOwner(shortId) || isAdmin());
-
-       // Subcollection: comments for shorts
-      match /comments/{commentId} {
-        allow read;
-        allow create: if isSignedIn();
-        // Allow delete only by the comment author or an admin.
-        allow update, delete: if isSignedIn() && (isOwner(resource.data.authorId) || isAdmin());
-      }
+      allow create: if isUserAuthenticated() && request.resource.data.authorId == request.auth.uid;
+      allow update: if (isUserAuthenticated() && resource.data.authorId == request.auth.uid) || isAdmin();
+      allow delete: if (isUserAuthenticated() && resource.data.authorId == request.auth.uid) || isAdmin();
     }
     
-    // Collection group rule for comments and replies to allow admin bulk updates
+    // INTERACTIONS (Comments, Replies)
+    // The admin needs full write access to comments/replies for the 'Fix User Data' batch job
     match /{path=**}/comments/{commentId} {
-        allow write: if isAdmin();
-    }
-     match /{path=**}/replies/{replyId} {
-        allow write: if isAdmin();
+      allow read;
+      allow create: if isUserAuthenticated();
+      allow write: if isAdmin();
+      allow update, delete: if isUserAuthenticated() && resource.data.authorId == request.auth.uid;
     }
 
-    // Collection: chats
+    match /{path=**}/replies/{replyId} {
+      allow read;
+      allow create: if isUserAuthenticated();
+      allow write: if isAdmin();
+      allow update, delete: if isUserAuthenticated() && resource.data.authorId == request.auth.uid;
+    }
+    
+    // MESSAGING
     match /chats/{chatId} {
-      // Allow a user to get/list chats they are a part of. Admin can get/list any chat.
-      allow get, list: if isSignedIn() && (request.auth.uid in resource.data.users || isAdmin());
-      // A user can only create a chat if they are one of the participants.
-      allow create: if isSignedIn() && request.auth.uid in request.resource.data.users;
-      // A user can only update a chat (e.g., last message) if they are a participant.
-      allow update: if isSignedIn() && request.auth.uid in resource.data.users;
-
-      // Subcollection: messages
+      allow read, write: if isUserAuthenticated() && request.auth.uid in resource.data.users || isAdmin();
+      
       match /messages/{messageId} {
-        // A user can only read/create messages in a chat they are a participant of.
-        allow read, create: if isSignedIn() && get(/databases/$(database)/documents/chats/$(chatId)).data.users.hasAny([request.auth.uid]);
+        allow read, create: if isUserAuthenticated() && get(parent).data.users.hasAny([request.auth.uid]) || isAdmin();
       }
     }
-
-    // Collection: verificationRequests
-    match /verificationRequests/{reqId} {
-        // Only admin can manage verification requests.
-        allow read, update, delete: if isAdmin();
-        // Users can only create requests for themselves.
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    
+    // VERIFICATION
+    match /verificationRequests/{requestId} {
+      allow create: if isUserAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAdmin();
     }
     
-    // Admin-only write access collections, public read
+    // SITE MANAGEMENT (Admin Only)
     match /roster/{memberId} {
-        allow read;
-        allow write: if isAdmin();
+      allow read;
+      allow write: if isAdmin();
     }
-    
+
     match /announcements/{announcementId} {
-        allow read;
-        allow write: if isAdmin();
+      allow read;
+      allow write: if isAdmin();
     }
 
     match /games/{gameId} {
+      allow read;
+      allow write: if isAdmin();
+    }
+
+    match /siteSettings/{settingsId} {
         allow read;
         allow write: if isAdmin();
     }
     
+    match /pageContent/{pageId} {
+        allow read;
+        allow write: if isAdmin();
+    }
+
     match /heroImages/{imageId} {
         allow read;
         allow write: if isAdmin();
     }
-
+    
     match /timelineEvents/{eventId} {
         allow read;
         allow write: if isAdmin();
     }
-
+    
     match /coreValues/{valueId} {
         allow read;
         allow write: if isAdmin();
     }
     
-    match /galleryImages/{imageId} {
+     match /galleryImages/{imageId} {
         allow read;
         allow write: if isAdmin();
-    }
-    
-    match /siteSettings/{docId} {
-      allow read;
-      allow write: if isAdmin();
-    }
-    
-    match /pageContent/{docId} {
-      allow read;
-      allow write: if isAdmin();
     }
   }
 }
