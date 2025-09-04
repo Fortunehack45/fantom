@@ -461,44 +461,50 @@ export default function AdminPage() {
         toast({ title: 'Starting User Data Fix', description: 'This may take a moment...' });
 
         try {
-            const userProfiles: { [uid: string]: UserProfile } = {};
-            const usersSnapshot = await getDocs(collection(db, 'users'));
-            usersSnapshot.forEach(doc => {
-                userProfiles[doc.id] = { uid: doc.id, ...doc.data() } as UserProfile;
-            });
-
             const batch = writeBatch(db);
             let updatesCount = 0;
 
-            // Function to update authorName if it doesn't match
-            const processDoc = (docSnap: any, collectionName: string) => {
-                const data = docSnap.data();
-                const author = userProfiles[data.authorId];
-                if (author && author.username && data.authorName !== author.username) {
-                    batch.update(docSnap.ref, { authorName: author.username });
-                    updatesCount++;
+            const usersSnapshot = await getDocs(collection(db, 'users'));
+            const userProfiles: { [uid: string]: Partial<UserProfile> } = {};
+            usersSnapshot.forEach(doc => {
+                const data = doc.data();
+                userProfiles[doc.id] = {
+                    username: data.username,
+                    photoURL: data.photoURL,
+                };
+            });
+
+            // Function to update author information
+            const processDocs = async (docsSnapshot: any) => {
+                for (const docSnap of docsSnapshot.docs) {
+                    const data = docSnap.data();
+                    if (data.authorId && userProfiles[data.authorId]) {
+                        const author = userProfiles[data.authorId];
+                        const updates: { [key: string]: any } = {};
+                        if (author.username && data.authorName !== author.username) {
+                            updates.authorName = author.username;
+                        }
+                        if (author.photoURL && data.authorPhotoURL !== author.photoURL) {
+                            updates.authorPhotoURL = author.photoURL;
+                        }
+                        if (Object.keys(updates).length > 0) {
+                            batch.update(docSnap.ref, updates);
+                            updatesCount++;
+                        }
+                    }
                 }
             };
             
-            // Fix blogPosts
-            const blogPostsSnapshot = await getDocs(collection(db, 'blogPosts'));
-            blogPostsSnapshot.forEach(postDoc => processDoc(postDoc, 'blogPosts'));
-
-            // Fix shorts
-            const shortsSnapshot = await getDocs(collection(db, 'shorts'));
-            shortsSnapshot.forEach(shortDoc => processDoc(shortDoc, 'shorts'));
-
-            // Fix comments and replies (using collectionGroup)
-            const commentsSnapshot = await getDocs(collectionGroup(db, 'comments'));
-            commentsSnapshot.forEach(commentDoc => processDoc(commentDoc, 'comments'));
-
-            const repliesSnapshot = await getDocs(collectionGroup(db, 'replies'));
-            repliesSnapshot.forEach(replyDoc => processDoc(replyDoc, 'replies'));
+            // Fix blogPosts, shorts, comments, and replies
+            await processDocs(await getDocs(collection(db, 'blogPosts')));
+            await processDocs(await getDocs(collection(db, 'shorts')));
+            await processDocs(await getDocs(collectionGroup(db, 'comments')));
+            await processDocs(await getDocs(collectionGroup(db, 'replies')));
             
             // Fix lowercase usernames
             usersSnapshot.forEach(userDoc => {
                 const userData = userDoc.data() as UserProfile;
-                if (userData.username && !userData.lowercaseUsername) {
+                if (userData.username && userData.username.toLowerCase() !== userData.lowercaseUsername) {
                     const userRef = doc(db, 'users', userDoc.id);
                     batch.update(userRef, { lowercaseUsername: userData.username.toLowerCase() });
                     updatesCount++;
