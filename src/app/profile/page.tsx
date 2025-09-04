@@ -58,8 +58,10 @@ export default function ProfilePage() {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             if (currentUser) {
-                setUser(currentUser);
-                await fetchUserProfile(currentUser);
+                // Ensure auth state is fully loaded before fetching profile
+                await currentUser.reload(); 
+                setUser(auth.currentUser); // Use the reloaded user object
+                await fetchUserProfile(auth.currentUser!);
             } else {
                 router.push('/admin/login');
             }
@@ -410,3 +412,5 @@ export default function ProfilePage() {
         </div>
     );
 }
+
+    

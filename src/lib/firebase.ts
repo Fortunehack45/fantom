@@ -49,12 +49,12 @@ const handleUserSignup = async (email: string, password: any, username: string, 
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    const photoURL = user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`;
+    const initialPhotoURL = `https://i.pravatar.cc/150?u=${user.uid}`;
     
     // Update Firebase Auth profile
     await updateProfile(user, {
         displayName: username,
-        photoURL: photoURL
+        photoURL: initialPhotoURL
     });
 
     // Use a batch write to ensure both documents are created atomically
@@ -67,9 +67,9 @@ const handleUserSignup = async (email: string, password: any, username: string, 
         email: user.email,
         username: username,
         lowercaseUsername: usernameLower,
-        photoURL: photoURL,
+        photoURL: initialPhotoURL,
         bannerURL: 'https://i.pinimg.com/originals/a1/b4/27/a1b427a7c88b7f8973686942c4f68641.jpg',
-        role: role,
+        role: role === 'Creator' ? 'Creator' : 'Clan Owner',
         verification: 'None',
     });
 
@@ -84,3 +84,5 @@ const handleUserSignup = async (email: string, password: any, username: string, 
 
 
 export { app, db, auth, storage, getUsernameByUID, handleUserSignup };
+
+    

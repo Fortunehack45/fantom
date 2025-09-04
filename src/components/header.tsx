@@ -238,21 +238,32 @@ export function Header() {
                      </Link>
                     {user ? (
                       <>
-                        <Link href="/blog/create" className="w-full" onClick={() => setIsSheetOpen(false)}>
-                            <Button variant="primary" size="lg" className="w-full">
-                                Create Post
-                            </Button>
-                        </Link>
-                         <Link href="/shorts/create" className="w-full" onClick={() => setIsSheetOpen(false)}>
-                            <Button variant="primary" size="lg" className="w-full">
-                                Create Short
-                            </Button>
-                        </Link>
-                        <Link href="/profile" className="w-full" onClick={() => setIsSheetOpen(false)}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                             <Button variant="primary" size="lg" className="w-full">Create New...</Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-56" align="end" forceMount>
+                              <DropdownMenuItem asChild onClick={() => setIsSheetOpen(false)}>
+                                <Link href="/blog/create">
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  New Post
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild onClick={() => setIsSheetOpen(false)}>
+                                <Link href="/shorts/create">
+                                  <Video className="mr-2 h-4 w-4" />
+                                  New Short
+                                </Link>
+                              </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Link href={`/profile/${getUsername(user)}`} className="w-full" onClick={() => setIsSheetOpen(false)}>
                             <Button variant="secondary" size="lg" className="w-full">
-                                Profile
+                                My Profile
                             </Button>
                         </Link>
+
                         {user.email === ADMIN_EMAIL && (
                             <Link href="/admin" className="w-full" onClick={() => setIsSheetOpen(false)}>
                                 <Button variant="secondary" size="lg" className="w-full">
@@ -260,7 +271,7 @@ export function Header() {
                                 </Button>
                             </Link>
                         )}
-                        <Button onClick={handleLogout} variant="destructive" size="lg" className="w-full">
+                        <Button onClick={() => { handleLogout(); setIsSheetOpen(false); }} variant="destructive" size="lg" className="w-full">
                             Logout
                         </Button>
                       </>
@@ -286,3 +297,5 @@ export function Header() {
     </header>
   );
 }
+
+    

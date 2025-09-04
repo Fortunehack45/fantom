@@ -119,8 +119,8 @@ export default function SignupPage() {
             </div>
              <div className="space-y-2">
                 <Label htmlFor="role">Account Type</Label>
-                <Select onValueChange={(value: 'Creator' | 'Clan Owner') => setRole(value)} disabled={loading} required>
-                    <SelectTrigger id="role">
+                <Select onValueChange={(value: 'Creator' | 'Clan Owner') => setRole(value)} disabled={loading}>
+                    <SelectTrigger id="role" required>
                         <SelectValue placeholder="Select an account type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -192,3 +192,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    
