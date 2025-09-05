@@ -125,15 +125,12 @@ export default function AdminPage() {
         }
     };
     
-    // Initial data fetch
+    // Initial data fetch and real-time listeners
     useEffect(() => {
-        fetchAllData();
-    }, []);
+        fetchAllStaticData(); // Fetch data that doesn't need real-time updates
 
-    // Set up a real-time listener for the users collection
-    useEffect(() => {
-        const usersCollectionRef = collection(db, 'users');
-        const unsubscribe = onSnapshot(usersCollectionRef, (snapshot) => {
+        // Set up a real-time listener for the users collection
+        const usersUnsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
             const updatedUsers = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
             setUsers(updatedUsers);
         }, (error) => {
@@ -141,12 +138,25 @@ export default function AdminPage() {
             toast({ variant: "destructive", title: "Real-time Error", description: "Could not sync users." });
         });
 
-        // Cleanup the listener when the component unmounts
-        return () => unsubscribe();
+        // Set up a real-time listener for verification requests
+        const requestsQuery = query(collection(db, 'verificationRequests'), where('status', '==', 'pending'), orderBy('timestamp', 'asc'));
+        const requestsUnsubscribe = onSnapshot(requestsQuery, (snapshot) => {
+            const updatedRequests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VerificationRequest));
+            setVerificationRequests(updatedRequests);
+        }, (error) => {
+            console.error("Error listening to verification requests:", error);
+            toast({ variant: "destructive", title: "Real-time Error", description: "Could not sync verification requests." });
+        });
+
+        // Cleanup listeners when the component unmounts
+        return () => {
+            usersUnsubscribe();
+            requestsUnsubscribe();
+        };
     }, [toast]);
 
 
-    const fetchAllData = () => {
+    const fetchAllStaticData = () => {
         fetchData<BlogPost>("blogPosts", setBlogPosts, query(collection(db, "blogPosts"), orderBy("date", "desc")));
         fetchData<RosterMember>("roster", setRoster);
         fetchData<Announcement>("announcements", setAnnouncements, query(collection(db, "announcements"), orderBy("date", "desc")));
@@ -155,7 +165,6 @@ export default function AdminPage() {
         fetchData<TimelineEvent>("timelineEvents", setTimelineEvents, query(collection(db, "timelineEvents"), orderBy("position", "asc")));
         fetchData<CoreValue>("coreValues", setCoreValues);
         fetchData<GalleryImage>("galleryImages", setGalleryImages);
-        fetchData<VerificationRequest>('verificationRequests', setVerificationRequests, query(collection(db, 'verificationRequests'), where('status', '==', 'pending'), orderBy('timestamp', 'asc')));
         fetchSiteSettings();
         fetchPageContent();
     }
@@ -203,7 +212,7 @@ export default function AdminPage() {
         try {
             await addDoc(collection(db, collectionName), newItem);
             resetter();
-            fetchAllData();
+            fetchAllStaticData();
             toast({ title: "Success", description: `${collectionName.slice(0, -1)} added.` });
         } catch (error) {
             toast({ variant: "destructive", title: "Error", description: `Could not add ${collectionName.slice(0, -1)}.` });
@@ -220,7 +229,7 @@ export default function AdminPage() {
                     avatarUrl: avatarUrl || `https://i.pravatar.cc/150?u=${Date.now()}`
                 });
                 setNewMember({ name: '', rank: '', game: '', role: '', server: '', avatarUrl: '' });
-                fetchAllData();
+                fetchAllStaticData();
                 toast({ title: "Success", description: "Roster member added." });
             } catch (error) {
                 toast({ variant: "destructive", title: "Error", description: "Could not add roster member." });
@@ -240,7 +249,7 @@ export default function AdminPage() {
                     authorImageUrl: newAnnouncement.authorImageUrl || `https://picsum.photos/40/40?random=${Date.now()}`
                 });
                 setNewAnnouncement({ author: '', content: '', authorImageUrl: ''});
-                fetchAllData();
+                fetchAllStaticData();
                 toast({ title: "Success", description: "Announcement added." });
             } catch (error) {
                 toast({ variant: "destructive", title: "Error", description: "Could not add announcement." });
@@ -258,7 +267,7 @@ export default function AdminPage() {
                     position: newPosition,
                 });
                 setNewTimelineEvent({ year: '', title: '', description: '' });
-                fetchAllData();
+                fetchAllStaticData();
                 toast({ title: "Success", description: "Timeline event added." });
             } catch (error) {
                  toast({ variant: "destructive", title: "Error", description: "Could not add timeline event." });
@@ -293,7 +302,7 @@ export default function AdminPage() {
         } catch (error) {
             console.error("Error reordering timeline:", error);
             toast({ variant: "destructive", title: "Error", description: "Could not reorder timeline. Reverting changes." });
-            fetchAllData(); // Revert local state on error
+            fetchAllStaticData(); // Revert local state on error
         }
     };
 
@@ -322,7 +331,7 @@ export default function AdminPage() {
         const { collectionName, id } = deletingItem;
         try {
             await deleteDoc(doc(db, collectionName, id));
-            fetchAllData();
+            fetchAllStaticData();
             toast({ title: "Success", description: `Item deleted successfully.` });
         } catch (error) {
             toast({ variant: "destructive", title: "Error", description: `Could not delete item.` });
@@ -347,7 +356,7 @@ export default function AdminPage() {
             setIsEditModalOpen(false);
             setEditingItem(null);
             setCurrentCollection(null);
-            fetchAllData();
+            fetchAllStaticData();
         } catch (error) {
             console.error('Error updating item:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to update item.' });
@@ -359,7 +368,7 @@ export default function AdminPage() {
         const userDocRef = doc(db, 'users', userId);
         await updateDoc(userDocRef, { verification });
         toast({ title: 'Success', description: 'User verification status updated.' });
-        fetchAllData(); // Refresh user list
+        // No need to fetch data, real-time listener will update the UI
     } catch (error) {
         console.error("Error updating verification: ", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to update verification status.' });
@@ -464,7 +473,7 @@ export default function AdminPage() {
           await batch.commit();
 
           toast({ title: 'Success', description: `Request has been ${newStatus}.` });
-          fetchAllData(); // Refresh requests and users list
+          // No need to fetch, real-time listener will update the list
       } catch (error) {
           console.error(`Error handling verification request:`, error);
           toast({ variant: 'destructive', title: 'Error', description: 'Could not process the request.' });
@@ -532,7 +541,7 @@ export default function AdminPage() {
             } else {
                 toast({ title: 'All Good!', description: 'No outdated user data found.' });
             }
-             fetchAllData();
+             fetchAllStaticData();
         } catch (error) {
             console.error("Error fixing user data:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while fixing data.' });

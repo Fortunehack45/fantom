@@ -87,6 +87,7 @@ export default function UserProfilePage() {
         
         const fetchProfileAndContent = async () => {
             setLoading(true);
+            setContentLoading(true); // Reset content loading state
             const usernameLower = decodeURIComponent(usernameFromUrl).toLowerCase();
             const usersRef = collection(db, 'users');
             const q = query(usersRef, where('lowercaseUsername', '==', usernameLower), limit(1));
@@ -105,7 +106,6 @@ export default function UserProfilePage() {
                 setProfile(userData);
                 
                 // Fetch content only after profile is found
-                setContentLoading(true);
                 const postsQuery = query(collection(db, 'blogPosts'), where('authorId', '==', userData.uid), orderBy('date', 'desc'));
                 const shortsQuery = query(collection(db, 'shorts'), where('authorId', '==', userData.uid), orderBy('timestamp', 'desc'));
 
@@ -123,7 +123,6 @@ export default function UserProfilePage() {
                 setPosts(postsData);
                 setShorts(shortsData);
                 setTotalLikes(postLikes + shortLikes);
-                setContentLoading(false);
                 
             } catch (error) {
                 console.error("Error fetching user profile:", error);
@@ -131,6 +130,7 @@ export default function UserProfilePage() {
                 setProfile(null);
             } finally {
                 setLoading(false);
+                setContentLoading(false);
             }
         };
 
