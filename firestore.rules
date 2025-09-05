@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -103,15 +102,14 @@ service cloud.firestore {
     // Private Messaging
     //------------------------------------------------------------
     match /chats/{chatId} {
-        allow get, list, update: if (isSignedIn() && request.auth.uid in resource.data.users) || isAdmin();
-        // Correct rule for creating a new chat document
-        allow create: if isSignedIn() && request.auth.uid in request.resource.data.users && request.resource.data.users.size() == 2;
-        allow delete: if isAdmin();
+      allow get, list, update: if (isSignedIn() && request.auth.uid in resource.data.users) || isAdmin();
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.users && request.resource.data.users.size() == 2;
+      allow delete: if isAdmin();
 
-        match /messages/{messageId} {
-            allow read, create: if (isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users) || isAdmin();
-            allow update, delete: if isAdmin();
-        }
+      match /messages/{messageId} {
+        allow read, create: if (isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users) || isAdmin();
+        allow update, delete: if isAdmin();
+      }
     }
     
     //------------------------------------------------------------
