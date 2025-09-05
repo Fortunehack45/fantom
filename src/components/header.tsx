@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc } from "firebase/firestore";
+import { GhostIcon } from "./icons";
 
 const ADMIN_EMAIL = 'fortunedomination@gmail.com';
 
@@ -92,7 +93,8 @@ export function Header() {
       <div className="container mx-auto flex h-20 items-center justify-between px-4">
         <div className="flex-1 flex justify-start">
             <Link href="/" className="flex items-center gap-2">
-                <span className="text-3xl font-bold uppercase text-white tracking-widest font-headline">Fantom eSport</span>
+                <GhostIcon className="w-8 h-8 text-primary"/>
+                <span className="text-xl font-bold uppercase text-white tracking-widest font-headline">Fantom eSport</span>
             </Link>
         </div>
         
@@ -208,6 +210,7 @@ export function Header() {
                     <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                     <div className="flex justify-between items-center mb-8">
                       <Link href="/" className="flex items-center gap-2" onClick={() => setIsSheetOpen(false)}>
+                          <GhostIcon className="w-8 h-8 text-primary"/>
                           <span className="text-2xl font-bold uppercase text-white tracking-widest font-headline">Fantom eSport</span>
                       </Link>
                       <SheetTrigger asChild>
@@ -297,5 +300,3 @@ export function Header() {
     </header>
   );
 }
-
-    
