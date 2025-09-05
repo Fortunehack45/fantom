@@ -2,14 +2,14 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { collection, getDocs, orderBy, query, doc, updateDoc, arrayUnion, arrayRemove, onSnapshot, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, doc, updateDoc, arrayUnion, arrayRemove, onSnapshot, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { Header } from "@/components/header";
 import { Footer } from '@/components/footer';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, MessageSquare, Share2, Video, Send } from "lucide-react";
+import { ThumbsUp, MessageSquare, Share2, Video, Send, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -19,6 +19,8 @@ import Link from 'next/link';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
 
 interface Comment {
     id: string;
@@ -49,10 +51,14 @@ export default function ShortsPage() {
     const { toast } = useToast();
     const [newComment, setNewComment] = useState('');
     const [commentingOn, setCommentingOn] = useState<string | null>(null);
+    const [deletingShortId, setDeletingShortId] = useState<string | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const ADMIN_EMAIL = 'fortunedomination@gmail.com';
 
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
+            setIsAdmin(currentUser?.email === ADMIN_EMAIL);
         });
 
         const shortsRef = collection(db, "shorts");
@@ -158,6 +164,20 @@ export default function ShortsPage() {
             }
         }
     };
+    
+    const handleDeleteShort = async () => {
+        if (!deletingShortId) return;
+
+        try {
+            await deleteDoc(doc(db, 'shorts', deletingShortId));
+            toast({ title: 'Success', description: 'Short deleted successfully.' });
+        } catch (error) {
+            console.error("Error deleting short:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not delete short.' });
+        } finally {
+            setDeletingShortId(null);
+        }
+    };
 
 
     const ShortSkeleton = () => (
@@ -182,6 +202,24 @@ export default function ShortsPage() {
     );
 
     return (
+        <>
+         <AlertDialog open={!!deletingShortId} onOpenChange={(open) => !open && setDeletingShortId(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete this short.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setDeletingShortId(null)}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteShort} className="bg-destructive hover:bg-destructive/90">
+                        Delete
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
         <div className="flex flex-col min-h-screen bg-background text-foreground">
             <Header />
             <main className="flex-grow container mx-auto px-4 py-16">
@@ -208,21 +246,28 @@ export default function ShortsPage() {
                         shorts.map(short => (
                             <Card key={short.id} className="w-full max-w-lg mx-auto bg-card shadow-lg border-primary/20">
                                 <CardContent className="p-4 space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <Link href={`/profile/${short.authorName}`}>
-                                            <Avatar className="h-10 w-10">
-                                                <AvatarImage src={short.authorPhotoURL || `https://i.pravatar.cc/150?u=${short.authorId}`} />
-                                                <AvatarFallback>{short.authorName?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                                            </Avatar>
-                                        </Link>
-                                        <div>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
                                             <Link href={`/profile/${short.authorName}`}>
-                                                <p className="font-semibold text-primary hover:underline">{short.authorName}</p>
+                                                <Avatar className="h-10 w-10">
+                                                    <AvatarImage src={short.authorPhotoURL || `https://i.pravatar.cc/150?u=${short.authorId}`} />
+                                                    <AvatarFallback>{short.authorName?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                                </Avatar>
                                             </Link>
-                                            <p className="text-xs text-muted-foreground">
-                                                {short.timestamp ? formatDistanceToNow(new Date(short.timestamp.seconds * 1000), { addSuffix: true }) : 'just now'}
-                                            </p>
+                                            <div>
+                                                <Link href={`/profile/${short.authorName}`}>
+                                                    <p className="font-semibold text-primary hover:underline">{short.authorName}</p>
+                                                </Link>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {short.timestamp ? formatDistanceToNow(new Date(short.timestamp.seconds * 1000), { addSuffix: true }) : 'just now'}
+                                                </p>
+                                            </div>
                                         </div>
+                                        {(isAdmin || user?.uid === short.authorId) && (
+                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeletingShortId(short.id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
                                     </div>
 
                                     <h2 className="text-lg font-semibold">{short.title}</h2>
@@ -302,6 +347,7 @@ export default function ShortsPage() {
             </main>
             <Footer />
         </div>
+        </>
     );
 }
 

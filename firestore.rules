@@ -16,7 +16,6 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // In a real app, this should check a custom claim or a list of admin UIDs in Firestore.
       return isSignedIn() && request.auth.token.email == 'fortunedomination@gmail.com';
     }
     
@@ -27,8 +26,6 @@ service cloud.firestore {
     
     // Helper for creating a user document.
     function isCreatingOwnUserDoc() {
-        // This function is for the `create` rule, so `resource` does not exist yet.
-        // We check the incoming `request.resource.data`.
         return request.resource.data.uid == request.auth.uid;
     }
     
@@ -36,17 +33,16 @@ service cloud.firestore {
     function isUpdatingOwnProfile() {
         return request.resource.data.verification == resource.data.verification;
     }
-    
-    // Helper for creating a chat. Ensures the creator is a participant.
-    function isCreatingChatWithSelf() {
-        return request.auth.uid in request.resource.data.users;
-    }
 
     //------------------------------------------------------------
     // User Data & Profiles
     //------------------------------------------------------------
     match /users/{userId} {
-      allow get, list; // Admin panel needs list permission
+      // Allow admin to list all users for the admin panel.
+      // Allow any signed-in user to get a specific user's profile.
+      allow list: if isAdmin();
+      allow get: if isSignedIn() || isAdmin();
+      
       allow create: if isUser(userId) && isCreatingOwnUserDoc();
       allow update: if (isUser(userId) && isUpdatingOwnProfile()) || isAdmin();
       allow delete: if isAdmin();
@@ -64,7 +60,6 @@ service cloud.firestore {
     
     match /usernames/{username} {
       allow get;
-      // Allow create if username in request matches username in the user's own document.
       allow create: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username;
       allow delete: if isAdmin() || isUser(get(/databases/$(database)/documents/usernames/$(username)).data.uid);
     }
@@ -106,21 +101,32 @@ service cloud.firestore {
                       (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
       allow delete: if isAuthor(resource.data) || isAdmin();
     }
+    
+    // Explicit admin write for collection groups to fix batch updates
+    match /blogPosts/{postId}/comments/{commentId} {
+        allow write: if isAdmin();
+    }
+    match /shorts/{shortId}/comments/{commentId} {
+        allow write: if isAdmin();
+    }
+    match /blogPosts/{postId}/comments/{commentId}/replies/{replyId} {
+        allow write: if isAdmin();
+    }
 
     //------------------------------------------------------------
     // Private Messaging
     //------------------------------------------------------------
     match /chats/{chatId} {
-      allow get, list, update: if (isSignedIn() && request.auth.uid in resource.data.users) || isAdmin();
-      allow create: if isSignedIn() && isCreatingChatWithSelf();
-      allow delete: if isAdmin();
+        allow get, list, update: if (isSignedIn() && request.auth.uid in resource.data.users) || isAdmin();
+        // Allow a user to create a chat if they are one of the two participants.
+        allow create: if isSignedIn() && request.auth.uid in request.resource.data.users && request.resource.data.users.size() == 2;
+        allow delete: if isAdmin();
 
-      match /messages/{messageId} {
-        allow read;
-        // User must be a participant in the parent chat to create a message.
-        allow create: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users;
-        allow update, delete: if isAdmin(); // Only admins can edit/delete messages for moderation.
-      }
+        match /messages/{messageId} {
+            // Allow participants or admin to read messages and create new ones.
+            allow read, create: if (isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users) || isAdmin();
+            allow update, delete: if isAdmin();
+        }
     }
     
     //------------------------------------------------------------

@@ -130,7 +130,8 @@ export default function AdminPage() {
         fetchAllStaticData(); // Fetch data that doesn't need real-time updates
 
         // Set up a real-time listener for the users collection
-        const usersUnsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+        const usersQuery = query(collection(db, 'users'), orderBy('username', 'asc'));
+        const usersUnsubscribe = onSnapshot(usersQuery, (snapshot) => {
             const updatedUsers = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
             setUsers(updatedUsers);
         }, (error) => {
