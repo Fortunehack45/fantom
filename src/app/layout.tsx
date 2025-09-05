@@ -14,7 +14,7 @@ const metadata: Metadata = {
   title: 'Fantom eSport',
   description: 'Welcome to the official website of Fantom eSport',
   icons: {
-    icon: `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22black%22><path d=%22M12 0L2.363 5.432v13.136L12 24l9.637-5.432V5.432zM11.636 22.25v-8.84H2.727v-1.782l8.91-5.045v15.667zm.728 0V6.583l8.91 5.045v1.782h-8.91z%22 /></svg>`,
+    icon: `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><path d=%22M64 0C28.7 0 0 28.7 0 64s28.7 64 64 64 64-28.7 64-64S99.3 0 64 0zm0 119.5C33.3 119.5 8.5 94.7 8.5 64S33.3 8.5 64 8.5s55.5 24.8 55.5 55.5S94.7 119.5 64 119.5z%22 fill=%22%23000%22/><path d=%22M94.3 33.7L55.4 92.3V33.7h-9.2v72.1h9.2L94.3 43.1v59.2h9.2V33.7z%22 fill=%22%23000%22/></svg>`,
   },
 };
 
