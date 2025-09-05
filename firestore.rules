@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -16,6 +15,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
+      // In a real app, this should check a custom claim or a list of admin UIDs in Firestore.
       return isSignedIn() && request.auth.token.email == 'fortunedomination@gmail.com';
     }
     
@@ -39,9 +39,8 @@ service cloud.firestore {
     //------------------------------------------------------------
     match /users/{userId} {
       // Allow admin to list all users for the admin panel.
-      // Allow any signed-in user to get a specific user's profile.
-      allow list: if isAdmin();
-      allow get: if isSignedIn() || isAdmin();
+      // Allow any signed-in user to GET a profile, and LIST (query) for profiles.
+      allow list, get: if isSignedIn() || isAdmin();
       
       allow create: if isUser(userId) && isCreatingOwnUserDoc();
       allow update: if (isUser(userId) && isUpdatingOwnProfile()) || isAdmin();
@@ -60,6 +59,7 @@ service cloud.firestore {
     
     match /usernames/{username} {
       allow get;
+      // Allow create if username in request matches username in the user's own document.
       allow create: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username;
       allow delete: if isAdmin() || isUser(get(/databases/$(database)/documents/usernames/$(username)).data.uid);
     }
