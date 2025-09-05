@@ -15,61 +15,59 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // In a real app, this should check a custom claim or a list of admin UIDs in Firestore.
+      // In a real app, this would be a custom claim or a separate admin collection lookup.
       return isSignedIn() && request.auth.token.email == 'fortunedomination@gmail.com';
     }
     
-    // Checks if the user is the author of a document.
+    // Check if user is the author of a document that has an `authorId` field.
     function isAuthor(doc) {
       return isUser(doc.authorId);
     }
     
-    // Helper for creating a user document.
-    function isCreatingOwnUserDoc() {
-        return request.resource.data.uid == request.auth.uid;
-    }
-    
-    // Helper to check if a user is updating only their own profile, without escalating privileges.
-    function isUpdatingOwnProfile() {
-        return request.resource.data.verification == resource.data.verification;
-    }
-
     //------------------------------------------------------------
     // User Data & Profiles
     //------------------------------------------------------------
     match /users/{userId} {
-      // Allow admin to list all users for the admin panel.
-      // Allow any signed-in user to GET a profile, and LIST (query) for profiles.
-      allow list, get: if isSignedIn() || isAdmin();
+      // Allow anyone to get/list user profiles. This is needed for profile pages to work.
+      allow read;
       
-      allow create: if isUser(userId) && isCreatingOwnUserDoc();
-      allow update: if (isUser(userId) && isUpdatingOwnProfile()) || isAdmin();
+      // A user can only create their own user document.
+      allow create: if isUser(userId) && request.resource.data.uid == request.auth.uid;
+      
+      // A user can update their own profile, but not their verification status. Admin can update anything.
+      allow update: if (isUser(userId) && request.resource.data.verification == resource.data.verification) || isAdmin();
+      
+      // Only an admin can delete a user.
       allow delete: if isAdmin();
       
       match /followers/{followerId} {
         allow read, list;
+        // A user can add/remove themself from another user's followers list.
         allow create, delete: if isUser(followerId) || isAdmin();
       }
       
       match /following/{followingId} {
         allow read, list;
+        // A user can only manage their own following list.
         allow create, delete: if isUser(userId) || isAdmin();
       }
     }
     
+    // Enforces unique usernames.
     match /usernames/{username} {
       allow get;
-      // Allow create if username in request matches username in the user's own document.
+      // Can only create a username document if the username matches what's in their own user document.
       allow create: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username;
       allow delete: if isAdmin() || isUser(get(/databases/$(database)/documents/usernames/$(username)).data.uid);
     }
 
     //------------------------------------------------------------
-    // Content: Blog Posts & Shorts
+    // Content: Blog Posts & Shorts (Publicly Readable)
     //------------------------------------------------------------
     match /blogPosts/{postId} {
       allow read;
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      // Allow author/admin to update the doc, or any signed in user to update ONLY the 'likes' array.
       allow update: if (isAuthor(resource.data) || isAdmin()) ||
                       (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
       allow delete: if isAuthor(resource.data) || isAdmin();
@@ -78,17 +76,19 @@ service cloud.firestore {
     match /shorts/{shortId} {
       allow read;
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      // Allow author/admin to update the doc, or any signed in user to update ONLY the 'likes' and 'shares' fields.
       allow update: if (isAuthor(resource.data) || isAdmin()) ||
-                      (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
+                      (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'shares']));
       allow delete: if isAuthor(resource.data) || isAdmin();
     }
 
     //------------------------------------------------------------
-    // Social: Comments & Replies
+    // Social: Comments & Replies (Publicly Readable)
     //------------------------------------------------------------
     match /{path=**}/comments/{commentId} {
       allow read;
       allow create: if isSignedIn();
+      // Allow author/admin to update the doc, or any signed in user to update ONLY the 'likes' array.
       allow update: if (isAuthor(resource.data) || isAdmin()) ||
                       (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
       allow delete: if isAuthor(resource.data) || isAdmin();
@@ -97,36 +97,32 @@ service cloud.firestore {
     match /{path=**}/replies/{replyId} {
       allow read;
       allow create: if isSignedIn();
+      // Allow author/admin to update the doc, or any signed in user to update ONLY the 'likes' array.
       allow update: if (isAuthor(resource.data) || isAdmin()) ||
                       (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
       allow delete: if isAuthor(resource.data) || isAdmin();
     }
     
-    // Explicit admin write for collection groups to fix batch updates
-    match /blogPosts/{postId}/comments/{commentId} {
-        allow write: if isAdmin();
-    }
-    match /shorts/{shortId}/comments/{commentId} {
-        allow write: if isAdmin();
-    }
-    match /blogPosts/{postId}/comments/{commentId}/replies/{replyId} {
-        allow write: if isAdmin();
-    }
+    // Explicit admin write for collection groups to fix the "Fix User Data" batch updates.
+    match /blogPosts/{postId}/comments/{commentId} { allow write: if isAdmin(); }
+    match /shorts/{shortId}/comments/{commentId} { allow write: if isAdmin(); }
+    match /blogPosts/{postId}/comments/{commentId}/replies/{replyId} { allow write: if isAdmin(); }
 
     //------------------------------------------------------------
     // Private Messaging
     //------------------------------------------------------------
     match /chats/{chatId} {
-        allow get, list, update: if (isSignedIn() && request.auth.uid in resource.data.users) || isAdmin();
-        // Allow a user to create a chat if they are one of the two participants.
-        allow create: if isSignedIn() && request.auth.uid in request.resource.data.users && request.resource.data.users.size() == 2;
-        allow delete: if isAdmin();
+      // Allow read/update if the user is a participant in the chat.
+      allow get, list, update: if (isSignedIn() && request.auth.uid in resource.data.users) || isAdmin();
+      // Allow create if the user is one of the two participants being added.
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.users && request.resource.data.users.size() == 2;
+      allow delete: if isAdmin();
 
-        match /messages/{messageId} {
-            // Allow participants or admin to read messages and create new ones.
-            allow read, create: if (isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users) || isAdmin();
-            allow update, delete: if isAdmin();
-        }
+      match /messages/{messageId} {
+        // Allow read/create if the user is a participant in the parent chat document.
+        allow read, create: if (isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users) || isAdmin();
+        allow update, delete: if isAdmin();
+      }
     }
     
     //------------------------------------------------------------
@@ -138,51 +134,16 @@ service cloud.firestore {
     }
 
     //------------------------------------------------------------
-    // Site-Wide Content (Admin-managed, but publically readable)
+    // Site-Wide Content (Publicly Readable, Admin-managed)
     //------------------------------------------------------------
-    match /roster/{memberId} {
-      allow read;
-      allow write: if isAdmin();
-    }
-    
-    match /announcements/{announcementId} {
-      allow read;
-      allow write: if isAdmin();
-    }
-    
-    match /games/{gameId} {
-      allow read;
-      allow write: if isAdmin();
-    }
-    
-    match /heroImages/{imageId} {
-      allow read;
-      allow write: if isAdmin();
-    }
-
-    match /timelineEvents/{eventId} {
-      allow read;
-      allow write: if isAdmin();
-    }
-
-    match /coreValues/{valueId} {
-      allow read;
-      allow write: if isAdmin();
-    }
-
-    match /galleryImages/{imageId} {
-      allow read;
-      allow write: if isAdmin();
-    }
-    
-    match /siteSettings/{settingsId} {
-      allow read;
-      allow write: if isAdmin();
-    }
-
-    match /pageContent/{pageId} {
-      allow read;
-      allow write: if isAdmin();
-    }
+    match /roster/{memberId} { allow read; allow write: if isAdmin(); }
+    match /announcements/{announcementId} { allow read; allow write: if isAdmin(); }
+    match /games/{gameId} { allow read; allow write: if isAdmin(); }
+    match /heroImages/{imageId} { allow read; allow write: if isAdmin(); }
+    match /timelineEvents/{eventId} { allow read; allow write: if isAdmin(); }
+    match /coreValues/{valueId} { allow read; allow write: if isAdmin(); }
+    match /galleryImages/{imageId} { allow read; allow write: if isAdmin(); }
+    match /siteSettings/{settingsId} { allow read; allow write: if isAdmin(); }
+    match /pageContent/{pageId} { allow read; allow write: if isAdmin(); }
   }
 }
