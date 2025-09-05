@@ -138,7 +138,7 @@ service cloud.firestore {
     }
 
     //------------------------------------------------------------
-    // Site-Wide Content (Admin-managed)
+    // Site-Wide Content (Admin-managed, but publically readable)
     //------------------------------------------------------------
     match /roster/{memberId} {
       allow read;
@@ -186,5 +186,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
