@@ -13,7 +13,9 @@ const spaceGrotesk = SpaceGrotesk({ subsets: ['latin'], variable: '--font-space-
 const metadata: Metadata = {
   title: 'Fantom eSport',
   description: 'Welcome to the official website of Fantom eSport',
-  icons: null,
+  icons: {
+    icon: `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22black%22><path d=%22M12 0L2.363 5.432v13.136L12 24l9.637-5.432V5.432zM11.636 22.25v-8.84H2.727v-1.782l8.91-5.045v15.667zm.728 0V6.583l8.91 5.045v1.782h-8.91z%22 /></svg>`,
+  },
 };
 
 export default function RootLayout({
@@ -49,6 +51,7 @@ export default function RootLayout({
       <head>
           <title>{metadata.title as React.ReactNode}</title>
           <meta name="description" content={metadata.description!} />
+           <link rel="icon" href={metadata.icons.icon as string} type="image/svg+xml" />
            <link rel="preconnect" href="https://fonts.googleapis.com" />
            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
            <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet" />
