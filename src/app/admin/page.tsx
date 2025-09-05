@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, setDoc, getDoc, writeBatch, where, collectionGroup } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy, updateDoc, setDoc, getDoc, writeBatch, where, collectionGroup, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -130,6 +130,22 @@ export default function AdminPage() {
         fetchAllData();
     }, []);
 
+    // Set up a real-time listener for the users collection
+    useEffect(() => {
+        const usersCollectionRef = collection(db, 'users');
+        const unsubscribe = onSnapshot(usersCollectionRef, (snapshot) => {
+            const updatedUsers = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
+            setUsers(updatedUsers);
+        }, (error) => {
+            console.error("Error listening to users collection:", error);
+            toast({ variant: "destructive", title: "Real-time Error", description: "Could not sync users." });
+        });
+
+        // Cleanup the listener when the component unmounts
+        return () => unsubscribe();
+    }, [toast]);
+
+
     const fetchAllData = () => {
         fetchData<BlogPost>("blogPosts", setBlogPosts, query(collection(db, "blogPosts"), orderBy("date", "desc")));
         fetchData<RosterMember>("roster", setRoster);
@@ -139,7 +155,6 @@ export default function AdminPage() {
         fetchData<TimelineEvent>("timelineEvents", setTimelineEvents, query(collection(db, "timelineEvents"), orderBy("position", "asc")));
         fetchData<CoreValue>("coreValues", setCoreValues);
         fetchData<GalleryImage>("galleryImages", setGalleryImages);
-        fetchData<UserProfile>('users', setUsers);
         fetchData<VerificationRequest>('verificationRequests', setVerificationRequests, query(collection(db, 'verificationRequests'), where('status', '==', 'pending'), orderBy('timestamp', 'asc')));
         fetchSiteSettings();
         fetchPageContent();
