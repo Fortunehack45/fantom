@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -16,51 +15,64 @@ service cloud.firestore {
     }
 
     function isAdmin() {
+      // In a real app, this should check a custom claim or a list of admin UIDs in Firestore.
       return isSignedIn() && request.auth.token.email == 'fortunedomination@gmail.com';
     }
     
     function isAuthor(doc) {
       return isUser(doc.authorId);
     }
+    
+    // Helper to check if a user is updating only their own profile, without escalating privileges.
+    function isUpdatingOwnProfile(data) {
+        return data.verification == resource.data.verification;
+    }
 
     //------------------------------------------------------------
     // User Data & Profiles
     //------------------------------------------------------------
     match /users/{userId} {
-      // Allow signed-in users to get profiles and list them (for search/profile pages)
+      // Any signed-in user can query/list users (e.g., for search) and get a specific user's profile.
       allow list, get: if isSignedIn();
       
-      // Allow a user to create their own document
+      // A user can only create their own user document.
       allow create: if isUser(userId);
       
-      // Allow a user to update their own profile, but not change their verification status
-      allow update: if (isUser(userId) && request.resource.data.verification == resource.data.verification) || isAdmin();
+      // A user can update their own profile (but not their verification status), or an admin can update any profile.
+      allow update: if (isUser(userId) && isUpdatingOwnProfile(request.resource.data)) || isAdmin();
       
+      // Only an admin can delete a user document.
       allow delete: if isAdmin();
       
+      // --- Followers & Following Subcollections ---
       match /followers/{followerId} {
-        allow read, list;
-        allow create, delete: if isUser(followerId) || isAdmin();
+        allow read; // Anyone can see who follows a user.
+        // Only the follower can add/remove themselves from the list.
+        allow create, delete: if isUser(followerId);
       }
       
       match /following/{followingId} {
-        allow read, list;
-        allow create, delete: if isUser(userId) || isAdmin();
+        allow read; // Anyone can see who a user is following.
+        // Only the user themselves can manage their own following list.
+        allow create, delete: if isUser(userId);
       }
     }
     
     match /usernames/{username} {
       allow get;
+      // A user can only create a username document for their own UID.
       allow create: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username;
+      // A user can delete their own username document, or an admin can delete any.
       allow delete: if isAdmin() || isUser(get(/databases/$(database)/documents/usernames/$(username)).data.uid);
     }
 
     //------------------------------------------------------------
-    // Publicly Readable Content
+    // Public Content: Blog Posts & Shorts
     //------------------------------------------------------------
     match /blogPosts/{postId} {
       allow read;
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      // Allow update for author, admin, or for anyone to update ONLY the 'likes' array.
       allow update: if (isAuthor(resource.data) || isAdmin()) ||
                       (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
       allow delete: if isAuthor(resource.data) || isAdmin();
@@ -69,11 +81,60 @@ service cloud.firestore {
     match /shorts/{shortId} {
       allow read;
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      // Allow update for author, admin, or for anyone to update ONLY the 'likes' or 'shares' fields.
+      allow update: if (isAuthor(resource.data) || isAdmin()) ||
+                      (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'shares']));
+      allow delete: if isAuthor(resource.data) || isAdmin();
+    }
+
+    //------------------------------------------------------------
+    // Social: Comments & Replies
+    //------------------------------------------------------------
+    match /{path=**}/comments/{commentId} {
+      allow read;
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      allow update: if (isAuthor(resource.data) || isAdmin()) ||
+                      (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
+      allow delete: if isAuthor(resource.data) || isAdmin();
+    }
+    
+    match /{path=**}/replies/{replyId} {
+      allow read;
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
       allow update: if (isAuthor(resource.data) || isAdmin()) ||
                       (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
       allow delete: if isAuthor(resource.data) || isAdmin();
     }
 
+    //------------------------------------------------------------
+    // Private Messaging
+    //------------------------------------------------------------
+    match /chats/{chatId} {
+        // A user can only get, list, or update a chat if they are a participant. Admin can too.
+        allow get, list, update: if (isSignedIn() && request.auth.uid in resource.data.users) || isAdmin();
+        // A user can create a chat if they are one of the two participants.
+        allow create: if isSignedIn() && request.auth.uid in request.resource.data.users && request.resource.data.users.size() == 2;
+        allow delete: if isAdmin();
+
+        match /messages/{messageId} {
+            // A user can read/create a message if they are a participant in the parent chat.
+            allow read, create: if (isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users);
+            // Only admin can modify/delete specific messages.
+            allow update, delete: if isAdmin();
+        }
+    }
+    
+    //------------------------------------------------------------
+    // Verification System
+    //------------------------------------------------------------
+    match /verificationRequests/{requestId} {
+      allow get, list, update, delete: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    //------------------------------------------------------------
+    // Site-Wide Content (Mostly public read, admin write)
+    //------------------------------------------------------------
     match /roster/{memberId} {
       allow read;
       allow write: if isAdmin();
@@ -117,54 +178,6 @@ service cloud.firestore {
     match /pageContent/{pageId} {
       allow read;
       allow write: if isAdmin();
-    }
-
-    //------------------------------------------------------------
-    // Social: Comments & Replies
-    //------------------------------------------------------------
-    match /{path=**}/comments/{commentId} {
-      allow read;
-      allow create: if isSignedIn();
-      allow update: if (isAuthor(resource.data) || isAdmin()) ||
-                      (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
-      allow delete: if isAuthor(resource.data) || isAdmin();
-    }
-    
-    match /{path=**}/replies/{replyId} {
-      allow read;
-      allow create: if isSignedIn();
-      allow update: if (isAuthor(resource.data) || isAdmin()) ||
-                      (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
-      allow delete: if isAuthor(resource.data) || isAdmin();
-    }
-
-    //------------------------------------------------------------
-    // Private Messaging
-    //------------------------------------------------------------
-    match /chats/{chatId} {
-      // Allow participants or admin to get, list, or update a chat document
-      allow get, list, update: if (isSignedIn() && request.auth.uid in resource.data.users) || isAdmin();
-      
-      // Allow a user to create a chat if they are one of the two participants
-      allow create: if isSignedIn() && request.auth.uid in request.resource.data.users && request.resource.data.users.size() == 2;
-      
-      allow delete: if isAdmin();
-
-      match /messages/{messageId} {
-        // Allow chat participants or admin to read and create messages
-        allow read, create: if (isSignedIn() && get(/databases/$(database)/documents/chats/$(chatId)).data.users.hasAny([request.auth.uid])) || isAdmin();
-        
-        // Only admin can update or delete messages for moderation
-        allow update, delete: if isAdmin();
-      }
-    }
-    
-    //------------------------------------------------------------
-    // Verification System
-    //------------------------------------------------------------
-    match /verificationRequests/{requestId} {
-      allow get, list, update, delete: if isAdmin();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
   }
 }
