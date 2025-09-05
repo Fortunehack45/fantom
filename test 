@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function hasRole(role) {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+    
+    function isAdmin() {
+      return hasRole('admin');
+    }
+    
+    function isValidUser() {
+      return request.resource.data.keys().hasAll([
+        'email', 
+        'displayName', 
+        'createdAt'
+      ]);
+    }
+    
+    // Resource validation functions
+    function isValidString(field) {
+      return request.resource.data[field] is string &&
+             request.resource.data[field].size() > 0 &&
+             request.resource.data[field].size() <= 500;
+    }
+    
+    function isValidTimestamp(field) {
+      return request.resource.data[field] is timestamp;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+                   isOwner(userId) && 
+                   isValidUser();
+      allow update: if isAuthenticated() && 
+                   (isOwner(userId) || isAdmin()) &&
+                   isValidUser();
+      allow delete: if isAdmin();
+      
+      // User's private data subcollection
+      match /private/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Profiles Collection (public user data)
+    match /profiles/{userId} {
+      allow read: if true; // Public readable
+      allow write: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Transactions or Financial Records
+    match /transactions/{transactionId} {
+      allow read: if isAuthenticated() && 
+                 (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && 
+                   request.resource.data.userId == request.auth.uid &&
+                   isValidString('description') &&
+                   isValidTimestamp('createdAt');
+      allow update: if isAuthenticated() && 
+                   resource.data.userId == request.auth.uid &&
+                   isValidString('description');
+      allow delete: if isAuthenticated() && 
+                   resource.data.userId == request.auth.uid;
+    }
+
+    // Settings Collection
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Logs Collection (for admin monitoring)
+    match /logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // Public Content
+    match /public/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Catch-all rule - deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
