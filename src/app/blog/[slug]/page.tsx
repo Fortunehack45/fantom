@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { collection, query, where, getDocs, doc, addDoc, serverTimestamp, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy, deleteDoc, limit } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { Header } from "@/components/header";
@@ -27,6 +27,7 @@ interface Post {
     id: string;
     slug: string;
     title: string;
+    authorId: string;
     authorName: string;
     date: any;
     category: string;
@@ -83,6 +84,7 @@ const getVideoEmbedUrl = (url: string) => {
 
 export default function BlogPostPage() {
     const { toast } = useToast();
+    const router = useRouter();
     const [post, setPost] = useState<Post | null>(null);
     const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
@@ -94,7 +96,7 @@ export default function BlogPostPage() {
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
     const [replyContent, setReplyContent] = useState('');
     
-    const [deletingItem, setDeletingItem] = useState<{commentId: string, replyId?: string} | null>(null);
+    const [deletingItem, setDeletingItem] = useState<{ type: 'post' | 'comment' | 'reply', postId?: string, commentId?: string, replyId?: string } | null>(null);
 
     const params = useParams();
     const slug = params?.slug as string;
@@ -128,6 +130,7 @@ export default function BlogPostPage() {
                         slug: slug,
                         title: docData.title,
                         content: docData.content,
+                        authorId: docData.authorId,
                         authorName: docData.authorName || "Fantom eSport",
                         date: postDate,
                         category: docData.category || "News",
@@ -259,19 +262,30 @@ export default function BlogPostPage() {
     };
     
     const handleDeleteItem = async () => {
-        if (!user || !post || !deletingItem) return;
+        if (!user || !deletingItem) return;
 
-        const { commentId, replyId } = deletingItem;
+        const { type, postId, commentId, replyId } = deletingItem;
 
         try {
             let itemRef;
-            if (replyId) {
-                itemRef = doc(db, 'blogPosts', post.id, 'comments', commentId, 'replies', replyId);
+            if (type === 'post' && postId) {
+                itemRef = doc(db, 'blogPosts', postId);
+            } else if (type === 'reply' && postId && commentId && replyId) {
+                itemRef = doc(db, 'blogPosts', postId, 'comments', commentId, 'replies', replyId);
+            } else if (type === 'comment' && postId && commentId) {
+                itemRef = doc(db, 'blogPosts', postId, 'comments', commentId);
             } else {
-                itemRef = doc(db, 'blogPosts', post.id, 'comments', commentId);
+                throw new Error("Invalid deletion request");
             }
             await deleteDoc(itemRef);
-            toast({ title: 'Success', description: 'Item deleted.' });
+            
+            if(type === 'post') {
+                toast({ title: 'Success', description: 'Post deleted.' });
+                router.push('/blog');
+            } else {
+                toast({ title: 'Success', description: 'Item deleted.' });
+            }
+
         } catch (error) {
             console.error("Error deleting item:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete item.' });
@@ -409,6 +423,7 @@ export default function BlogPostPage() {
     const totalCommentsAndReplies = comments.reduce((acc, comment) => acc + 1 + comment.replies.length, 0);
     const hasLikedPost = user ? post.likes.includes(user.uid) : false;
     const videoEmbedUrl = post.videoUrl ? getVideoEmbedUrl(post.videoUrl) : null;
+    const isPostAuthor = user?.uid === post.authorId;
 
 
     const CommentCard = ({ item, isReply = false, commentId }: { item: Comment | Reply, isReply?: boolean, commentId?: string }) => {
@@ -454,7 +469,7 @@ export default function BlogPostPage() {
                             </Button>
                         )}
                         {isAuthor && (
-                             <Button variant="ghost" className="h-auto p-0 flex items-center gap-1 text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({ commentId: commentId || item.id, replyId: isReply ? item.id : undefined })}>
+                             <Button variant="ghost" className="h-auto p-0 flex items-center gap-1 text-destructive hover:text-destructive/80" onClick={() => setDeletingItem({ type: isReply ? 'reply' : 'comment', postId: post.id, commentId: commentId || item.id, replyId: isReply ? item.id : undefined })}>
                                 <Trash2 className="h-4 w-4"/>
                             </Button>
                         )}
@@ -491,7 +506,14 @@ export default function BlogPostPage() {
         <div className="container mx-auto px-4">
             <article className="max-w-4xl mx-auto">
                 <header className="mb-8 text-center">
-                    <Badge variant="primary">{post.category}</Badge>
+                    <div className='flex items-center justify-center gap-4'>
+                        <Badge variant="primary">{post.category}</Badge>
+                        {isPostAuthor && (
+                           <Button variant="destructive" size="icon" className="h-7 w-7 rounded-full" onClick={() => setDeletingItem({ type: 'post', postId: post.id })}>
+                             <Trash2 className='h-4 w-4'/>
+                           </Button>
+                        )}
+                    </div>
                     <h1 className="text-4xl md:text-6xl font-headline font-bold uppercase my-2">{post.title}</h1>
                     <p className="text-muted-foreground text-sm">
                         By <Link href={`/profile/${post.authorName}`} className="text-primary hover:underline">{post.authorName}</Link> - Posted {formatDistanceToNow(post.date, { addSuffix: true })}
